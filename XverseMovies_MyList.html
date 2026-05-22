@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XverseMovies — My List</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="xverse-config.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--red:#E50914;--bg:#141414;--card:#1c1c1c;--text:#e5e5e5;--muted:#808080;--border:rgba(255,255,255,.09);--green:#46d369}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-height:100vh;overflow-x:hidden}
+nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;align-items:center;padding:0 4%;gap:24px;background:rgba(8,8,8,.97);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.logo{font-family:'Bebas Neue',cursive;font-size:2rem;color:var(--red);letter-spacing:2px;text-decoration:none;flex-shrink:0}
+.logo span{color:#fff}
+.nav-links{display:flex;gap:2px;list-style:none}
+.nav-link{color:rgba(255,255,255,.7);text-decoration:none;font-size:.86rem;font-weight:500;padding:6px 12px;border-radius:4px;transition:all .2s;cursor:pointer;border:none;background:none;font-family:'Barlow',sans-serif}
+.nav-link:hover{color:#fff;background:rgba(255,255,255,.07)}
+.nav-link.active{color:#fff;font-weight:700}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.nav-avatar{width:30px;height:30px;border-radius:4px;background:linear-gradient(135deg,var(--red),#831010);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.78rem;cursor:pointer;color:#fff;overflow:hidden;border:2px solid transparent;transition:border-color .2s}
+.nav-avatar:hover{border-color:rgba(255,255,255,.5)}
+.nav-avatar img{width:100%;height:100%;object-fit:cover}
+main{padding:88px 4% 60px}
+/* TABS */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:28px}
+.tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-size:.9rem;font-weight:600;padding:12px 20px;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s;margin-bottom:-1px;white-space:nowrap;letter-spacing:.3px}
+.tab:hover{color:var(--text)}
+.tab.active{color:#fff;border-bottom-color:var(--red)}
+/* PANEL */
+.panel{display:none}
+.panel.active{display:block;animation:fi .2s ease}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.panel-hd{margin-bottom:20px}
+.panel-title{font-family:'Bebas Neue',cursive;font-size:2rem;color:#fff;letter-spacing:2px;margin-bottom:4px}
+.panel-meta{font-size:.84rem;color:var(--muted);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.meta-chip{background:rgba(255,255,255,.07);border:1px solid var(--border);padding:3px 12px;border-radius:20px;font-size:.75rem;color:rgba(255,255,255,.65)}
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:28px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px 16px;transition:border-color .2s}
+.stat:hover{border-color:rgba(255,255,255,.18)}
+.stat-n{font-family:'Bebas Neue',cursive;font-size:1.9rem;color:#fff;line-height:1}
+.stat-l{font-size:.66rem;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.5px}
+.stat-s{font-size:.7rem;color:var(--green);margin-top:3px}
+/* FILTER BAR */
+.filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.fbtn{background:rgba(255,255,255,.07);border:1px solid var(--border);color:rgba(255,255,255,.68);padding:6px 16px;border-radius:20px;font-size:.78rem;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s;white-space:nowrap}
+.fbtn:hover{background:rgba(255,255,255,.12);color:#fff}
+.fbtn.on{background:#fff;color:#000;border-color:#fff;font-weight:700}
+.fspacer{flex:1}
+.fsel{background:rgba(255,255,255,.07);border:1px solid var(--border);color:rgba(255,255,255,.7);padding:6px 12px;border-radius:6px;font-size:.78rem;font-family:'Barlow',sans-serif;cursor:pointer;outline:none}
+.fsel option{background:#1c1c1c}
+.view-tog{display:flex;gap:3px}
+.vbtn{background:none;border:1px solid var(--border);color:var(--muted);width:30px;height:30px;border-radius:4px;cursor:pointer;font-size:.82rem;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.vbtn.on,.vbtn:hover{background:rgba(255,255,255,.09);color:#fff;border-color:rgba(255,255,255,.22)}
+/* GRID */
+.ml-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px}
+.ml-grid.list{grid-template-columns:1fr;gap:6px}
+/* CARD */
+.ml-card{border-radius:6px;overflow:hidden;background:var(--card);border:1px solid var(--border);cursor:pointer;transition:transform .2s,border-color .2s;position:relative}
+.ml-card:hover{transform:scale(1.05);border-color:rgba(255,255,255,.26);z-index:2}
+.ml-card.list{display:flex;align-items:center;transform:none!important;transition:background .2s,border-color .2s}
+.ml-card.list:hover{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.16)}
+.ml-thumb{position:relative;aspect-ratio:2/3;overflow:hidden}
+.ml-card.list .ml-thumb{width:64px;height:96px;flex-shrink:0;aspect-ratio:unset}
+.ml-img{width:100%;height:100%;object-fit:cover;background:#222;display:block;transition:filter .2s}
+.ml-card:hover .ml-img{filter:brightness(.55)}
+.ml-card.list:hover .ml-img{filter:brightness(.8)}
+.ml-ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;opacity:0;transition:opacity .2s;background:rgba(0,0,0,.38)}
+.ml-card:hover .ml-ov{opacity:1}
+.ml-card.list .ml-ov{flex-direction:row}
+.ml-play{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.92);border:none;color:#000;font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s;flex-shrink:0}
+.ml-play:hover{transform:scale(1.1)}
+.ml-del{width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.55);border:1.5px solid rgba(255,255,255,.4);color:#fff;font-size:.78rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.ml-del:hover{background:rgba(229,9,20,.45);border-color:var(--red)}
+.ml-type{position:absolute;top:6px;left:6px;font-size:.58rem;font-weight:800;padding:2px 6px;border-radius:3px;letter-spacing:.8px}
+.ml-type.movie{background:rgba(229,9,20,.8);color:#fff}
+.ml-type.tv{background:rgba(33,150,243,.8);color:#fff}
+.ml-info{padding:8px 9px 10px}
+.ml-card.list .ml-info{flex:1;padding:10px 14px;min-width:0}
+.ml-name{font-size:.8rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+.ml-card.list .ml-name{font-size:.9rem;white-space:normal;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.ml-meta{font-size:.66rem;color:var(--muted);display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.ml-card.list .ml-meta{font-size:.74rem}
+.ml-desc{font-size:.74rem;color:rgba(255,255,255,.44);margin-top:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.4}
+.ml-added{font-size:.66rem;color:rgba(255,255,255,.3);margin-top:4px}
+.list-acts{display:flex;gap:6px;align-items:center;padding:0 12px;flex-shrink:0}
+.la-btn{background:rgba(255,255,255,.07);border:1px solid var(--border);color:rgba(255,255,255,.68);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:.78rem;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.la-btn:hover{background:rgba(255,255,255,.14);color:#fff}
+.la-btn.del{color:#ff6b6b;border-color:rgba(255,100,100,.2)}
+.la-btn.del:hover{background:rgba(229,9,20,.12)}
+/* CW CARDS */
+.cw-scroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;margin-bottom:32px}
+.cw-scroll::-webkit-scrollbar{display:none}
+.cw-card{flex-shrink:0;width:215px;border-radius:6px;overflow:hidden;background:var(--card);border:1px solid var(--border);cursor:pointer;transition:transform .2s,border-color .2s;position:relative}
+.cw-card:hover{transform:scale(1.04);border-color:rgba(255,255,255,.26)}
+.cw-thumb-w{position:relative;height:122px;overflow:hidden}
+.cw-img{width:100%;height:100%;object-fit:cover;background:#222;display:block;transition:filter .2s}
+.cw-card:hover .cw-img{filter:brightness(.65)}
+.cw-play-ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;background:rgba(0,0,0,.32)}
+.cw-card:hover .cw-play-ov{opacity:1}
+.cw-prog-bar{position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,.2)}
+.cw-prog-fill{height:100%;background:var(--red);border-radius:0 1.5px 1.5px 0}
+.cw-time{position:absolute;bottom:8px;right:8px;font-size:.62rem;color:rgba(255,255,255,.75);background:rgba(0,0,0,.6);padding:2px 6px;border-radius:3px}
+.cw-rem{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);border:none;color:rgba(255,255,255,.6);width:22px;height:22px;border-radius:50%;font-size:.6rem;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:all .2s}
+.cw-card:hover .cw-rem{opacity:1}
+.cw-rem:hover{background:rgba(229,9,20,.7);color:#fff}
+.cw-info{padding:8px 10px 10px}
+.cw-title{font-size:.82rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+.cw-sub{font-size:.7rem;color:var(--muted)}
+/* HISTORY */
+.hist-group{margin-bottom:28px}
+.hist-date{font-size:.7rem;font-weight:700;color:var(--muted);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.hist-list{display:flex;flex-direction:column;gap:5px}
+.hist-item{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:6px;padding:8px 13px;transition:border-color .2s;cursor:pointer}
+.hist-item:hover{border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.05)}
+.hist-thumb{width:48px;height:70px;border-radius:4px;object-fit:cover;background:#222;flex-shrink:0}
+.hist-info{flex:1;min-width:0}
+.hist-title{font-size:.86rem;font-weight:600;color:#fff;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-meta{font-size:.7rem;color:var(--muted)}
+.hist-time{font-size:.68rem;color:rgba(255,255,255,.3);margin-left:auto;white-space:nowrap;padding-left:10px}
+.hist-acts{display:flex;gap:6px;padding-left:6px}
+/* UNDO */
+#undoBar{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);background:rgba(22,22,22,.97);border:1px solid rgba(255,255,255,.14);color:#fff;padding:11px 18px;border-radius:8px;display:flex;align-items:center;gap:14px;font-size:.84rem;z-index:9999;opacity:0;pointer-events:none;transition:opacity .3s;backdrop-filter:blur(8px);box-shadow:0 6px 28px rgba(0,0,0,.6);white-space:nowrap}
+#undoBar.show{opacity:1;pointer-events:all}
+.undo-btn{background:none;border:none;color:var(--red);font-size:.84rem;font-weight:700;cursor:pointer;font-family:'Barlow',sans-serif;padding:0}
+.undo-btn:hover{text-decoration:underline}
+/* EMPTY */
+.empty{text-align:center;padding:70px 20px}
+.empty-ico{font-size:3.5rem;margin-bottom:16px;opacity:.28}
+.empty-title{font-size:1.1rem;font-weight:600;color:rgba(255,255,255,.4);margin-bottom:8px}
+.empty-sub{font-size:.84rem;color:var(--muted);line-height:1.6;margin-bottom:24px}
+.btn-browse{background:var(--red);color:#fff;border:none;padding:11px 28px;font-size:.88rem;font-weight:700;border-radius:4px;cursor:pointer;font-family:'Barlow',sans-serif;transition:background .2s}
+.btn-browse:hover{background:#f40612}
+/* SKELETON */
+.skel{background:linear-gradient(90deg,#222 25%,#2a2a2a 50%,#222 75%);background-size:200% 100%;animation:sk 1.4s infinite;border-radius:4px}
+@keyframes sk{0%{background-position:200%}100%{background-position:-200%}}
+@media(max-width:640px){.nav-links{display:none}.stats{grid-template-columns:repeat(2,1fr)}.ml-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}.cw-card{width:175px}}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="logo" href="XverseMovies_Home.html">Xverse<span>Movies</span></a>
+  <ul class="nav-links">
+    <li><button class="nav-link" onclick="location.href='XverseMovies_Home.html'">Home</button></li>
+    <li><button class="nav-link" onclick="location.href='XverseMovies_Browse.html#tv'">TV Shows</button></li>
+    <li><button class="nav-link" onclick="location.href='XverseMovies_Browse.html#movies'">Movies</button></li>
+    <li><button class="nav-link active">My List</button></li>
+  </ul>
+  <div class="nav-right">
+    <div class="nav-avatar" id="navAvatar">U</div>
+  </div>
+</nav>
+
+<main>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('mylist',this)">My List</button>
+    <button class="tab" onclick="switchTab('continue',this)">Continue Watching</button>
+    <button class="tab" onclick="switchTab('history',this)">Watch History</button>
+  </div>
+
+  <!-- MY LIST -->
+  <div class="panel active" id="panel-mylist">
+    <div class="panel-hd">
+      <div class="panel-title">My List</div>
+      <div class="panel-meta">
+        <span id="mlCountText">Loading...</span>
+        <span class="meta-chip" id="mlMovieChip">0 Movies</span>
+        <span class="meta-chip" id="mlTVChip">0 TV Shows</span>
+      </div>
+    </div>
+    <div class="stats" id="mlStats"></div>
+    <div class="filter-bar">
+      <button class="fbtn on" onclick="filterML('all',this)">All</button>
+      <button class="fbtn" onclick="filterML('movie',this)">Movies</button>
+      <button class="fbtn" onclick="filterML('tv',this)">TV Shows</button>
+      <div class="fspacer"></div>
+      <select class="fsel" onchange="sortML(this.value)">
+        <option value="added">Date Added</option>
+        <option value="alpha">A – Z</option>
+        <option value="rating">Rating</option>
+        <option value="year">Year</option>
+      </select>
+      <div class="view-tog">
+        <button class="vbtn on" id="vGrid" onclick="setView('grid',this)">⊞</button>
+        <button class="vbtn" id="vList" onclick="setView('list',this)">☰</button>
+      </div>
+    </div>
+    <div id="mlEmpty" class="empty" style="display:none">
+      <div class="empty-ico">🎬</div>
+      <div class="empty-title">Your list is empty</div>
+      <div class="empty-sub">Movies aur shows save karo yahan pe<br>taaki baad mein dekh sako.</div>
+      <button class="btn-browse" onclick="location.href='XverseMovies_Browse.html'">Browse Content</button>
+    </div>
+    <div class="ml-grid" id="mlGrid"></div>
+  </div>
+
+  <!-- CONTINUE WATCHING -->
+  <div class="panel" id="panel-continue">
+    <div class="panel-hd">
+      <div class="panel-title">Continue Watching</div>
+      <div class="panel-meta"><span id="cwCountText">Loading...</span></div>
+    </div>
+    <div id="cwEmpty" class="empty" style="display:none">
+      <div class="empty-ico">▶️</div>
+      <div class="empty-title">Nothing to continue yet</div>
+      <div class="empty-sub">Koi movie ya show start karo<br>aur yahan appear ho jayega.</div>
+      <button class="btn-browse" onclick="location.href='XverseMovies_Browse.html'">Start Watching</button>
+    </div>
+    <div id="cwSection" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <span style="font-size:.9rem;font-weight:700;color:#fff">In Progress <span style="color:var(--muted);font-weight:400" id="cwCount"></span></span>
+        <button onclick="clearAllCW()" style="background:none;border:none;color:var(--muted);font-size:.78rem;cursor:pointer;font-family:'Barlow',sans-serif">Clear All</button>
+      </div>
+      <div class="cw-scroll" id="cwScroll"></div>
+    </div>
+    <div id="cwDoneSection" style="display:none">
+      <div style="font-size:.9rem;font-weight:700;color:#fff;margin-bottom:12px">Completed <span style="color:var(--muted);font-weight:400" id="cwDoneCount"></span></div>
+      <div class="cw-scroll" id="cwDoneScroll"></div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="panel" id="panel-history">
+    <div class="panel-hd">
+      <div class="panel-title">Watch History</div>
+      <div class="panel-meta">
+        <span id="histCountText">Loading...</span>
+        <button onclick="clearHistory()" style="background:none;border:1px solid var(--border);color:var(--muted);padding:4px 14px;border-radius:4px;font-size:.72rem;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--muted)'">Clear History</button>
+      </div>
+    </div>
+    <div id="histEmpty" class="empty" style="display:none">
+      <div class="empty-ico">🕐</div>
+      <div class="empty-title">No watch history yet</div>
+      <div class="empty-sub">Jo movies aur shows tum watch karoge<br>wo yahan dikh jayega.</div>
+    </div>
+    <div id="histContent"></div>
+  </div>
+</main>
+
+<!-- UNDO -->
+<div id="undoBar"><span id="undoText">Removed</span><button class="undo-btn" onclick="undoRemove()">UNDO</button></div>
+
+<script>
+// ─────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────
+let currentUser  = null;
+let mlData       = [];   // full my list
+let mlFilter     = 'all';
+let mlSort       = 'added';
+let mlView       = 'grid';
+let lastRemoved  = null;
+let undoTimer    = null;
+
+// ─────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────
+(async () => {
+  currentUser = await requireAuth();
+  if (!currentUser) return;
+  await initNavAvatar('navAvatar');
+  await loadMyList();
+})();
+
+// ─────────────────────────────────────────
+//  TABS
+// ─────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'continue') loadCW();
+  if (name === 'history')  loadHistory();
+}
+
+// ─────────────────────────────────────────
+//  MY LIST
+// ─────────────────────────────────────────
+async function loadMyList() {
+  document.getElementById('mlGrid').innerHTML = skelCards(12);
+  mlData = await DB.getMyList(currentUser.id);
+  renderMyList();
+}
+
+function getFiltered() {
+  let list = [...mlData];
+  if (mlFilter !== 'all') list = list.filter(m => m.type === mlFilter);
+  if (mlSort === 'alpha')  list.sort((a,b) => a.title.localeCompare(b.title));
+  if (mlSort === 'rating') list.sort((a,b) => (b.rating||0) - (a.rating||0));
+  if (mlSort === 'year')   list.sort((a,b) => (b.year||'') > (a.year||'') ? 1 : -1);
+  return list;
+}
+
+function renderMyList() {
+  const filtered = getFiltered();
+  const movies   = mlData.filter(m => m.type === 'movie');
+  const tvs      = mlData.filter(m => m.type === 'tv');
+  const hrs      = Math.round(mlData.reduce((s,m) => s + (m.duration ? parseInt(m.duration) : 90), 0) / 60);
+
+  // Stats
+  document.getElementById('mlCountText').textContent  = mlData.length + ' title' + (mlData.length !== 1 ? 's' : '') + ' saved';
+  document.getElementById('mlMovieChip').textContent  = movies.length + ' Movie' + (movies.length !== 1 ? 's' : '');
+  document.getElementById('mlTVChip').textContent     = tvs.length + ' TV Show' + (tvs.length !== 1 ? 's' : '');
+  document.getElementById('mlStats').innerHTML = [
+    { n: mlData.length, l: 'Saved Titles',   s: 'All content' },
+    { n: movies.length, l: 'Movies',          s: 'In your list' },
+    { n: tvs.length,    l: 'TV Shows',        s: 'In your list' },
+    { n: hrs + 'h',     l: 'Watch Time',      s: 'Est. total' },
+  ].map(s => `<div class="stat"><div class="stat-n">${s.n}</div><div class="stat-l">${s.l}</div><div class="stat-s">${s.s}</div></div>`).join('');
+
+  const grid = document.getElementById('mlGrid');
+  const empty = document.getElementById('mlEmpty');
+  grid.className = 'ml-grid' + (mlView === 'list' ? ' list' : '');
+
+  if (!filtered.length) {
+    empty.style.display = 'block'; grid.innerHTML = ''; return;
+  }
+  empty.style.display = 'none';
+  grid.innerHTML = filtered.map(m => mlCardHTML(m)).join('');
+}
+
+function mlCardHTML(m) {
+  const ms  = JSON.stringify(m).replace(/"/g, '&quot;');
+  const ago = timeAgo(m.addedAt);
+  if (mlView === 'list') {
+    return `<div class="ml-card list" onclick="playMovie(${ms})">
+      <div class="ml-thumb">
+        <img class="ml-img" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555'">
+        <div class="ml-ov"><button class="ml-play" onclick="event.stopPropagation();playMovie(${ms})">▶</button></div>
+      </div>
+      <div class="ml-info">
+        <div class="ml-name">${m.title}</div>
+        <div class="ml-meta"><span>${m.year||''}</span>${m.rating?`<span>·</span><span style="color:var(--green)">★ ${m.rating}</span>`:''}</div>
+        <div class="ml-desc">${m.overview||''}</div>
+        <div class="ml-added">Added ${ago}</div>
+      </div>
+      <div class="list-acts">
+        <button class="la-btn" onclick="event.stopPropagation();playMovie(${ms})" title="Play">▶</button>
+        <button class="la-btn del" onclick="event.stopPropagation();removeML(${m.id})" title="Remove">✕</button>
+      </div>
+    </div>`;
+  }
+  return `<div class="ml-card" onclick="playMovie(${ms})">
+    <div class="ml-thumb">
+      <img class="ml-img" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555&size=400'">
+      <span class="ml-type ${m.type||'movie'}">${m.type==='tv'?'TV':'MOVIE'}</span>
+      <div class="ml-ov">
+        <button class="ml-play" onclick="event.stopPropagation();playMovie(${ms})">▶</button>
+        <button class="ml-del" onclick="event.stopPropagation();removeML(${m.id})">✕</button>
+      </div>
+    </div>
+    <div class="ml-info">
+      <div class="ml-name">${m.title}</div>
+      <div class="ml-meta"><span>${m.year||''}</span>${m.rating?`<span>·</span><span style="color:var(--green)">★ ${m.rating}</span>`:''}</div>
+    </div>
+  </div>`;
+}
+
+async function removeML(movieId) {
+  const m = mlData.find(x => x.id === movieId);
+  if (!m) return;
+  lastRemoved = { ...m, index: mlData.indexOf(m) };
+  mlData = mlData.filter(x => x.id !== movieId);
+  await DB.removeFromMyList(currentUser.id, movieId);
+  renderMyList();
+  showUndo(`"${m.title}" removed from My List`);
+}
+
+async function undoRemove() {
+  if (!lastRemoved) return;
+  await DB.addToMyList(currentUser.id, lastRemoved.id);
+  mlData.splice(lastRemoved.index, 0, lastRemoved);
+  lastRemoved = null;
+  renderMyList();
+  hideUndo();
+  showToast('↩️ Restored to My List');
+}
+
+function filterML(f, btn) {
+  mlFilter = f;
+  document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  renderMyList();
+}
+function sortML(s) { mlSort = s; renderMyList(); }
+function setView(v, btn) {
+  mlView = v;
+  document.querySelectorAll('.vbtn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  renderMyList();
+}
+
+// ─────────────────────────────────────────
+//  CONTINUE WATCHING
+// ─────────────────────────────────────────
+async function loadCW() {
+  document.getElementById('cwScroll').innerHTML = skelCWCards(5);
+  const items    = await DB.getContinueWatching(currentUser.id);
+  const inProg   = items.filter(m => !m.completed);
+  const done     = items.filter(m => m.completed);
+  const cwEmpty  = document.getElementById('cwEmpty');
+  const cwSec    = document.getElementById('cwSection');
+  const cwDoneSec= document.getElementById('cwDoneSection');
+
+  document.getElementById('cwCountText').textContent = items.length + ' title' + (items.length!==1?'s':'') + ' in progress';
+
+  if (!items.length) { cwEmpty.style.display='block'; cwSec.style.display='none'; cwDoneSec.style.display='none'; return; }
+  cwEmpty.style.display = 'none';
+
+  if (inProg.length) {
+    cwSec.style.display = 'block';
+    document.getElementById('cwCount').textContent = `(${inProg.length})`;
+    document.getElementById('cwScroll').innerHTML = inProg.map(m => cwCardHTML(m)).join('');
+  } else cwSec.style.display = 'none';
+
+  if (done.length) {
+    cwDoneSec.style.display = 'block';
+    document.getElementById('cwDoneCount').textContent = `(${done.length})`;
+    document.getElementById('cwDoneScroll').innerHTML = done.map(m => cwCardHTML(m, true)).join('');
+  } else cwDoneSec.style.display = 'none';
+}
+
+function cwCardHTML(m, isDone = false) {
+  const pct      = m.duration > 0 ? Math.min(100, (m.progress / m.duration) * 100) : 0;
+  const minsLeft = m.duration > 0 ? Math.max(0, Math.round((m.duration - m.progress) / 60)) : 0;
+  const ms       = JSON.stringify(m).replace(/"/g, '&quot;');
+  const ago      = timeAgo(m.updatedAt);
+  return `<div class="cw-card" onclick="playMovie(${ms})">
+    <div class="cw-thumb-w">
+      <img class="cw-img" src="${m.backdrop_url||m.poster_url||''}" alt="${m.title}" onerror="this.src='${m.poster_url||''}'">
+      <div class="cw-play-ov"><div style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;color:#000;font-size:.95rem">▶</div></div>
+      <div class="cw-prog-bar"><div class="cw-prog-fill" style="width:${pct}%"></div></div>
+      ${!isDone && minsLeft > 0 ? `<div class="cw-time">${minsLeft}m left</div>` : ''}
+      ${isDone ? `<div class="cw-time" style="color:var(--green)">✓ Done</div>` : ''}
+      <button class="cw-rem" onclick="event.stopPropagation();removeCWItem(${m.id})" title="Remove">✕</button>
+    </div>
+    <div class="cw-info">
+      <div class="cw-title">${m.title}</div>
+      <div class="cw-sub">${isDone ? 'Watched ' + ago : 'Continue · ' + ago}</div>
+    </div>
+  </div>`;
+}
+
+async function removeCWItem(movieId) {
+  await DB.removeContinueWatching(currentUser.id, movieId);
+  await loadCW();
+  showToast('Removed from Continue Watching');
+}
+
+async function clearAllCW() {
+  if (!confirm('Sab Continue Watching clear karna hai?')) return;
+  const items = await DB.getContinueWatching(currentUser.id);
+  await Promise.all(items.map(m => DB.removeContinueWatching(currentUser.id, m.id)));
+  await loadCW();
+  showToast('🗑️ Continue Watching cleared');
+}
+
+// ─────────────────────────────────────────
+//  WATCH HISTORY
+// ─────────────────────────────────────────
+async function loadHistory() {
+  document.getElementById('histContent').innerHTML = skelList(8);
+  const items = await DB.getHistory(currentUser.id, 100);
+  document.getElementById('histCountText').textContent = items.length + ' title' + (items.length!==1?'s':'') + ' watched';
+
+  if (!items.length) { document.getElementById('histEmpty').style.display='block'; document.getElementById('histContent').innerHTML=''; return; }
+  document.getElementById('histEmpty').style.display = 'none';
+
+  // Group by date
+  const groups = {};
+  items.forEach(m => {
+    const d = new Date(m.watchedAt);
+    const label = isToday(d) ? 'Today' : isYesterday(d) ? 'Yesterday' : d.toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' });
+    if (!groups[label]) groups[label] = [];
+    groups[label].push(m);
+  });
+
+  document.getElementById('histContent').innerHTML = Object.entries(groups).map(([label, grp]) => `
+    <div class="hist-group">
+      <div class="hist-date">${label}</div>
+      <div class="hist-list">${grp.map(m => {
+        const ms  = JSON.stringify(m).replace(/"/g,'&quot;');
+        const t   = new Date(m.watchedAt).toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+        return `<div class="hist-item" onclick="playMovie(${ms})">
+          <img class="hist-thumb" src="${m.poster_url||''}" alt="${m.title}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555'">
+          <div class="hist-info">
+            <div class="hist-title">${m.title}</div>
+            <div class="hist-meta">${m.year||''} ${m.rating?'· ★ '+m.rating:''}</div>
+          </div>
+          <div class="hist-time">${t}</div>
+          <div class="hist-acts">
+            <button class="la-btn" onclick="event.stopPropagation();playMovie(${ms})" title="Play">▶</button>
+          </div>
+        </div>`;
+      }).join('')}</div>
+    </div>`).join('');
+}
+
+async function clearHistory() {
+  if (!confirm('Poori watch history clear karna hai?')) return;
+  await DB.clearHistory(currentUser.id);
+  await loadHistory();
+  showToast('🗑️ History cleared');
+}
+
+// ─────────────────────────────────────────
+//  PLAY
+// ─────────────────────────────────────────
+function playMovie(m) {
+  const params = new URLSearchParams({ id:m.id||'', title:m.title, type:m.type||'movie', year:m.year||'', quality:m.quality||'', embed:m.embed_url||m.embedUrl||'', poster:m.poster_url||'', backdrop:m.backdrop_url||'' });
+  window.location.href = 'XverseMovies_Player.html?' + params.toString();
+}
+
+// ─────────────────────────────────────────
+//  UNDO BAR
+// ─────────────────────────────────────────
+function showUndo(msg) {
+  clearTimeout(undoTimer);
+  document.getElementById('undoText').textContent = msg;
+  document.getElementById('undoBar').classList.add('show');
+  undoTimer = setTimeout(hideUndo, 5500);
+}
+function hideUndo() { document.getElementById('undoBar').classList.remove('show'); lastRemoved = null; }
+
+// ─────────────────────────────────────────
+//  SKELETONS
+// ─────────────────────────────────────────
+function skelCards(n) { return Array(n).fill(`<div class="skel" style="aspect-ratio:2/3;border-radius:5px"></div>`).join(''); }
+function skelCWCards(n) { return Array(n).fill(`<div class="skel" style="flex-shrink:0;width:215px;height:160px;border-radius:5px"></div>`).join(''); }
+function skelList(n) { return `<div style="display:flex;flex-direction:column;gap:6px">${Array(n).fill(`<div class="skel" style="height:86px;border-radius:6px"></div>`).join('')}</div>`; }
+
+// ─────────────────────────────────────────
+//  UTILS
+// ─────────────────────────────────────────
+function timeAgo(ts) {
+  if (!ts) return '';
+  const s = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.floor(s/60) + 'm ago';
+  if (s < 86400) return Math.floor(s/3600) + 'h ago';
+  return Math.floor(s/86400) + 'd ago';
+}
+function isToday(d)     { const n=new Date(); return d.toDateString()===n.toDateString(); }
+function isYesterday(d) { const y=new Date(); y.setDate(y.getDate()-1); return d.toDateString()===y.toDateString(); }
+</script>
+</body>
+</html>

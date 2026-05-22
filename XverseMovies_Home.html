@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XverseMovies — Home</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="xverse-config.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--red:#E50914;--bg:#141414;--card:#1c1c1c;--text:#e5e5e5;--muted:#808080;--border:rgba(255,255,255,.08);--green:#46d369}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;overflow-x:hidden}
+
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:200;height:68px;display:flex;align-items:center;padding:0 4%;gap:0;background:linear-gradient(to bottom,rgba(0,0,0,.95),transparent);transition:background .3s}
+nav.solid{background:rgba(8,8,8,.97);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.logo{font-family:'Bebas Neue',cursive;font-size:2rem;color:var(--red);letter-spacing:2px;margin-right:28px;cursor:pointer;text-decoration:none;flex-shrink:0}
+.logo span{color:#fff}
+.nav-links{display:flex;gap:2px;list-style:none}
+.nav-link{color:rgba(255,255,255,.7);text-decoration:none;font-size:.86rem;font-weight:500;padding:6px 12px;border-radius:4px;transition:all .2s;cursor:pointer;white-space:nowrap;border:none;background:none;font-family:'Barlow',sans-serif}
+.nav-link:hover{color:#fff;background:rgba(255,255,255,.07)}
+.nav-link.active{color:#fff;font-weight:700}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.nav-icon-btn{background:none;border:none;color:rgba(255,255,255,.78);cursor:pointer;width:34px;height:34px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:all .2s;font-size:.95rem;position:relative}
+.nav-icon-btn:hover{background:rgba(255,255,255,.1);color:#fff}
+.notif-dot{position:absolute;top:5px;right:5px;width:7px;height:7px;background:var(--red);border-radius:50%;border:2px solid #0a0a0a;display:none}
+.notif-dot.show{display:block}
+.nav-avatar{width:32px;height:32px;border-radius:4px;background:linear-gradient(135deg,var(--red),#831010);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.82rem;cursor:pointer;color:#fff;overflow:hidden;border:2px solid transparent;transition:border-color .2s;flex-shrink:0}
+.nav-avatar:hover{border-color:rgba(255,255,255,.6)}
+.nav-avatar img{width:100%;height:100%;object-fit:cover}
+
+/* ── SEARCH BAR ── */
+#searchWrap{display:none;position:fixed;top:68px;left:0;right:0;z-index:190;background:rgba(8,8,8,.97);border-bottom:1px solid var(--border);padding:12px 4%;backdrop-filter:blur(12px)}
+#searchWrap.show{display:block}
+#searchInput{width:100%;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.18);color:#fff;padding:10px 16px;font-size:.92rem;border-radius:6px;outline:none;font-family:'Barlow',sans-serif;transition:border .2s}
+#searchInput:focus{border-color:rgba(255,255,255,.4)}
+#searchInput::placeholder{color:var(--muted)}
+#searchResults{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;max-height:300px;overflow-y:auto}
+
+/* ── HERO ── */
+.hero{position:relative;height:95vh;min-height:500px;overflow:hidden}
+.hero-bg{position:absolute;inset:0;background-size:cover;background-position:center 20%;transition:background-image .8s}
+.hero-grad{position:absolute;inset:0;background:linear-gradient(to right,rgba(0,0,0,.88) 0%,rgba(0,0,0,.4) 50%,transparent 100%),linear-gradient(to top,rgba(20,20,20,1) 0%,transparent 35%)}
+.hero-content{position:absolute;bottom:0;left:0;padding:0 4% 80px;max-width:560px;z-index:2}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(229,9,20,.9);color:#fff;font-size:.62rem;font-weight:800;padding:3px 10px;border-radius:3px;letter-spacing:1.5px;margin-bottom:14px}
+.hero-title{font-family:'Bebas Neue',cursive;font-size:clamp(2.8rem,5.5vw,4.5rem);color:#fff;letter-spacing:2px;line-height:1;margin-bottom:12px;text-shadow:0 2px 20px rgba(0,0,0,.5)}
+.hero-meta{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.hero-match{color:var(--green);font-size:.88rem;font-weight:700}
+.hero-tag{border:1px solid rgba(255,255,255,.45);font-size:.68rem;color:rgba(255,255,255,.8);padding:1px 6px;border-radius:2px}
+.hero-overview{font-size:.88rem;color:rgba(255,255,255,.78);line-height:1.55;margin-bottom:22px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.hero-btns{display:flex;gap:10px;flex-wrap:wrap}
+.btn-play{background:#fff;color:#000;border:none;padding:10px 26px;font-size:.92rem;font-weight:800;border-radius:4px;cursor:pointer;font-family:'Barlow',sans-serif;display:flex;align-items:center;gap:8px;transition:background .2s}
+.btn-play:hover{background:#d9d9d9}
+.btn-info{background:rgba(109,109,110,.7);color:#fff;border:none;padding:10px 22px;font-size:.92rem;font-weight:700;border-radius:4px;cursor:pointer;font-family:'Barlow',sans-serif;display:flex;align-items:center;gap:8px;backdrop-filter:blur(4px);transition:background .2s}
+.btn-info:hover{background:rgba(109,109,110,.9)}
+.btn-mylist-hero{background:rgba(0,0,0,.4);color:#fff;border:2px solid rgba(255,255,255,.5);width:40px;height:40px;border-radius:50%;cursor:pointer;font-size:1.2rem;display:flex;align-items:center;justify-content:center;transition:all .2s;backdrop-filter:blur(4px)}
+.btn-mylist-hero:hover{border-color:#fff;background:rgba(255,255,255,.15)}
+/* hero indicators */
+.hero-dots{position:absolute;bottom:24px;right:4%;display:flex;gap:6px;z-index:3}
+.hero-dot{width:8px;height:3px;border-radius:2px;background:rgba(255,255,255,.35);cursor:pointer;transition:all .3s}
+.hero-dot.active{width:20px;background:#fff}
+
+/* ── ROWS ── */
+.rows-wrap{position:relative;z-index:10;margin-top:-80px;padding-bottom:60px}
+.row{margin-bottom:36px;padding:0 4%}
+.row-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.row-title{font-size:1.08rem;font-weight:700;color:#fff}
+.row-see-all{font-size:.78rem;color:var(--muted);cursor:pointer;background:none;border:none;font-family:'Barlow',sans-serif;transition:color .2s}
+.row-see-all:hover{color:#fff}
+.cards-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none}
+.cards-scroll::-webkit-scrollbar{display:none}
+
+/* ── CARD ── */
+.card{flex-shrink:0;width:155px;border-radius:5px;overflow:hidden;background:var(--card);border:1px solid var(--border);cursor:pointer;transition:transform .22s,border-color .22s,box-shadow .22s;position:relative}
+.card:hover{transform:scale(1.07);border-color:rgba(255,255,255,.28);box-shadow:0 8px 32px rgba(0,0,0,.7);z-index:4}
+.card-img-wrap{position:relative;aspect-ratio:2/3;overflow:hidden}
+.card-img{width:100%;height:100%;object-fit:cover;background:#222;display:block;transition:filter .22s}
+.card:hover .card-img{filter:brightness(.55)}
+.card-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;opacity:0;transition:opacity .2s;background:rgba(0,0,0,.35)}
+.card:hover .card-overlay{opacity:1}
+.card-play{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.92);border:none;color:#000;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s}
+.card-play:hover{transform:scale(1.1)}
+.card-add{width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.55);border:1.5px solid rgba(255,255,255,.45);color:#fff;font-size:.88rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.card-add:hover{background:rgba(229,9,20,.35);border-color:var(--red)}
+.card-type{position:absolute;top:6px;left:6px;font-size:.57rem;font-weight:800;padding:2px 6px;border-radius:3px;letter-spacing:.8px}
+.card-type.movie{background:rgba(229,9,20,.8);color:#fff}
+.card-type.tv{background:rgba(33,150,243,.8);color:#fff}
+.card-rating{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.7);color:var(--green);font-size:.6rem;font-weight:700;padding:2px 6px;border-radius:3px;opacity:0;transition:opacity .2s}
+.card:hover .card-rating{opacity:1}
+.card-info{padding:8px 9px 10px}
+.card-name{font-size:.8rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+.card-meta{font-size:.66rem;color:var(--muted);display:flex;gap:5px}
+
+/* ── CONTINUE WATCHING CARD ── */
+.cw-card{flex-shrink:0;width:220px;border-radius:5px;overflow:hidden;background:var(--card);border:1px solid var(--border);cursor:pointer;transition:transform .2s,border-color .2s;position:relative}
+.cw-card:hover{transform:scale(1.04);border-color:rgba(255,255,255,.28)}
+.cw-thumb-wrap{position:relative;height:126px;overflow:hidden}
+.cw-thumb{width:100%;height:100%;object-fit:cover;background:#222;display:block;transition:filter .2s}
+.cw-card:hover .cw-thumb{filter:brightness(.65)}
+.cw-play-ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;background:rgba(0,0,0,.3)}
+.cw-card:hover .cw-play-ov{opacity:1}
+.cw-prog{position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,.2)}
+.cw-prog-fill{height:100%;background:var(--red);border-radius:0 1.5px 1.5px 0}
+.cw-time-left{position:absolute;bottom:7px;right:8px;font-size:.62rem;color:rgba(255,255,255,.75);background:rgba(0,0,0,.6);padding:2px 6px;border-radius:3px}
+.cw-info{padding:9px 11px 11px}
+.cw-title{font-size:.83rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+.cw-sub{font-size:.7rem;color:var(--muted)}
+.cw-remove{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);border:none;color:rgba(255,255,255,.6);width:22px;height:22px;border-radius:50%;font-size:.65rem;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:all .2s}
+.cw-card:hover .cw-remove{opacity:1}
+.cw-remove:hover{background:rgba(229,9,20,.7);color:#fff}
+
+/* ── TOP 10 ── */
+.t10-wrap{display:flex;gap:0;overflow-x:auto;padding-bottom:8px;scrollbar-width:none}
+.t10-wrap::-webkit-scrollbar{display:none}
+.t10-card{flex-shrink:0;display:flex;align-items:flex-end;cursor:pointer;transition:transform .2s}
+.t10-card:hover{transform:scale(1.04);z-index:3}
+.t10-num{font-family:'Bebas Neue',cursive;font-size:7rem;color:transparent;-webkit-text-stroke:2px rgba(255,255,255,.18);line-height:1;margin-right:-20px;z-index:1;flex-shrink:0;transition:-webkit-text-stroke-color .2s}
+.t10-card:hover .t10-num{-webkit-text-stroke-color:rgba(255,255,255,.42)}
+.t10-poster{width:100px;height:146px;border-radius:4px;object-fit:cover;background:#222;z-index:2;position:relative;border:1px solid var(--border)}
+
+/* ── SKELETON ── */
+.skel{background:linear-gradient(90deg,#222 25%,#2a2a2a 50%,#222 75%);background-size:200% 100%;animation:skelA 1.4s infinite;border-radius:4px}
+@keyframes skelA{0%{background-position:200%}100%{background-position:-200%}}
+
+/* ── MODAL ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:500;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(5px)}
+.modal-bg.open{display:flex;animation:mfi .25s ease}
+@keyframes mfi{from{opacity:0}to{opacity:1}}
+.modal{background:#181818;border:1px solid rgba(255,255,255,.1);border-radius:10px;width:min(96vw,580px);max-height:90vh;overflow-y:auto;animation:msu .3s ease}
+@keyframes msu{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.modal-hero{position:relative;height:220px;overflow:hidden}
+.modal-hero img{width:100%;height:100%;object-fit:cover;display:block}
+.modal-hero-grad{position:absolute;inset:0;background:linear-gradient(to top,#181818 0%,transparent 55%)}
+.modal-close{position:absolute;top:12px;right:12px;background:rgba(0,0,0,.6);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.modal-close:hover{background:rgba(0,0,0,.88)}
+.modal-body{padding:16px 22px 28px}
+.modal-title{font-family:'Bebas Neue',cursive;font-size:1.65rem;color:#fff;letter-spacing:1px;margin-bottom:8px}
+.modal-meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;font-size:.78rem}
+.modal-match{color:var(--green);font-weight:700}
+.modal-cert{border:1px solid rgba(255,255,255,.4);padding:1px 6px;border-radius:2px;color:rgba(255,255,255,.7)}
+.modal-ov{font-size:.84rem;color:rgba(255,255,255,.72);line-height:1.6;margin-bottom:16px}
+.modal-cast{font-size:.75rem;color:rgba(255,255,255,.42);margin-bottom:16px;line-height:1.6}
+.modal-cast strong{color:rgba(255,255,255,.68)}
+.modal-acts{display:flex;gap:10px;flex-wrap:wrap}
+.modal-play{background:#fff;color:#000;border:none;padding:10px 22px;font-size:.88rem;font-weight:800;border-radius:4px;cursor:pointer;font-family:'Barlow',sans-serif;display:flex;align-items:center;gap:7px;transition:background .2s}
+.modal-play:hover{background:#d4d4d4}
+.modal-add{background:rgba(255,255,255,.1);color:#fff;border:1.5px solid rgba(255,255,255,.26);padding:10px 18px;font-size:.88rem;font-weight:700;border-radius:4px;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s}
+.modal-add:hover{background:rgba(255,255,255,.18)}
+
+/* ── EMPTY STATE ── */
+.empty-row{padding:20px;text-align:center;font-size:.84rem;color:var(--muted)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:640px){.nav-links{display:none}.card{width:120px}.cw-card{width:175px}.t10-num{font-size:5.5rem}.t10-poster{width:80px;height:116px}}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="mainNav">
+  <a class="logo" href="XverseMovies_Home.html">Xverse<span>Movies</span></a>
+  <ul class="nav-links">
+    <li><button class="nav-link active">Home</button></li>
+    <li><button class="nav-link" onclick="window.location.href='XverseMovies_Browse.html#tv'">TV Shows</button></li>
+    <li><button class="nav-link" onclick="window.location.href='XverseMovies_Browse.html#movies'">Movies</button></li>
+    <li><button class="nav-link" onclick="window.location.href='XverseMovies_Browse.html#new'">New & Popular</button></li>
+    <li><button class="nav-link" onclick="window.location.href='XverseMovies_MyList.html'">My List</button></li>
+    <li><button class="nav-link" onclick="window.location.href='XverseMovies_Browse.html#languages'">Browse Languages</button></li>
+  </ul>
+  <div class="nav-right">
+    <button class="nav-icon-btn" onclick="toggleSearch()" title="Search">🔍</button>
+    <button class="nav-icon-btn" onclick="openNotifs()" title="Notifications">
+      🔔<span class="notif-dot" id="notifDot"></span>
+    </button>
+    <div class="nav-avatar" id="navAvatar">U</div>
+  </div>
+</nav>
+
+<!-- SEARCH -->
+<div id="searchWrap">
+  <input id="searchInput" type="text" placeholder="Search movies, shows, genres, people..." oninput="doSearch(this.value)">
+  <div id="searchResults"></div>
+</div>
+
+<!-- HERO -->
+<div class="hero" id="hero">
+  <div class="hero-bg" id="heroBg"></div>
+  <div class="hero-grad"></div>
+  <div class="hero-content" id="heroContent">
+    <!-- skeleton -->
+    <div class="skel" style="width:120px;height:24px;margin-bottom:14px;border-radius:3px"></div>
+    <div class="skel" style="width:360px;height:52px;margin-bottom:12px;border-radius:3px"></div>
+    <div class="skel" style="width:260px;height:18px;margin-bottom:12px;border-radius:3px"></div>
+    <div class="skel" style="width:420px;height:60px;margin-bottom:22px;border-radius:3px"></div>
+    <div style="display:flex;gap:10px"><div class="skel" style="width:120px;height:42px;border-radius:4px"></div><div class="skel" style="width:140px;height:42px;border-radius:4px"></div></div>
+  </div>
+  <div class="hero-dots" id="heroDots"></div>
+</div>
+
+<!-- ROWS -->
+<div class="rows-wrap" id="rowsWrap">
+  <!-- Rows injected by JS -->
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-hero">
+      <img id="modalImg" src="" alt="">
+      <div class="modal-hero-grad"></div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-title" id="modalTitle"></div>
+      <div class="modal-meta" id="modalMeta"></div>
+      <div class="modal-ov" id="modalOv"></div>
+      <div class="modal-cast" id="modalCast"></div>
+      <div class="modal-acts">
+        <button class="modal-play" id="modalPlayBtn">▶ Play</button>
+        <button class="modal-add" id="modalAddBtn">＋ My List</button>
+        <button class="modal-add" onclick="closeModal()">✕ Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────
+let currentUser    = null;
+let currentProfile = null;
+let heroMovies     = [];
+let heroIdx        = 0;
+let heroTimer      = null;
+let modalMovie     = null;
+let myListIds      = new Set();
+
+// ─────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────
+(async () => {
+  currentUser = await requireAuth();
+  if (!currentUser) return;
+
+  currentProfile = Session.getProfile();
+  await initNavAvatar('navAvatar');
+
+  // Load everything in parallel
+  const [featured, cwItems, myListItems, trending, topRated, popular, hindi, south, tv] = await Promise.all([
+    DB.getFeatured(),
+    DB.getContinueWatching(currentUser.id),
+    DB.getMyList(currentUser.id),
+    TMDB.trending(),
+    TMDB.topMovies(),
+    TMDB.popularMov(),
+    TMDB.hindiMovies(),
+    TMDB.southMovies(),
+    TMDB.popularTV(),
+  ]);
+
+  // Build my list ID set for quick lookup
+  myListIds = new Set(myListItems.map(m => String(m.id)));
+
+  // Check unread notifications
+  const notifs = await DB.getNotifications(currentUser.id);
+  const unread = notifs.filter(n => !n.is_read).length;
+  if (unread > 0) document.getElementById('notifDot').classList.add('show');
+
+  // Hero: prefer admin-featured, fallback TMDB trending
+  const heroSrc = featured.length ? featured : (trending?.results || []).slice(0,7).map(TMDB.normalize);
+  buildHero(heroSrc);
+
+  // Rows
+  buildRows(cwItems, myListItems, trending, topRated, popular, hindi, south, tv);
+})();
+
+// ─────────────────────────────────────────
+//  HERO
+// ─────────────────────────────────────────
+function buildHero(movies) {
+  heroMovies = movies.filter(m => m.backdrop_url || m.poster_url);
+  if (!heroMovies.length) return;
+  renderHero(heroMovies[0]);
+
+  // Dots
+  const dotsEl = document.getElementById('heroDots');
+  dotsEl.innerHTML = heroMovies.slice(0,7).map((_,i) =>
+    `<div class="hero-dot ${i===0?'active':''}" onclick="goHero(${i})"></div>`
+  ).join('');
+
+  heroTimer = setInterval(() => goHero((heroIdx+1) % Math.min(heroMovies.length,7)), 9000);
+}
+
+function goHero(idx) {
+  heroIdx = idx;
+  renderHero(heroMovies[idx]);
+  document.querySelectorAll('.hero-dot').forEach((d,i) => d.classList.toggle('active', i===idx));
+}
+
+function renderHero(m) {
+  const bg = document.getElementById('heroBg');
+  bg.style.backgroundImage = `url('${m.backdrop_url || m.poster_url}')`;
+
+  const match = Math.round(65 + (parseFloat(m.rating||m.vote_average||7) * 3.5));
+  const inList = myListIds.has(String(m.id));
+
+  document.getElementById('heroContent').innerHTML = `
+    <div class="hero-badge">★ XVERSEMOVIES PICK</div>
+    <div class="hero-title">${m.title}</div>
+    <div class="hero-meta">
+      <span class="hero-match">${match}% Match</span>
+      <span style="font-size:.82rem;color:rgba(255,255,255,.7)">${m.year || ''}</span>
+      <span class="hero-tag">${m.age_rating || 'UA'}</span>
+      ${m.quality ? `<span style="background:rgba(70,211,105,.12);color:var(--green);font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:3px">${m.quality}</span>` : ''}
+    </div>
+    <div class="hero-overview">${m.overview || ''}</div>
+    <div class="hero-btns">
+      <button class="btn-play" onclick="playMovie(${JSON.stringify(m).replace(/"/g,'&quot;')})">▶ Play</button>
+      <button class="btn-info" onclick="openModal(${JSON.stringify(m).replace(/"/g,'&quot;')})">ⓘ More Info</button>
+      <button class="btn-mylist-hero" id="heroMyListBtn" onclick="toggleMyList(${JSON.stringify(m).replace(/"/g,'&quot;')})" title="${inList?'Remove from':'Add to'} My List">${inList?'✓':'+'}</button>
+    </div>`;
+}
+
+// ─────────────────────────────────────────
+//  ROWS
+// ─────────────────────────────────────────
+function buildRows(cwItems, myListItems, trending, topRated, popular, hindi, south, tv) {
+  const wrap  = document.getElementById('rowsWrap');
+  wrap.innerHTML = '';
+
+  // Continue Watching (only if items exist)
+  if (cwItems.length) {
+    wrap.appendChild(buildCWRow(cwItems));
+  }
+
+  // My List preview
+  if (myListItems.length) {
+    wrap.appendChild(buildCardRow('My List', myListItems, 'XverseMovies_MyList.html'));
+  }
+
+  // TMDB rows
+  const norm = arr => (arr?.results || []).filter(m => m.poster_path).map(TMDB.normalize);
+
+  if (trending)  wrap.appendChild(buildCardRow('Trending Now 🔥', norm(trending)));
+  if (topRated)  wrap.appendChild(buildTop10Row('Top 10 in India Today', norm(topRated).slice(0,10)));
+  if (popular)   wrap.appendChild(buildCardRow('Popular on XverseMovies', norm(popular)));
+  if (hindi)     wrap.appendChild(buildCardRow('Hindi Movies 🇮🇳', norm(hindi)));
+  if (south)     wrap.appendChild(buildCardRow('South Indian Hits 🎭', norm(south)));
+  if (tv)        wrap.appendChild(buildCardRow('Popular TV Shows 📺', norm(tv)));
+}
+
+function buildCardRow(title, movies, seeAllHref) {
+  if (!movies?.length) return document.createDocumentFragment();
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.innerHTML = `
+    <div class="row-hd">
+      <span class="row-title">${title}</span>
+      ${seeAllHref ? `<button class="row-see-all" onclick="window.location.href='${seeAllHref}'">See all ›</button>` : ''}
+    </div>
+    <div class="cards-scroll">${movies.slice(0,20).map(m => cardHTML(m)).join('')}</div>`;
+  return row;
+}
+
+function buildTop10Row(title, movies) {
+  if (!movies?.length) return document.createDocumentFragment();
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.innerHTML = `
+    <div class="row-hd"><span class="row-title">${title}</span></div>
+    <div class="t10-wrap">${movies.map((m,i) => `
+      <div class="t10-card" onclick="openModal(${JSON.stringify(m).replace(/"/g,'&quot;')})">
+        <div class="t10-num">${i+1}</div>
+        <img class="t10-poster" src="${m.poster_url||''}" alt="${m.title}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555&size=200'">
+      </div>`).join('')}
+    </div>`;
+  return row;
+}
+
+function buildCWRow(items) {
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.id = 'cwRow';
+  row.innerHTML = `
+    <div class="row-hd">
+      <span class="row-title">Continue Watching</span>
+      <button class="row-see-all" onclick="window.location.href='XverseMovies_MyList.html'">See all ›</button>
+    </div>
+    <div class="cards-scroll">${items.map(m => cwCardHTML(m)).join('')}</div>`;
+  return row;
+}
+
+function cardHTML(m) {
+  const ms   = JSON.stringify(m).replace(/"/g,'&quot;');
+  const inList = myListIds.has(String(m.id || m.tmdb_id));
+  return `<div class="card" onclick="openModal(${ms})">
+    <div class="card-img-wrap">
+      <img class="card-img" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555&size=400'">
+      <span class="card-type ${m.type||'movie'}">${m.type==='tv'?'TV':'MOVIE'}</span>
+      <span class="card-rating">★ ${m.rating||m.vote_average||''}</span>
+      <div class="card-overlay">
+        <button class="card-play" onclick="event.stopPropagation();playMovie(${ms})">▶</button>
+        <button class="card-add" onclick="event.stopPropagation();toggleMyList(${ms})">${inList?'✓':'+'}</button>
+      </div>
+    </div>
+    <div class="card-info">
+      <div class="card-name">${m.title}</div>
+      <div class="card-meta"><span>${m.year||''}</span></div>
+    </div>
+  </div>`;
+}
+
+function cwCardHTML(m) {
+  const pct      = m.duration > 0 ? Math.min(100, (m.progress / m.duration) * 100) : 0;
+  const minsLeft = m.duration > 0 ? Math.max(0, Math.round((m.duration - m.progress) / 60)) : 0;
+  const ms       = JSON.stringify(m).replace(/"/g,'&quot;');
+  return `<div class="cw-card" onclick="playMovie(${ms})">
+    <div class="cw-thumb-wrap">
+      <img class="cw-thumb" src="${m.backdrop_url||m.poster_url||''}" alt="${m.title}" onerror="this.src='${m.poster_url||''}'">
+      <div class="cw-play-ov"><div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;color:#000;font-size:1rem">▶</div></div>
+      <div class="cw-prog"><div class="cw-prog-fill" style="width:${pct}%"></div></div>
+      ${minsLeft > 0 ? `<div class="cw-time-left">${minsLeft}m left</div>` : ''}
+      <button class="cw-remove" onclick="event.stopPropagation();removeCW(${m.id})" title="Remove">✕</button>
+    </div>
+    <div class="cw-info">
+      <div class="cw-title">${m.title}</div>
+      <div class="cw-sub">${m.completed ? 'Watched' : 'Continue watching'}</div>
+    </div>
+  </div>`;
+}
+
+// ─────────────────────────────────────────
+//  PLAY
+// ─────────────────────────────────────────
+async function playMovie(m) {
+  if (!currentUser) return;
+  // Increment views if it's an admin movie
+  if (m.id && !m.tmdb_id) DB.incrementViews(m.id).catch(()=>{});
+  // Add to history
+  if (m.id && !m.tmdb_id) await DB.addToHistory(currentUser.id, m.id);
+
+  const params = new URLSearchParams({
+    id:       m.id || '',
+    title:    m.title,
+    type:     m.type || 'movie',
+    year:     m.year || '',
+    quality:  m.quality || '',
+    age:      m.age_rating || m.ageRating || 'UA',
+    dur:      m.duration || m.dur || '',
+    minPlan:  m.min_plan || m.minPlan || 'free',
+    embed:    m.embed_url || m.embedUrl || '',
+    poster:   m.poster_url || m.posterUrl || '',
+    backdrop: m.backdrop_url || m.backdropUrl || '',
+  });
+  window.location.href = 'XverseMovies_Player.html?' + params.toString();
+}
+
+// ─────────────────────────────────────────
+//  MY LIST
+// ─────────────────────────────────────────
+async function toggleMyList(m) {
+  if (!currentUser) return;
+  const key = String(m.id || m.tmdb_id);
+  if (myListIds.has(key)) {
+    if (m.id && !m.tmdb_id) await DB.removeFromMyList(currentUser.id, m.id);
+    myListIds.delete(key);
+    showToast('Removed from My List');
+  } else {
+    // If TMDB movie not in DB, we just use localStorage as fallback
+    if (m.id && !m.tmdb_id) {
+      await DB.addToMyList(currentUser.id, m.id);
+    }
+    myListIds.add(key);
+    showToast('✅ Added to My List');
+  }
+  // Update modal button if open
+  if (modalMovie && String(modalMovie.id||modalMovie.tmdb_id) === key) {
+    document.getElementById('modalAddBtn').textContent = myListIds.has(key) ? '✓ In My List' : '＋ My List';
+  }
+}
+
+async function removeCW(movieId) {
+  if (!currentUser || !movieId) return;
+  await DB.removeContinueWatching(currentUser.id, movieId);
+  const row = document.getElementById('cwRow');
+  if (row) {
+    const cards = row.querySelectorAll('.cw-card');
+    if (cards.length <= 1) row.remove();
+  }
+  showToast('Removed from Continue Watching');
+}
+
+// ─────────────────────────────────────────
+//  MODAL
+// ─────────────────────────────────────────
+function openModal(m) {
+  modalMovie = m;
+  document.getElementById('modalImg').src    = m.backdrop_url || m.poster_url || '';
+  document.getElementById('modalTitle').textContent = m.title;
+  const match = Math.round(65 + (parseFloat(m.rating||m.vote_average||7) * 3.5));
+  document.getElementById('modalMeta').innerHTML = `
+    <span class="modal-match">${match}% Match</span>
+    <span>${m.year||''}</span>
+    <span class="modal-cert">${m.age_rating||'UA'}</span>
+    <span>${m.type==='tv'?'TV Show':'Movie'}</span>
+    ${m.quality?`<span style="background:rgba(70,211,105,.1);color:var(--green);font-size:.65rem;font-weight:700;padding:1px 7px;border-radius:3px">${m.quality}</span>`:''}`;
+  document.getElementById('modalOv').textContent   = m.overview || '';
+  document.getElementById('modalCast').innerHTML   = m.cast_text ? `<strong>Cast:</strong> ${m.cast_text}` : '';
+  const inList = myListIds.has(String(m.id||m.tmdb_id));
+  document.getElementById('modalAddBtn').textContent = inList ? '✓ In My List' : '＋ My List';
+  document.getElementById('modalPlayBtn').onclick = () => { closeModal(); playMovie(m); };
+  document.getElementById('modalAddBtn').onclick  = () => toggleMyList(m);
+  document.getElementById('modalBg').classList.add('open');
+}
+function closeModal() { document.getElementById('modalBg').classList.remove('open'); }
+
+// ─────────────────────────────────────────
+//  SEARCH
+// ─────────────────────────────────────────
+let searchTimer;
+function toggleSearch() {
+  const wrap = document.getElementById('searchWrap');
+  wrap.classList.toggle('show');
+  if (wrap.classList.contains('show')) setTimeout(() => document.getElementById('searchInput').focus(), 100);
+  else { document.getElementById('searchResults').innerHTML = ''; document.getElementById('searchInput').value = ''; }
+}
+function doSearch(q) {
+  clearTimeout(searchTimer);
+  if (q.length < 2) { document.getElementById('searchResults').innerHTML = ''; return; }
+  searchTimer = setTimeout(async () => {
+    // Search both DB and TMDB
+    const [dbResults, tmdbResults] = await Promise.all([
+      DB.searchMovies(q),
+      TMDB.search(q),
+    ]);
+    const tmdb = (tmdbResults?.results || []).slice(0,8).map(TMDB.normalize);
+    const all  = [...dbResults, ...tmdb].slice(0,12);
+    const res  = document.getElementById('searchResults');
+    res.innerHTML = all.length
+      ? all.map(m => {
+          const ms = JSON.stringify(m).replace(/"/g,'&quot;');
+          return `<div onclick="openModal(${ms});toggleSearch()" style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;min-width:140px;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">
+            <img src="${m.poster_url||''}" style="width:36px;height:52px;object-fit:cover;border-radius:3px;flex-shrink:0;background:#222" onerror="this.style.display='none'">
+            <div><div style="font-size:.82rem;font-weight:700;color:#fff;white-space:nowrap">${m.title}</div><div style="font-size:.7rem;color:var(--muted)">${m.year||''}</div></div>
+          </div>`;
+        }).join('')
+      : `<span style="color:var(--muted);font-size:.82rem">No results for "${q}"</span>`;
+  }, 400);
+}
+
+// ─────────────────────────────────────────
+//  NOTIFICATIONS (quick panel)
+// ─────────────────────────────────────────
+async function openNotifs() {
+  window.location.href = 'XverseMovies_Settings.html#notifications';
+}
+
+// ─────────────────────────────────────────
+//  NAV SCROLL
+// ─────────────────────────────────────────
+window.addEventListener('scroll', () => document.getElementById('mainNav').classList.toggle('solid', window.scrollY > 30));
+
+// ─────────────────────────────────────────
+//  KEYBOARD
+// ─────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && !document.getElementById('searchWrap').classList.contains('show')) { e.preventDefault(); toggleSearch(); }
+  if (e.key === 'Escape') { closeModal(); if (document.getElementById('searchWrap').classList.contains('show')) toggleSearch(); }
+});
+</script>
+</body>
+</html>
