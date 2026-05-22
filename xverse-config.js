@@ -7,7 +7,7 @@
 const XVERSE = {
   SUPABASE_URL:     'https://oobohevfmvitveulvqlf.supabase.co',
   SUPABASE_KEY:     'sb_publishable_SKK21UE3-Ls5xS8kjt0DbA_qwj_QQ4v',
-  TMDB_KEY:         'e37f31e73a670951fed2a295733184096',
+  TMDB_KEY:         'cf25940d9a3514c67d8dbbfe9d6c00dc',
   TMDB_BASE:        'https://api.themoviedb.org/3',
   TMDB_IMG:         'https://image.tmdb.org/t/p/',
   SITE_NAME:        'XverseMovies',
