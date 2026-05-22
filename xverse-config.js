@@ -1,14 +1,16 @@
 // ═══════════════════════════════════════════════════════
 //  xverse-config.js  —  Shared config for all pages
+//  Include this FIRST in every HTML file:
+//  <script src="xverse-config.js"></script>
 // ═══════════════════════════════════════════════════════
 
 const XVERSE = {
   // ✅ CORRECTED Supabase URL (from your project ID)
   SUPABASE_URL: 'https://oobohevfmvitveulvqlf.supabase.co',
-  // ⚠️ REPLACE with your actual anon key from Supabase → API Keys
-  SUPABASE_KEY: 'sb_publishable_SKK21UE3-Ls5xS8kjt0DbA_qwj_QQ4v',  // <-- PASTE FULL KEY HERE
+  // ✅ Your actual anon key (publishable key)
+  SUPABASE_KEY: 'sb_publishable_SKK21UE3-Ls5xS8kjt0DbA_qwj_QQ4v',
 
-  // TMDB (already correct)
+  // TMDB
   TMDB_KEY:         'e37f31e73a670951fed2a295733184096',
   TMDB_BASE:        'https://api.themoviedb.org/3',
   TMDB_IMG:         'https://image.tmdb.org/t/p/',
@@ -109,22 +111,216 @@ const Auth = {
 };
 
 // ─────────────────────────────────────────────────────────
-//  DATABASE HELPERS (abbreviated – full version already in your file)
+//  DATABASE HELPERS
 // ─────────────────────────────────────────────────────────
-const DB = { /* Keep your existing DB object – unchanged */ };
+const DB = {
+  // MY LIST
+  async getMyList(uid) {
+    const { data } = await getSB()
+      .from('my_list')
+      .select('movie_id, added_at, movies(*)')
+      .eq('user_id', uid)
+      .order('added_at', { ascending: false });
+    return (data || []).map(r => ({ ...r.movies, addedAt: r.added_at }));
+  },
+  async addToMyList(uid, movieId) {
+    return getSB().from('my_list').upsert({ user_id: uid, movie_id: movieId });
+  },
+  async removeFromMyList(uid, movieId) {
+    return getSB().from('my_list').delete().eq('user_id', uid).eq('movie_id', movieId);
+  },
+  async isInMyList(uid, movieId) {
+    const { data } = await getSB()
+      .from('my_list')
+      .select('id')
+      .eq('user_id', uid)
+      .eq('movie_id', movieId)
+      .single();
+    return !!data;
+  },
+
+  // CONTINUE WATCHING
+  async getContinueWatching(uid) {
+    const { data } = await getSB()
+      .from('continue_watching')
+      .select('*, movies(*)')
+      .eq('user_id', uid)
+      .order('updated_at', { ascending: false });
+    return (data || []).map(r => ({
+      ...r.movies,
+      progress: r.progress_sec,
+      duration: r.duration_sec,
+      completed: r.completed,
+      updatedAt: r.updated_at,
+    }));
+  },
+  async upsertContinueWatching(uid, movieId, progressSec, durationSec) {
+    const completed = durationSec > 0 && (progressSec / durationSec) > 0.9;
+    return getSB().from('continue_watching').upsert({
+      user_id: uid,
+      movie_id: movieId,
+      progress_sec: progressSec,
+      duration_sec: durationSec,
+      completed,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,movie_id' });
+  },
+  async removeContinueWatching(uid, movieId) {
+    return getSB().from('continue_watching').delete().eq('user_id', uid).eq('movie_id', movieId);
+  },
+
+  // WATCH HISTORY
+  async getHistory(uid, limit = 50) {
+    const { data } = await getSB()
+      .from('watch_history')
+      .select('*, movies(*)')
+      .eq('user_id', uid)
+      .order('watched_at', { ascending: false })
+      .limit(limit);
+    return (data || []).map(r => ({ ...r.movies, watchedAt: r.watched_at }));
+  },
+  async addToHistory(uid, movieId) {
+    return getSB().from('watch_history').upsert({
+      user_id: uid,
+      movie_id: movieId,
+      watched_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,movie_id' });
+  },
+  async clearHistory(uid) {
+    return getSB().from('watch_history').delete().eq('user_id', uid);
+  },
+
+  // MOVIES
+  async getMovies({ type, lang, genre, featured, limit = 30, page = 0 } = {}) {
+    let q = getSB().from('movies').select('*').eq('status', 'active');
+    if (type) q = q.eq('type', type);
+    if (lang) q = q.eq('language', lang);
+    if (featured) q = q.eq('featured', true);
+    if (genre) q = q.contains('genres', [genre]);
+    return q.order('created_at', { ascending: false }).range(page * limit, (page + 1) * limit - 1);
+  },
+  async getMovie(id) {
+    const { data } = await getSB().from('movies').select('*').eq('id', id).single();
+    return data;
+  },
+  async searchMovies(query) {
+    const { data } = await getSB().from('movies')
+      .select('*')
+      .eq('status', 'active')
+      .ilike('title', `%${query}%`)
+      .limit(20);
+    return data || [];
+  },
+  async getFeatured() {
+    const { data } = await getSB().from('movies')
+      .select('*')
+      .eq('featured', true)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(7);
+    return data || [];
+  },
+  async incrementViews(movieId) {
+    return getSB().rpc('increment_views', { movie_id: movieId });
+  },
+
+  // NOTIFICATIONS
+  async getNotifications(uid) {
+    const { data } = await getSB()
+      .from('notifications')
+      .select('*')
+      .eq('user_id', uid)
+      .order('created_at', { ascending: false })
+      .limit(30);
+    return data || [];
+  },
+  async markNotifRead(id) {
+    return getSB().from('notifications').update({ is_read: true }).eq('id', id);
+  },
+  async markAllNotifsRead(uid) {
+    return getSB().from('notifications').update({ is_read: true }).eq('user_id', uid);
+  },
+
+  // VIEWER PROFILES
+  async addViewerProfile(uid, name, avatarUrl = null, isKids = false) {
+    return getSB().from('viewer_profiles').insert({
+      user_id: uid, name, avatar_url: avatarUrl, is_kids: isKids,
+    });
+  },
+  async updateViewerProfile(id, updates) {
+    return getSB().from('viewer_profiles').update(updates).eq('id', id);
+  },
+  async deleteViewerProfile(id) {
+    return getSB().from('viewer_profiles').delete().eq('id', id);
+  },
+};
 
 // ─────────────────────────────────────────────────────────
-//  TMDB HELPERS (unchanged)
+//  TMDB HELPERS
 // ─────────────────────────────────────────────────────────
-const TMDB = { /* Keep your existing TMDB object – unchanged */ };
+const TMDB = {
+  async fetch(path, params = {}) {
+    const url = new URL(XVERSE.TMDB_BASE + path);
+    url.searchParams.set('api_key', XVERSE.TMDB_KEY);
+    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+    const proxies = [
+      url.toString(),
+      'https://corsproxy.io/?' + encodeURIComponent(url.toString()),
+    ];
+    for (const u of proxies) {
+      try {
+        const r = await fetch(u, { signal: AbortSignal.timeout(8000) });
+        if (r.ok) return r.json();
+      } catch (e) {}
+    }
+    return null;
+  },
+  img(path, size = 'w500') {
+    return path ? XVERSE.TMDB_IMG + size + path : null;
+  },
+  normalize(item) {
+    const isTV = item.media_type === 'tv' || item.name;
+    return {
+      tmdb_id: item.id,
+      title: item.title || item.name,
+      type: isTV ? 'tv' : 'movie',
+      year: (item.release_date || item.first_air_date || '').slice(0, 4),
+      rating: item.vote_average?.toFixed(1),
+      overview: item.overview,
+      poster_url: TMDB.img(item.poster_path),
+      backdrop_url: TMDB.img(item.backdrop_path, 'w1280'),
+      genres: [],
+    };
+  },
+  async trending() { return this.fetch('/trending/all/week'); },
+  async topMovies() { return this.fetch('/movie/top_rated', { region: 'IN' }); },
+  async topTV() { return this.fetch('/tv/top_rated'); },
+  async popularMov() { return this.fetch('/movie/popular', { region: 'IN' }); },
+  async popularTV() { return this.fetch('/tv/popular'); },
+  async upcoming() { return this.fetch('/movie/upcoming', { region: 'IN' }); },
+  async nowPlaying() { return this.fetch('/movie/now_playing', { region: 'IN' }); },
+  async hindiMovies() { return this.fetch('/discover/movie', { with_original_language: 'hi', sort_by: 'popularity.desc', region: 'IN' }); },
+  async southMovies() { return this.fetch('/discover/movie', { with_original_language: 'te', sort_by: 'popularity.desc' }); },
+  async movieDetails(id) { return this.fetch(`/movie/${id}`, { append_to_response: 'credits,videos,similar' }); },
+  async tvDetails(id) { return this.fetch(`/tv/${id}`, { append_to_response: 'credits,videos,similar,seasons' }); },
+  async tvSeason(id, s) { return this.fetch(`/tv/${id}/season/${s}`); },
+  async search(q) { return this.fetch('/search/multi', { query: q }); },
+};
 
 // ─────────────────────────────────────────────────────────
 //  SESSION HELPERS
 // ─────────────────────────────────────────────────────────
 const Session = {
-  setProfile(profile) { sessionStorage.setItem('xverse_active_profile', JSON.stringify(profile)); },
-  getProfile() { try { return JSON.parse(sessionStorage.getItem('xverse_active_profile')); } catch { return null; } },
-  clearProfile() { sessionStorage.removeItem('xverse_active_profile'); },
+  setProfile(profile) {
+    sessionStorage.setItem('xverse_active_profile', JSON.stringify(profile));
+  },
+  getProfile() {
+    try { return JSON.parse(sessionStorage.getItem('xverse_active_profile')); }
+    catch { return null; }
+  },
+  clearProfile() {
+    sessionStorage.removeItem('xverse_active_profile');
+  },
 };
 
 // ─────────────────────────────────────────────────────────
@@ -149,7 +345,7 @@ function showToast(msg, duration = 2800) {
 //  AUTH GUARD & NAV AVATAR
 // ─────────────────────────────────────────────────────────
 async function requireAuth(redirectTo = XVERSE.LOGIN_PAGE) {
-  const sb   = getSB();
+  const sb = getSB();
   const { data: { session } } = await sb.auth.getSession();
   if (!session) {
     window.location.href = redirectTo;
@@ -162,14 +358,17 @@ async function initNavAvatar(avatarElId = 'navAvatar') {
   const el = document.getElementById(avatarElId);
   if (!el) return;
   const profile = Session.getProfile();
-  const user    = await Auth.getUser();
+  const user = await Auth.getUser();
   if (!user) return;
 
   if (profile?.avatar_url || user.user_metadata?.avatar_url) {
     const img = document.createElement('img');
     img.src = profile?.avatar_url || user.user_metadata?.avatar_url;
     img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:inherit';
-    img.onerror = () => { img.remove(); el.textContent = (profile?.name || user.email || 'U')[0].toUpperCase(); };
+    img.onerror = () => {
+      img.remove();
+      el.textContent = (profile?.name || user.email || 'U')[0].toUpperCase();
+    };
     el.innerHTML = '';
     el.appendChild(img);
   } else {
