@@ -5,14 +5,19 @@
 // ═══════════════════════════════════════════════════════
 
 const XVERSE = {
+  // Supabase
   SUPABASE_URL:     'https://oobohovfmviteulvqlf.supabase.co',
   SUPABASE_KEY:     'sb_publishable_SKK21UE3-Ls5xS8kjt0DbA_qwj_QQ4v',
+
+  // TMDB
   TMDB_KEY:         'e37f31e73a670951fed2a295733184096',
   TMDB_BASE:        'https://api.themoviedb.org/3',
   TMDB_IMG:         'https://image.tmdb.org/t/p/',
-  SITE_NAME:        'XverseMovies',
 
-  // Cashfree payment links — apne dashboard se update karo
+  SITE_NAME:        'XverseMovies',
+  LOGIN_PAGE:       'index.html',   // ✅ fixed: renamed from XverseMovies_Login.html
+
+  // Cashfree payment links (update with your own links)
   PAYMENT: {
     hd:  'https://payments.cashfree.com/forms/xversemovies-hd',   // ₹29
     fhd: 'https://payments.cashfree.com/forms/xversemovies-fhd',  // ₹49
@@ -45,13 +50,11 @@ function getSB() {
 //  AUTH HELPERS
 // ─────────────────────────────────────────────────────────
 const Auth = {
-  // Get current session user (fast, no network)
   async getUser() {
     const { data } = await getSB().auth.getUser();
     return data?.user || null;
   },
 
-  // Get full profile from DB
   async getProfile(uid) {
     const { data } = await getSB()
       .from('profiles')
@@ -61,7 +64,6 @@ const Auth = {
     return data;
   },
 
-  // Get viewer profiles
   async getViewerProfiles(uid) {
     const { data } = await getSB()
       .from('viewer_profiles')
@@ -71,12 +73,10 @@ const Auth = {
     return data || [];
   },
 
-  // Sign in with email
   async signIn(email, password) {
     return getSB().auth.signInWithPassword({ email, password });
   },
 
-  // Sign up with email
   async signUp(email, password, name) {
     return getSB().auth.signUp({
       email, password,
@@ -84,28 +84,27 @@ const Auth = {
     });
   },
 
-  // Google OAuth
+  // ✅ FIXED: redirect to index.html (not XverseMovies_Login.html)
   async googleSignIn() {
     return getSB().auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + '/XverseMovies_Login.html' }
+      options: { redirectTo: window.location.origin + '/' + XVERSE.LOGIN_PAGE }
     });
   },
 
-  // Sign out
+  // ✅ FIXED: sign out → index.html
   async signOut() {
     sessionStorage.removeItem('xverse_active_profile');
     return getSB().auth.signOut();
   },
 
-  // Reset password
+  // ✅ FIXED: reset password redirect → index.html
   async resetPassword(email) {
     return getSB().auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + '/XverseMovies_Login.html?reset=1'
+      redirectTo: window.location.origin + '/' + XVERSE.LOGIN_PAGE + '?reset=1'
     });
   },
 
-  // Update plan after payment
   async updatePlan(uid, plan) {
     const now = new Date();
     const end = new Date(now); end.setMonth(end.getMonth() + 1);
@@ -117,7 +116,6 @@ const Auth = {
     }).eq('id', uid);
   },
 
-  // Can user access this content?
   canAccess(userPlan, requiredPlan) {
     const o = XVERSE.PLANS;
     return (o[userPlan]?.order ?? 0) >= (o[requiredPlan]?.order ?? 0);
@@ -128,7 +126,6 @@ const Auth = {
 //  DATABASE HELPERS
 // ─────────────────────────────────────────────────────────
 const DB = {
-  // ── MY LIST ──────────────────────────────────────────
   async getMyList(uid) {
     const { data } = await getSB()
       .from('my_list')
@@ -157,7 +154,6 @@ const DB = {
     return !!data;
   },
 
-  // ── CONTINUE WATCHING ────────────────────────────────
   async getContinueWatching(uid) {
     const { data } = await getSB()
       .from('continue_watching')
@@ -190,7 +186,6 @@ const DB = {
       .delete().eq('user_id', uid).eq('movie_id', movieId);
   },
 
-  // ── WATCH HISTORY ────────────────────────────────────
   async getHistory(uid, limit = 50) {
     const { data } = await getSB()
       .from('watch_history')
@@ -213,7 +208,6 @@ const DB = {
     return getSB().from('watch_history').delete().eq('user_id', uid);
   },
 
-  // ── MOVIES ───────────────────────────────────────────
   async getMovies({ type, lang, genre, featured, limit = 30, page = 0 } = {}) {
     let q = getSB().from('movies').select('*').eq('status', 'active');
     if (type)     q = q.eq('type', type);
@@ -252,7 +246,6 @@ const DB = {
     return getSB().rpc('increment_views', { movie_id: movieId });
   },
 
-  // ── NOTIFICATIONS ────────────────────────────────────
   async getNotifications(uid) {
     const { data } = await getSB()
       .from('notifications')
@@ -272,7 +265,6 @@ const DB = {
       .update({ is_read: true }).eq('user_id', uid);
   },
 
-  // ── VIEWER PROFILES ──────────────────────────────────
   async addViewerProfile(uid, name, avatarUrl = null, isKids = false) {
     return getSB().from('viewer_profiles').insert({
       user_id: uid, name, avatar_url: avatarUrl, is_kids: isKids,
@@ -344,7 +336,7 @@ const TMDB = {
 };
 
 // ─────────────────────────────────────────────────────────
-//  SESSION HELPERS  (sessionStorage for active profile)
+//  SESSION HELPERS
 // ─────────────────────────────────────────────────────────
 const Session = {
   setProfile(profile) {
@@ -379,8 +371,9 @@ function showToast(msg, duration = 2800) {
 
 // ─────────────────────────────────────────────────────────
 //  AUTH GUARD  — call on every protected page
+//  ✅ FIXED: redirect to LOGIN_PAGE (index.html)
 // ─────────────────────────────────────────────────────────
-async function requireAuth(redirectTo = 'XverseMovies_Login.html') {
+async function requireAuth(redirectTo = XVERSE.LOGIN_PAGE) {
   const sb   = getSB();
   const { data: { session } } = await sb.auth.getSession();
   if (!session) {
@@ -392,6 +385,7 @@ async function requireAuth(redirectTo = 'XverseMovies_Login.html') {
 
 // ─────────────────────────────────────────────────────────
 //  NAV AVATAR — shared across all pages
+//  ✅ FIXED: sign out uses LOGIN_PAGE
 // ─────────────────────────────────────────────────────────
 async function initNavAvatar(avatarElId = 'navAvatar') {
   const el = document.getElementById(avatarElId);
@@ -400,7 +394,6 @@ async function initNavAvatar(avatarElId = 'navAvatar') {
   const user    = await Auth.getUser();
   if (!user) return;
 
-  // Show avatar image or initial
   if (profile?.avatar_url || user.user_metadata?.avatar_url) {
     const img = document.createElement('img');
     img.src = profile?.avatar_url || user.user_metadata?.avatar_url;
@@ -416,7 +409,7 @@ async function initNavAvatar(avatarElId = 'navAvatar') {
     const choice = confirm('XverseMovies Account\n\nOK → ⚙️ Settings\nCancel → 🚪 Sign Out');
     if (choice) window.location.href = 'XverseMovies_Settings.html';
     else if (confirm('Sign out karna chahte ho?')) {
-      Auth.signOut().then(() => window.location.href = 'XverseMovies_Login.html');
+      Auth.signOut().then(() => window.location.href = XVERSE.LOGIN_PAGE);
     }
   };
 }
