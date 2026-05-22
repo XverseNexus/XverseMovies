@@ -5,7 +5,7 @@
 // ═══════════════════════════════════════════════════════
 
 const XVERSE = {
-  SUPABASE_URL:     'https://oobohovfmviteulvqlf.supabase.co',
+  SUPABASE_URL:     'https://oobohevfmvitveulvqlf.supabase.co',
   SUPABASE_KEY:     'sb_publishable_SKK21UE3-Ls5xS8kjt0DbA_qwj_QQ4v',
   TMDB_KEY:         'e37f31e73a670951fed2a295733184096',
   TMDB_BASE:        'https://api.themoviedb.org/3',
