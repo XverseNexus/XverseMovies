@@ -1,354 +1,812 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>XverseMovies — Player</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="xverse-config.js"></script>
+
 <style>
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100%;background:#000;overflow:hidden;font-family:'Barlow',sans-serif;color:#fff}
-#playerWrap{position:relative;width:100vw;height:100vh;background:#000;display:flex;align-items:center;justify-content:center}
-/* Streamtape iframe */
-#stFrame{position:absolute;inset:0;width:100%;height:100%;border:none;z-index:1;display:none}
-/* Loading */
-#loadScreen{position:absolute;inset:0;z-index:5;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
-.ld-logo{font-family:'Bebas Neue',cursive;font-size:2.6rem;color:#E50914;letter-spacing:2px}
-.ld-logo span{color:#fff}
-.ld-bar{width:200px;height:3px;background:#333;border-radius:2px;overflow:hidden}
-.ld-fill{height:100%;background:#E50914;border-radius:2px;animation:ldA 2s ease forwards}
-@keyframes ldA{from{width:0}to{width:100%}}
-.ld-msg{font-size:.78rem;color:#555;letter-spacing:.5px}
-/* Overlays */
-#topBar{position:absolute;top:0;left:0;right:0;z-index:10;padding:16px 20px;display:flex;align-items:center;gap:14px;background:linear-gradient(to bottom,rgba(0,0,0,.85) 0%,transparent 100%);transform:translateY(-100%);transition:transform .3s;pointer-events:none}
-#playerWrap.ui-on #topBar{transform:translateY(0);pointer-events:all}
-#bottomBar{position:absolute;bottom:0;left:0;right:0;z-index:10;padding:14px 20px 22px;background:linear-gradient(to top,rgba(0,0,0,.9) 0%,transparent 100%);transform:translateY(100%);transition:transform .3s;pointer-events:none}
-#playerWrap.ui-on #bottomBar{transform:translateY(0);pointer-events:all}
-.back-btn{background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.25);color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;backdrop-filter:blur(4px)}
-.back-btn:hover{background:rgba(255,255,255,.15)}
-.top-info{flex:1;min-width:0}
-.top-title{font-size:1rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.top-sub{font-size:.7rem;color:rgba(255,255,255,.5);margin-top:1px}
-.top-acts{display:flex;gap:8px}
-.top-btn{background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.2);color:#fff;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:.85rem;display:flex;align-items:center;justify-content:center;transition:all .2s;backdrop-filter:blur(4px)}
-.top-btn:hover{background:rgba(255,255,255,.15)}
-.movie-meta{display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap}
-.meta-badge{background:rgba(70,211,105,.12);border:1px solid rgba(70,211,105,.2);color:#46d369;font-size:.63rem;font-weight:700;padding:2px 8px;border-radius:3px;letter-spacing:.5px}
-.meta-text{font-size:.76rem;color:rgba(255,255,255,.58)}
-.ctrl-row{display:flex;align-items:center;gap:10px}
-.ctrl-btn{background:none;border:none;color:#fff;cursor:pointer;font-size:1rem;width:36px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:background .15s}
-.ctrl-btn:hover{background:rgba(255,255,255,.12)}
-.ctrl-spacer{flex:1}
-.ml-btn{background:rgba(0,0,0,.5);border:1.5px solid rgba(255,255,255,.28);color:#fff;padding:6px 16px;border-radius:4px;font-size:.76rem;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s;display:flex;align-items:center;gap:6px;backdrop-filter:blur(4px)}
-.ml-btn:hover{background:rgba(255,255,255,.12)}
-.ml-btn.added{border-color:#46d369;color:#46d369}
-.hint-text{font-size:.7rem;color:rgba(255,255,255,.38);white-space:nowrap}
-/* Plan gate */
-#planGate{position:absolute;inset:0;z-index:20;background:rgba(0,0,0,.93);display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:40px;backdrop-filter:blur(4px)}
-#planGate.show{display:flex}
-.gate-icon{font-size:2.8rem}
-.gate-title{font-family:'Bebas Neue',cursive;font-size:2rem;color:#fff;letter-spacing:2px}
-.gate-sub{font-size:.88rem;color:rgba(255,255,255,.58);max-width:400px;line-height:1.6}
-.gate-plans{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px}
-.gate-plan{border:1.5px solid rgba(255,255,255,.18);border-radius:6px;padding:10px 18px;cursor:pointer;transition:all .2s;text-align:center;min-width:120px}
-.gate-plan:hover{border-color:#fff;background:rgba(255,255,255,.05)}
-.gate-plan.popular{border-color:#E50914;background:rgba(229,9,20,.07)}
-.gp-name{font-size:.86rem;font-weight:700;color:#fff}
-.gp-price{font-family:'Bebas Neue',cursive;font-size:1.1rem;color:#E50914;letter-spacing:.5px}
-.gp-desc{font-size:.66rem;color:rgba(255,255,255,.4);margin-top:2px}
-.btn-back-gate{background:transparent;border:1px solid rgba(255,255,255,.22);color:rgba(255,255,255,.55);padding:8px 20px;border-radius:4px;font-size:.78rem;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s}
-.btn-back-gate:hover{color:#fff;border-color:rgba(255,255,255,.5)}
-/* UI trigger */
-#uiZone{position:absolute;inset:0;z-index:8;cursor:none}
-#playerWrap.ui-on #uiZone{cursor:default}
-/* Sync indicator */
-#syncDot{position:absolute;top:16px;left:50%;transform:translateX(-50%);background:rgba(70,211,105,.15);border:1px solid rgba(70,211,105,.3);color:#46d369;font-size:.62rem;padding:3px 10px;border-radius:20px;z-index:15;opacity:0;transition:opacity .3s;pointer-events:none}
-#syncDot.show{opacity:1}
+*,*::before,*::after{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+html,body{
+  width:100%;
+  height:100%;
+  background:#000;
+  overflow:hidden;
+  font-family:'Barlow',sans-serif;
+  color:#fff;
+}
+
+#playerWrap{
+  position:relative;
+  width:100vw;
+  height:100vh;
+  background:#000;
+  overflow:hidden;
+}
+
+/* PLAYER */
+#stFrame{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  border:none;
+  z-index:1;
+  display:none;
+  background:#000;
+}
+
+/* LOADING */
+#loadScreen{
+  position:absolute;
+  inset:0;
+  z-index:20;
+  background:#000;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:16px;
+}
+
+.ld-logo{
+  font-family:'Bebas Neue',cursive;
+  font-size:2.8rem;
+  color:#E50914;
+  letter-spacing:2px;
+}
+
+.ld-logo span{
+  color:#fff;
+}
+
+.ld-bar{
+  width:220px;
+  height:3px;
+  background:#222;
+  overflow:hidden;
+  border-radius:3px;
+}
+
+.ld-fill{
+  width:0;
+  height:100%;
+  background:#E50914;
+  animation:loadAnim 2s ease forwards;
+}
+
+@keyframes loadAnim{
+  from{width:0}
+  to{width:100%}
+}
+
+.ld-msg{
+  color:#666;
+  font-size:.8rem;
+}
+
+/* TOP BAR */
+#topBar{
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  z-index:10;
+  padding:18px 20px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+
+  background:linear-gradient(to bottom,
+  rgba(0,0,0,.88) 0%,
+  transparent 100%);
+
+  transform:translateY(-100%);
+  transition:transform .3s;
+  pointer-events:none;
+}
+
+#playerWrap.ui-on #topBar{
+  transform:translateY(0);
+  pointer-events:auto;
+}
+
+/* BOTTOM BAR */
+#bottomBar{
+  position:absolute;
+  bottom:0;
+  left:0;
+  right:0;
+  z-index:10;
+
+  padding:14px 20px 22px;
+
+  background:linear-gradient(to top,
+  rgba(0,0,0,.92) 0%,
+  transparent 100%);
+
+  transform:translateY(100%);
+  transition:transform .3s;
+  pointer-events:none;
+}
+
+#playerWrap.ui-on #bottomBar{
+  transform:translateY(0);
+  pointer-events:auto;
+}
+
+.back-btn,
+.top-btn,
+.ctrl-btn{
+  background:rgba(0,0,0,.5);
+  border:1px solid rgba(255,255,255,.2);
+  color:#fff;
+  cursor:pointer;
+  transition:.2s;
+}
+
+.back-btn:hover,
+.top-btn:hover,
+.ctrl-btn:hover{
+  background:rgba(255,255,255,.15);
+}
+
+.back-btn{
+  width:38px;
+  height:38px;
+  border-radius:50%;
+  font-size:1rem;
+}
+
+.top-btn{
+  width:34px;
+  height:34px;
+  border-radius:50%;
+}
+
+.ctrl-btn{
+  width:36px;
+  height:36px;
+  border-radius:8px;
+}
+
+.top-info{
+  flex:1;
+  min-width:0;
+}
+
+.top-title{
+  font-size:1rem;
+  font-weight:700;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.top-sub{
+  font-size:.72rem;
+  color:rgba(255,255,255,.55);
+}
+
+.movie-meta{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:12px;
+  flex-wrap:wrap;
+}
+
+.meta-badge{
+  background:rgba(70,211,105,.12);
+  border:1px solid rgba(70,211,105,.2);
+  color:#46d369;
+  font-size:.65rem;
+  font-weight:700;
+  padding:3px 8px;
+  border-radius:4px;
+}
+
+.meta-text{
+  color:rgba(255,255,255,.55);
+  font-size:.76rem;
+}
+
+.ctrl-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.ctrl-spacer{
+  flex:1;
+}
+
+.ml-btn{
+  background:rgba(0,0,0,.5);
+  border:1px solid rgba(255,255,255,.2);
+  color:#fff;
+  padding:7px 16px;
+  border-radius:4px;
+  cursor:pointer;
+  font-size:.75rem;
+  transition:.2s;
+}
+
+.ml-btn.added{
+  border-color:#46d369;
+  color:#46d369;
+}
+
+/* UI ZONE FIXED */
+#uiZone{
+  position:absolute;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+}
+
+/* PLAN GATE */
+#planGate{
+  position:absolute;
+  inset:0;
+  z-index:50;
+  background:rgba(0,0,0,.94);
+
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+
+  padding:40px;
+  text-align:center;
+}
+
+#planGate.show{
+  display:flex;
+}
+
+.gate-title{
+  font-family:'Bebas Neue',cursive;
+  font-size:2rem;
+  margin-top:8px;
+  letter-spacing:2px;
+}
+
+.gate-sub{
+  color:rgba(255,255,255,.6);
+  margin-top:8px;
+  max-width:420px;
+  line-height:1.6;
+}
+
+.gate-plans{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  justify-content:center;
+  margin-top:20px;
+}
+
+.gate-plan{
+  border:1px solid rgba(255,255,255,.2);
+  border-radius:8px;
+  padding:14px 18px;
+  min-width:120px;
+  cursor:pointer;
+  transition:.2s;
+}
+
+.gate-plan:hover{
+  border-color:#fff;
+  background:rgba(255,255,255,.05);
+}
+
+.gate-plan.popular{
+  border-color:#E50914;
+}
+
+.gp-name{
+  font-size:.9rem;
+  font-weight:700;
+}
+
+.gp-price{
+  font-family:'Bebas Neue',cursive;
+  color:#E50914;
+  font-size:1.4rem;
+  margin-top:4px;
+}
+
+.gp-desc{
+  color:rgba(255,255,255,.45);
+  font-size:.7rem;
+}
+
+.btn-back-gate{
+  margin-top:18px;
+  padding:9px 20px;
+  border-radius:4px;
+  border:1px solid rgba(255,255,255,.2);
+  background:transparent;
+  color:#aaa;
+  cursor:pointer;
+}
+
+#syncDot{
+  position:absolute;
+  top:16px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:30;
+
+  background:rgba(70,211,105,.15);
+  border:1px solid rgba(70,211,105,.25);
+  color:#46d369;
+
+  padding:4px 10px;
+  border-radius:20px;
+
+  font-size:.65rem;
+
+  opacity:0;
+  transition:.3s;
+}
+
+#syncDot.show{
+  opacity:1;
+}
 </style>
 </head>
+
 <body>
+
 <div id="playerWrap">
 
   <!-- LOADING -->
   <div id="loadScreen">
     <div class="ld-logo">Xverse<span>Movies</span></div>
-    <div class="ld-bar"><div class="ld-fill"></div></div>
-    <div class="ld-msg" id="ldMsg">Loading video...</div>
+
+    <div class="ld-bar">
+      <div class="ld-fill"></div>
+    </div>
+
+    <div class="ld-msg" id="ldMsg">
+      Loading video...
+    </div>
   </div>
 
   <!-- PLAN GATE -->
   <div id="planGate">
-    <div class="gate-icon">🔒</div>
-    <div class="gate-title">Upgrade Your Plan</div>
-    <div class="gate-sub" id="gateSub">This content requires a higher plan.</div>
-    <div class="gate-plans">
-      <div class="gate-plan" onclick="upgradePlan('hd')"><div class="gp-name">HD</div><div class="gp-price">₹29<span style="font-size:.6rem;font-family:'Barlow',sans-serif;font-weight:400;color:rgba(255,255,255,.4)">/mo</span></div><div class="gp-desc">720p · 2 screens</div></div>
-      <div class="gate-plan popular" onclick="upgradePlan('fhd')"><div class="gp-name">Full HD ⭐</div><div class="gp-price">₹49<span style="font-size:.6rem;font-family:'Barlow',sans-serif;font-weight:400;color:rgba(255,255,255,.4)">/mo</span></div><div class="gp-desc">1080p · 2 screens</div></div>
-      <div class="gate-plan" onclick="upgradePlan('uhd')"><div class="gp-name">4K Ultra HD</div><div class="gp-price">₹99<span style="font-size:.6rem;font-family:'Barlow',sans-serif;font-weight:400;color:rgba(255,255,255,.4)">/mo</span></div><div class="gp-desc">4K · 4 screens</div></div>
+
+    <div style="font-size:3rem;">🔒</div>
+
+    <div class="gate-title">
+      Upgrade Your Plan
     </div>
-    <button class="btn-back-gate" onclick="goBack()">← Go Back</button>
+
+    <div class="gate-sub" id="gateSub">
+      This content requires a higher plan.
+    </div>
+
+    <div class="gate-plans">
+
+      <div class="gate-plan" onclick="upgradePlan('hd')">
+        <div class="gp-name">HD</div>
+        <div class="gp-price">₹29</div>
+        <div class="gp-desc">720p · 2 screens</div>
+      </div>
+
+      <div class="gate-plan popular" onclick="upgradePlan('fhd')">
+        <div class="gp-name">Full HD ⭐</div>
+        <div class="gp-price">₹49</div>
+        <div class="gp-desc">1080p · 2 screens</div>
+      </div>
+
+      <div class="gate-plan" onclick="upgradePlan('uhd')">
+        <div class="gp-name">4K Ultra HD</div>
+        <div class="gp-price">₹99</div>
+        <div class="gp-desc">4K · 4 screens</div>
+      </div>
+
+    </div>
+
+    <button class="btn-back-gate" onclick="goBack()">
+      ← Go Back
+    </button>
+
   </div>
 
   <!-- IFRAME -->
-  <iframe id="stFrame" allowfullscreen allow="autoplay; fullscreen"></iframe>
+  <iframe
+    id="stFrame"
+    allowfullscreen
+    webkitallowfullscreen
+    mozallowfullscreen
+    allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+    sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation"
+    referrerpolicy="origin"
+  ></iframe>
 
-  <!-- SYNC DOT -->
-  <div id="syncDot">✓ Progress synced</div>
+  <!-- SYNC -->
+  <div id="syncDot">
+    ✓ Progress synced
+  </div>
 
   <!-- UI ZONE -->
   <div id="uiZone"></div>
 
-  <!-- TOP BAR -->
+  <!-- TOP -->
   <div id="topBar">
+
     <button class="back-btn" onclick="goBack()">←</button>
+
     <div class="top-info">
       <div class="top-title" id="topTitle">Loading...</div>
       <div class="top-sub" id="topSub"></div>
     </div>
-    <div class="top-acts">
-      <button class="top-btn" id="mlTopBtn" onclick="toggleML()" title="My List">＋</button>
-      <button class="top-btn" onclick="shareMovie()" title="Share">↗</button>
-      <button class="top-btn" onclick="reqFS()" title="Fullscreen">⛶</button>
-    </div>
+
+    <button class="top-btn" onclick="reqFS()">⛶</button>
+
   </div>
 
-  <!-- BOTTOM BAR -->
+  <!-- BOTTOM -->
   <div id="bottomBar">
+
     <div class="movie-meta">
+
       <span class="meta-badge" id="qualBadge">HD</span>
+
       <span class="meta-text" id="yearBadge"></span>
+
       <span class="meta-text" id="ageBadge"></span>
+
       <span class="meta-text" id="durBadge"></span>
-      <button class="ml-btn" id="mlBtn" onclick="toggleML()">＋ My List</button>
+
+      <button class="ml-btn" id="mlBtn" onclick="toggleML()">
+        ＋ My List
+      </button>
+
     </div>
+
     <div class="ctrl-row">
-      <button class="ctrl-btn" onclick="goBack()" title="Home">🏠</button>
+
+      <button class="ctrl-btn" onclick="goBack()">🏠</button>
+
       <div class="ctrl-spacer"></div>
-      <span class="hint-text">Streamtape controls inside video</span>
-      <button class="ctrl-btn" onclick="reqFS()" title="Fullscreen (F)">⛶</button>
+
+      <span style="font-size:.72rem;color:#777;">
+        Streamtape controls inside video
+      </span>
+
+      <button class="ctrl-btn" onclick="reqFS()">⛶</button>
+
     </div>
+
   </div>
 
 </div>
 
 <script>
-// ─────────────────────────────────────────
-//  STATE
-// ─────────────────────────────────────────
-let currentUser  = null;
-let movieData    = null;
-let isInML       = false;
-let uiTimer      = null;
-let syncTimer    = null;
-let watchStart   = null;
-let watchedSecs  = 0;
 
-const PLAN_ORDER = { free:0, hd:1, fhd:2, uhd:3 };
+let currentUser = null;
+let movieData   = null;
+let isInML      = false;
 
-// ─────────────────────────────────────────
-//  INIT
-// ─────────────────────────────────────────
-(async () => {
+let uiTimer     = null;
+let syncTimer   = null;
+let watchStart  = null;
+
+const PLAN_ORDER = {
+  free:0,
+  hd:1,
+  fhd:2,
+  uhd:3
+};
+
+(async()=>{
+
   currentUser = await requireAuth();
-  if (!currentUser) return;
 
-  const p        = new URLSearchParams(location.search);
-  const movieId  = p.get('id');
-  let movie      = null;
+  if(!currentUser) return;
 
-  // Try loading from Supabase DB first
-  if (movieId && movieId !== 'null' && movieId !== '') {
+  const p       = new URLSearchParams(location.search);
+  const movieId = p.get('id');
+
+  let movie = null;
+
+  if(movieId){
     movie = await DB.getMovie(parseInt(movieId));
   }
 
-  // Fallback to URL params (for TMDB items not in DB)
-  if (!movie) {
+  if(!movie){
+
     movie = {
-      id:          movieId ? parseInt(movieId) : null,
-      title:       p.get('title') || 'Movie',
-      type:        p.get('type')  || 'movie',
-      year:        p.get('year')  || '',
-      quality:     p.get('quality') || '',
-      age_rating:  p.get('age')   || 'UA',
-      duration:    p.get('dur')   || '',
-      min_plan:    p.get('minPlan') || 'free',
-      embed_url:   p.get('embed') || '',
-      poster_url:  p.get('poster') || '',
-      backdrop_url:p.get('backdrop') || '',
+      id:movieId ? parseInt(movieId) : null,
+      title:p.get('title') || 'Movie',
+      type:p.get('type') || 'movie',
+      year:p.get('year') || '',
+      quality:p.get('quality') || '',
+      age_rating:p.get('age') || 'UA',
+      duration:p.get('dur') || '',
+      min_plan:p.get('minPlan') || 'free',
+      embed_url:p.get('embed') || '',
+      poster_url:p.get('poster') || '',
+      backdrop_url:p.get('backdrop') || ''
     };
+
   }
 
   movieData = movie;
 
-  // Plan check
   const profile  = await Auth.getProfile(currentUser.id);
   const userPlan = profile?.plan || 'free';
   const reqPlan  = movie.min_plan || 'free';
-  if ((PLAN_ORDER[userPlan] ?? 0) < (PLAN_ORDER[reqPlan] ?? 0)) {
-    showPlanGate(reqPlan); return;
-  }
 
-  // Check My List
-  if (movie.id) {
-    isInML = await DB.isInMyList(currentUser.id, movie.id);
-    updateMLBtn();
-  }
-
-  // Load iframe
-  loadVideo(movie);
-
-  // Add to history
-  if (movie.id) {
-    DB.addToHistory(currentUser.id, movie.id).catch(()=>{});
-    DB.incrementViews(movie.id).catch(()=>{});
-  }
-
-  // Start watch timer for progress tracking
-  watchStart = Date.now();
-  syncTimer  = setInterval(syncProgress, 30000); // sync every 30s
-})();
-
-// ─────────────────────────────────────────
-//  LOAD VIDEO
-// ─────────────────────────────────────────
-function loadVideo(m) {
-  document.getElementById('topTitle').textContent    = m.title;
-  document.getElementById('topSub').textContent      = m.type === 'tv' ? 'Season 1 · Episode 1' : (m.year || '');
-  document.getElementById('qualBadge').textContent   = m.quality || 'HD';
-  document.getElementById('yearBadge').textContent   = m.year || '';
-  document.getElementById('ageBadge').textContent    = m.age_rating || '';
-  document.getElementById('durBadge').textContent    = m.duration || '';
-  document.title = (m.title || 'Movie') + ' — XverseMovies';
-
-  const embedUrl = m.embed_url || (m.streamtape_id ? `https://streamtape.com/e/${m.streamtape_id}/` : null);
-
-  if (!embedUrl) {
-    document.getElementById('ldMsg').textContent = '⚠️ Video URL not found. Admin Panel mein embed URL add karo.';
-    document.getElementById('ldMsg').style.color = '#ff6b6b';
+  if((PLAN_ORDER[userPlan] ?? 0) < (PLAN_ORDER[reqPlan] ?? 0)){
+    showPlanGate(reqPlan);
     return;
   }
 
+  if(movie.id){
+    isInML = await DB.isInMyList(currentUser.id,movie.id);
+    updateMLBtn();
+  }
+
+  loadVideo(movie);
+
+  if(movie.id){
+    DB.addToHistory(currentUser.id,movie.id).catch(()=>{});
+    DB.incrementViews(movie.id).catch(()=>{});
+  }
+
+  watchStart = Date.now();
+
+  syncTimer = setInterval(syncProgress,30000);
+
+})();
+
+/* LOAD VIDEO */
+
+function loadVideo(m){
+
+  document.getElementById('topTitle').textContent  = m.title;
+  document.getElementById('topSub').textContent    =
+  m.type === 'tv' ? 'Season 1 · Episode 1' : (m.year || '');
+
+  document.getElementById('qualBadge').textContent = m.quality || 'HD';
+  document.getElementById('yearBadge').textContent = m.year || '';
+  document.getElementById('ageBadge').textContent  = m.age_rating || '';
+  document.getElementById('durBadge').textContent  = m.duration || '';
+
+  document.title = `${m.title || 'Movie'} — XverseMovies`;
+
+  let embedUrl =
+    m.embed_url ||
+    (m.streamtape_id
+      ? `https://streamtape.com/e/${m.streamtape_id}/`
+      : null);
+
+  if(!embedUrl){
+
+    document.getElementById('ldMsg').innerHTML =
+    '⚠️ Video URL not found';
+
+    document.getElementById('ldMsg').style.color =
+    '#ff6b6b';
+
+    return;
+  }
+
+  /* STREAMTAPE FIX */
+  if(embedUrl.includes("streamtape.com")){
+    embedUrl = embedUrl.replace(/\/$/,"");
+    embedUrl += "?autoplay=1";
+  }
+
   const frame = document.getElementById('stFrame');
-  frame.src   = embedUrl;
+
+  frame.src = embedUrl;
+
   frame.style.display = 'block';
 
-  setTimeout(() => {
-    document.getElementById('loadScreen').style.display = 'none';
+  setTimeout(()=>{
+
+    document.getElementById('loadScreen').style.display =
+    'none';
+
     showUI();
-  }, 2000);
+
+  },2000);
+
 }
 
-// ─────────────────────────────────────────
-//  PLAN GATE
-// ─────────────────────────────────────────
-function showPlanGate(reqPlan) {
-  document.getElementById('loadScreen').style.display = 'none';
-  const names = { hd:'HD ₹29/mo', fhd:'Full HD ₹49/mo', uhd:'4K Ultra HD ₹99/mo' };
-  document.getElementById('gateSub').textContent = `Yeh content ${names[reqPlan]||reqPlan} plan pe available hai. Upgrade karo aur sab enjoy karo!`;
-  document.getElementById('planGate').classList.add('show');
-}
-function upgradePlan(plan) {
-  const link = XVERSE.PAYMENT[plan];
-  if (link && !link.includes('YOUR_')) window.open(link, '_blank');
-  else showToast('⚙️ Cashfree payment link setup karo — Admin Panel');
-}
+/* UI */
 
-// ─────────────────────────────────────────
-//  PROGRESS SYNC TO SUPABASE
-// ─────────────────────────────────────────
-async function syncProgress() {
-  if (!currentUser || !movieData?.id || !watchStart) return;
-  watchedSecs = Math.floor((Date.now() - watchStart) / 1000);
-  const dur   = movieData.duration ? parseInt(movieData.duration) * 60 : 5400;
-  await DB.upsertContinueWatching(currentUser.id, movieData.id, watchedSecs, dur);
-  // Show sync indicator
-  const dot = document.getElementById('syncDot');
-  dot.classList.add('show');
-  setTimeout(() => dot.classList.remove('show'), 2000);
-}
+function showUI(){
 
-// ─────────────────────────────────────────
-//  MY LIST
-// ─────────────────────────────────────────
-async function toggleML() {
-  if (!currentUser || !movieData?.id) { showToast('⚠️ TMDB movies ke liye My List admin DB mein add karna hoga'); return; }
-  if (isInML) {
-    await DB.removeFromMyList(currentUser.id, movieData.id);
-    isInML = false;
-    showToast('Removed from My List');
-  } else {
-    await DB.addToMyList(currentUser.id, movieData.id);
-    isInML = true;
-    showToast('✅ Added to My List');
-  }
-  updateMLBtn();
-}
-function updateMLBtn() {
-  const b1 = document.getElementById('mlBtn');
-  const b2 = document.getElementById('mlTopBtn');
-  if (isInML) { b1.textContent='✓ In My List'; b1.classList.add('added'); b2.textContent='✓'; b2.style.color='#46d369'; }
-  else        { b1.textContent='＋ My List';    b1.classList.remove('added'); b2.textContent='＋'; b2.style.color='#fff'; }
-}
+  document.getElementById('playerWrap')
+  .classList.add('ui-on');
 
-// ─────────────────────────────────────────
-//  UI SHOW / HIDE
-// ─────────────────────────────────────────
-function showUI() {
-  document.getElementById('playerWrap').classList.add('ui-on');
   clearTimeout(uiTimer);
-  uiTimer = setTimeout(() => document.getElementById('playerWrap').classList.remove('ui-on'), 4000);
-}
-document.getElementById('uiZone').addEventListener('click',     showUI);
-document.getElementById('uiZone').addEventListener('mousemove', showUI);
-document.addEventListener('keydown', e => {
-  showUI();
-  if (e.key === 'Escape') goBack();
-  if (e.key === 'f' || e.key === 'F') reqFS();
-  if (e.key === 'l' || e.key === 'L') toggleML();
-});
 
-// ─────────────────────────────────────────
-//  FULLSCREEN
-// ─────────────────────────────────────────
-function reqFS() {
+  uiTimer = setTimeout(()=>{
+
+    document.getElementById('playerWrap')
+    .classList.remove('ui-on');
+
+  },4000);
+
+}
+
+document.addEventListener('mousemove',showUI);
+document.addEventListener('click',showUI);
+
+/* FULLSCREEN */
+
+function reqFS(){
+
   const el = document.getElementById('playerWrap');
-  if (document.fullscreenElement) document.exitFullscreen();
-  else el.requestFullscreen().catch(() => document.getElementById('stFrame').requestFullscreen?.());
-}
 
-// ─────────────────────────────────────────
-//  SHARE
-// ─────────────────────────────────────────
-function shareMovie() {
-  if (navigator.share) {
-    navigator.share({ title: movieData?.title, text: 'XverseMovies pe dekho!', url: location.href }).catch(()=>{});
-  } else {
-    navigator.clipboard?.writeText(location.href).then(() => showToast('🔗 Link copied!'));
+  if(document.fullscreenElement){
+    document.exitFullscreen();
+  }else{
+    el.requestFullscreen().catch(()=>{});
   }
+
 }
 
-// ─────────────────────────────────────────
-//  BACK
-// ─────────────────────────────────────────
-async function goBack() {
+/* MY LIST */
+
+async function toggleML(){
+
+  if(!currentUser || !movieData?.id) return;
+
+  if(isInML){
+
+    await DB.removeFromMyList(currentUser.id,movieData.id);
+
+    isInML = false;
+
+  }else{
+
+    await DB.addToMyList(currentUser.id,movieData.id);
+
+    isInML = true;
+
+  }
+
+  updateMLBtn();
+
+}
+
+function updateMLBtn(){
+
+  const btn = document.getElementById('mlBtn');
+
+  if(isInML){
+
+    btn.textContent = '✓ In My List';
+    btn.classList.add('added');
+
+  }else{
+
+    btn.textContent = '＋ My List';
+    btn.classList.remove('added');
+
+  }
+
+}
+
+/* PLAN */
+
+function showPlanGate(reqPlan){
+
+  document.getElementById('loadScreen').style.display='none';
+
+  document.getElementById('planGate')
+  .classList.add('show');
+
+}
+
+function upgradePlan(plan){
+
+  const link = XVERSE.PAYMENT[plan];
+
+  if(link){
+    window.open(link,'_blank');
+  }
+
+}
+
+/* SHARE */
+
+function shareMovie(){
+
+  if(navigator.share){
+
+    navigator.share({
+      title:movieData?.title,
+      url:location.href
+    });
+
+  }
+
+}
+
+/* BACK */
+
+async function goBack(){
+
   clearInterval(syncTimer);
-  await syncProgress(); // final sync before leaving
-  window.location.href = 'XverseMovies_Home.html';
+
+  await syncProgress();
+
+  location.href='XverseMovies_Home.html';
+
 }
 
-// Sync on page unload too
-window.addEventListener('beforeunload', () => {
-  if (!currentUser || !movieData?.id || !watchStart) return;
-  const ws  = Math.floor((Date.now() - watchStart) / 1000);
-  const dur = movieData.duration ? parseInt(movieData.duration) * 60 : 5400;
-  // Use sendBeacon for reliable unload sync
-  const sb  = getSB();
-  if (sb && ws > 5) {
-    DB.upsertContinueWatching(currentUser.id, movieData.id, ws, dur).catch(()=>{});
-  }
+/* PROGRESS */
+
+async function syncProgress(){
+
+  if(!currentUser || !movieData?.id || !watchStart) return;
+
+  const watched =
+  Math.floor((Date.now()-watchStart)/1000);
+
+  const dur =
+  movieData.duration
+  ? parseInt(movieData.duration)*60
+  : 5400;
+
+  await DB.upsertContinueWatching(
+    currentUser.id,
+    movieData.id,
+    watched,
+    dur
+  );
+
+  const dot = document.getElementById('syncDot');
+
+  dot.classList.add('show');
+
+  setTimeout(()=>{
+    dot.classList.remove('show');
+  },2000);
+
+}
+
+/* KEYS */
+
+document.addEventListener('keydown',e=>{
+
+  showUI();
+
+  if(e.key==='Escape') goBack();
+
+  if(e.key==='f' || e.key==='F') reqFS();
+
 });
+
+/* BEFORE UNLOAD */
+
+window.addEventListener('beforeunload',()=>{
+
+  clearInterval(syncTimer);
+
+});
+
 </script>
+
 </body>
 </html>
