@@ -194,8 +194,8 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
       <div class="fc">
         <div class="fc-title"><div class="fc-ico">🔗</div> Streamtape Video Link</div>
         <div class="fw">
-          <label>Streamtape URL</label>
-          <input type="url" id="stLink" placeholder="https://streamtape.com/v/AbCdEf123456/" oninput="parseSTLink(this.value)">
+          <label>Embed URL</label>
+          <input type="url" id="stLink" placeholder="https://example.com/embed/abc123" oninput="parseSTLink(this.value)">
           <div class="hint">Example: https://streamtape.com/v/VIDEO_ID/ ya https://streamtape.com/e/VIDEO_ID/</div>
         </div>
         <div class="stprev" id="stPrev">
@@ -326,7 +326,7 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
   {
     "title": "Pathaan",
     "type": "movie",
-    "streamtape_id": "AbCdEf123456",
+    "embed_url":"https://example.com/embed/abc123",
     "year": "2023",
     "rating": 5.9,
     "language": "hi",
@@ -460,22 +460,37 @@ function updateCounts() {
 }
 
 // ─────────────────────────────────────────
-//  STREAMTAPE PARSE
+//  UNIVERSAL EMBED SYSTEM
 // ─────────────────────────────────────────
-function extractStId(url) {
-  if (!url) return null;
-  const m = url.match(/streamtape\.com\/[ve]\/([A-Za-z0-9]+)/);
-  if (m) return m[1];
-  if (/^[A-Za-z0-9]{8,20}$/.test(url.trim())) return url.trim();
-  return null;
+
+function validateEmbedUrl(url) {
+  if (!url) return false;
+
+  try {
+    const u = new URL(url);
+
+    // only http/https allowed
+    if (
+      u.protocol !== "https:" &&
+      u.protocol !== "http:"
+    ) return false;
+
+    return true;
+
+  } catch {
+    return false;
+  }
 }
-function stEmbed(id) { return `https://streamtape.com/e/${id}/`; }
 
 function parseSTLink(url) {
-  const id = extractStId(url);
   const prev = document.getElementById('stPrev');
-  if (id) { document.getElementById('stIdEl').textContent = id; prev.classList.add('show'); }
-  else prev.classList.remove('show');
+
+  if (validateEmbedUrl(url)) {
+    document.getElementById('stIdEl').textContent = 'VALID EMBED URL';
+    prev.classList.add('show');
+  } else {
+    prev.classList.remove('show');
+  }
 }
 
 // ─────────────────────────────────────────
@@ -553,8 +568,10 @@ async function addMovie() {
   if (!title)  { showToast('❌ Title daalo'); return; }
   if (!stLink) { showToast('❌ Streamtape link daalo'); return; }
 
-  const stId = extractStId(stLink);
-  if (!stId) { showToast('❌ Valid Streamtape URL daalo — e.g. https://streamtape.com/v/AbCd1234/'); return; }
+if (!validateEmbedUrl(stLink)) {
+  showToast('❌ Valid Embed URL daalo');
+  return;
+}
 
   const btn = document.getElementById('addBtn');
   btn.textContent = 'Adding...'; btn.disabled = true;
@@ -562,8 +579,7 @@ async function addMovie() {
   const movie = {
     title,
     type:          document.getElementById('mType').value,
-    streamtape_id: stId,
-    embed_url:     stEmbed(stId),
+    embed_url: stLink,
     tmdb_id:       parseInt(document.getElementById('tmdbId').value)||null,
     year:          document.getElementById('mYear').value || new Date().getFullYear().toString(),
     rating:        parseFloat(document.getElementById('mRating').value)||null,
@@ -614,10 +630,19 @@ function resetForm() {
 }
 
 function testVideo() {
-  const id = extractStId(document.getElementById('stLink').value.trim());
-  if (!id) { showToast('❌ Pehle valid Streamtape link daalo'); return; }
-  document.getElementById('testTitle').textContent = document.getElementById('mTitle').value || 'Testing...';
-  document.getElementById('testFrame').src = stEmbed(id);
+
+  const url = document.getElementById('stLink').value.trim();
+
+  if (!validateEmbedUrl(url)) {
+    showToast('❌ Pehle valid embed URL daalo');
+    return;
+  }
+
+  document.getElementById('testTitle').textContent =
+    document.getElementById('mTitle').value || 'Testing...';
+
+  document.getElementById('testFrame').src = url;
+
   document.getElementById('testModal').classList.add('open');
 }
 function closeTest() { document.getElementById('testModal').classList.remove('open'); document.getElementById('testFrame').src=''; }
@@ -644,7 +669,7 @@ function rowHTML(m) {
     <td style="color:var(--muted);font-size:.74rem;text-transform:uppercase">${m.language||'—'}</td>
     <td><span class="chip ${m.status==='active'?'chip-on':'chip-off'}">${m.status||'active'}</span></td>
     <td><div class="tacts">
-      <button class="tab-btn play" onclick="testById(${m.id},'${m.embed_url||stEmbed(m.streamtape_id||'')}')" title="Play">▶</button>
+      <button class="tab-btn play" onclick="testById(${m.id},'${m.embed_url || ''}')" title="Play">▶</button>
       <button class="tab-btn" onclick="editMovie(${m.id})" title="Edit">✏️</button>
       <button class="tab-btn" onclick="toggleFeat(${m.id})" title="${m.featured?'Remove featured':'Add featured'}">${m.featured?'★':'☆'}</button>
       <button class="tab-btn" onclick="toggleStatus(${m.id})" title="Toggle status">${m.status==='active'?'👁':'🚫'}</button>
@@ -667,7 +692,7 @@ function editMovie(id) {
   const m = allMovies.find(x=>x.id===id); if(!m) return;
   editingId = id;
   document.getElementById('editForm').innerHTML = `
-    <div class="fg" style="margin-bottom:12px"><div class="fw"><label>Title</label><input id="eTitle" class="fi" value="${m.title||''}"></div><div class="fw"><label>Streamtape ID</label><input id="eStId" class="fi" value="${m.streamtape_id||''}"></div></div>
+    <div class="fg" style="margin-bottom:12px"><div class="fw"><label>Title</label><input id="eTitle" class="fi" value="${m.title||''}"></div><div class="fw"><label>Embed URL</label><input id="eEmbed" class="fi" value="${m.embed_url||''}"></div></div>
     <div class="fg" style="margin-bottom:12px"><div class="fw"><label>Rating</label><input id="eRating" class="fi" type="number" value="${m.rating||''}" step="0.1" min="0" max="10"></div><div class="fw"><label>Year</label><input id="eYear" class="fi" value="${m.year||''}"></div></div>
     <div class="fg c1" style="margin-bottom:12px"><div class="fw"><label>Poster URL</label><input id="ePoster" class="fi" value="${m.poster_url||''}"></div></div>
     <div class="fg c1" style="margin-bottom:12px"><div class="fw"><label>Overview</label><textarea id="eOv" style="background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.08);color:#fff;padding:9px 11px;font-size:.84rem;border-radius:6px;font-family:'Barlow',sans-serif;outline:none;width:100%;min-height:70px;resize:vertical">${m.overview||''}</textarea></div></div>
@@ -677,11 +702,17 @@ function editMovie(id) {
 }
 
 async function saveEdit() {
-  const stId = document.getElementById('eStId').value.trim();
+
+  const embedUrl = document.getElementById('eEmbed').value.trim();
+
+  if (embedUrl && !validateEmbedUrl(embedUrl)) {
+    showToast('❌ Valid embed URL daalo');
+    return;
+  }
+
   const updates = {
     title:       document.getElementById('eTitle').value.trim(),
-    streamtape_id:stId||null,
-    embed_url:   stId ? stEmbed(stId) : null,
+    embed_url:   embedUrl || null,
     rating:      parseFloat(document.getElementById('eRating').value)||null,
     year:        document.getElementById('eYear').value,
     poster_url:  document.getElementById('ePoster').value.trim()||null,
@@ -689,12 +720,30 @@ async function saveEdit() {
     status:      document.getElementById('eStat').value,
     featured:    document.getElementById('eFeat').value==='true',
   };
-  const { error } = await getSB().from('movies').update(updates).eq('id', editingId);
-  if (error) { showToast('❌ '+error.message); return; }
-  const idx = allMovies.findIndex(x=>x.id===editingId);
-  if (idx>=0) allMovies[idx]={...allMovies[idx],...updates};
+
+  const { error } = await getSB()
+    .from('movies')
+    .update(updates)
+    .eq('id', editingId);
+
+  if (error) {
+    showToast('❌ ' + error.message);
+    return;
+  }
+
+  const idx = allMovies.findIndex(x => x.id === editingId);
+
+  if (idx >= 0) {
+    allMovies[idx] = {
+      ...allMovies[idx],
+      ...updates
+    };
+  }
+
   closeEditModal();
+
   showToast(`✅ "${updates.title}" updated!`);
+
   loadDashboard();
 }
 
@@ -766,8 +815,7 @@ async function bulkImport() {
     const cleaned = arr.map(m => ({
       title:         m.title || 'Untitled',
       type:          m.type || 'movie',
-      streamtape_id: m.streamtape_id || null,
-      embed_url:     m.streamtape_id ? stEmbed(m.streamtape_id) : (m.embed_url||null),
+      embed_url:     m.embed_url || null,
       year:          m.year ? String(m.year) : null,
       rating:        m.rating ? parseFloat(m.rating) : null,
       language:      m.language || 'hi',
@@ -796,13 +844,47 @@ async function bulkImport() {
 }
 
 function downloadTemplate() {
+
   const t = JSON.stringify([
-    {title:"Movie Name",type:"movie",streamtape_id:"AbCdEf123456",year:"2024",rating:8.5,language:"hi",quality:"1080p",poster_url:"https://image.tmdb.org/t/p/w500/xxx.jpg",backdrop_url:"https://image.tmdb.org/t/p/original/xxx.jpg",genres:["Action","Drama"],overview:"Description here.",cast_text:"Actor 1, Actor 2",status:"active",featured:false,min_plan:"free",age_rating:"UA 16+"},
-    {title:"TV Show Name",type:"tv",streamtape_id:"GhIjKl789012",year:"2023",rating:9.0,language:"en",quality:"720p",genres:["Thriller"],overview:"Show description."}
+    {
+      title:"Movie Name",
+      type:"movie",
+      embed_url:"https://example.com/embed/movie123",
+      year:"2024",
+      rating:8.5,
+      language:"hi",
+      quality:"1080p",
+      poster_url:"https://image.tmdb.org/t/p/w500/xxx.jpg",
+      backdrop_url:"https://image.tmdb.org/t/p/original/xxx.jpg",
+      genres:["Action","Drama"],
+      overview:"Description here.",
+      cast_text:"Actor 1, Actor 2",
+      status:"active",
+      featured:false,
+      min_plan:"free",
+      age_rating:"UA 16+"
+    },
+    {
+      title:"TV Show Name",
+      type:"tv",
+      embed_url:"https://example.com/embed/show123",
+      year:"2023",
+      rating:9.0,
+      language:"en",
+      quality:"720p",
+      genres:["Thriller"],
+      overview:"Show description."
+    }
   ], null, 2);
+
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([t],{type:'application/json'}));
+
+  a.href = URL.createObjectURL(
+    new Blob([t], { type:'application/json' })
+  );
+
   a.download = 'xversemovies_bulk_template.json';
+
   a.click();
 }
 
@@ -824,15 +906,42 @@ async function exportAllMovies() {
 }
 
 async function exportCSV() {
-  const { data } = await getSB().from('movies').select('id,title,type,year,rating,language,quality,status,streamtape_id,embed_url').order('created_at',{ascending:false});
-  const items = data||[];
-  const headers = 'id,title,type,year,rating,language,quality,status,streamtape_id,embed_url';
-  const rows = items.map(m=>[m.id,`"${m.title}"`,m.type,m.year,m.rating,m.language,m.quality,m.status,m.streamtape_id,m.embed_url].join(','));
-  const csv = [headers,...rows].join('\n');
+
+  const { data } = await getSB()
+    .from('movies')
+    .select('id,title,type,year,rating,language,quality,status,embed_url')
+    .order('created_at', { ascending:false });
+
+  const items = data || [];
+
+  const headers =
+    'id,title,type,year,rating,language,quality,status,embed_url';
+
+  const rows = items.map(m => [
+    m.id,
+    `"${m.title}"`,
+    m.type,
+    m.year,
+    m.rating,
+    m.language,
+    m.quality,
+    m.status,
+    `"${m.embed_url || ''}"`
+  ].join(','));
+
+  const csv = [headers, ...rows].join('\n');
+
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-  a.download = `xversemovies_${new Date().toISOString().split('T')[0]}.csv`;
+
+  a.href = URL.createObjectURL(
+    new Blob([csv], { type:'text/csv' })
+  );
+
+  a.download =
+    `xversemovies_${new Date().toISOString().split('T')[0]}.csv`;
+
   a.click();
+
   showToast(`📊 CSV exported!`);
 }
 
