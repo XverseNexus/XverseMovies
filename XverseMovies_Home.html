@@ -249,17 +249,29 @@ let myListIds      = new Set();
   await initNavAvatar('navAvatar');
 
   // Load everything in parallel
-  const [featured, cwItems, myListItems, trending, topRated, popular, hindi, south, tv] = await Promise.all([
-    DB.getFeatured(),
-    DB.getContinueWatching(currentUser.id),
-    DB.getMyList(currentUser.id),
-    TMDB.trending(),
-    TMDB.topMovies(),
-    TMDB.popularMov(),
-    TMDB.hindiMovies(),
-    TMDB.southMovies(),
-    TMDB.popularTV(),
-  ]);
+  const [
+  featured,
+  cwItems,
+  myListItems,
+  adminMovies,
+  trending,
+  topRated,
+  popular,
+  hindi,
+  south,
+  tv
+] = await Promise.all([
+  DB.getFeatured(),
+  DB.getContinueWatching(currentUser.id),
+  DB.getMyList(currentUser.id),
+  DB.getAllMovies(), // 👈 ADD THIS
+  TMDB.trending(),
+  TMDB.topMovies(),
+  TMDB.popularMov(),
+  TMDB.hindiMovies(),
+  TMDB.southMovies(),
+  TMDB.popularTV(),
+]);
 
   // Build my list ID set for quick lookup
   myListIds = new Set(myListItems.map(m => String(m.id)));
@@ -274,7 +286,17 @@ let myListIds      = new Set();
   buildHero(heroSrc);
 
   // Rows
-  buildRows(cwItems, myListItems, trending, topRated, popular, hindi, south, tv);
+  buildRows(
+  cwItems,
+  myListItems,
+  adminMovies,
+  trending,
+  topRated,
+  popular,
+  hindi,
+  south,
+  tv
+);
 })();
 
 // ─────────────────────────────────────────
@@ -327,7 +349,17 @@ function renderHero(m) {
 // ─────────────────────────────────────────
 //  ROWS
 // ─────────────────────────────────────────
-function buildRows(cwItems, myListItems, trending, topRated, popular, hindi, south, tv) {
+function buildRows(
+  cwItems,
+  myListItems,
+  adminMovies,
+  trending,
+  topRated,
+  popular,
+  hindi,
+  south,
+  tv
+) {
   const wrap  = document.getElementById('rowsWrap');
   wrap.innerHTML = '';
 
@@ -341,15 +373,89 @@ function buildRows(cwItems, myListItems, trending, topRated, popular, hindi, sou
     wrap.appendChild(buildCardRow('My List', myListItems, 'XverseMovies_MyList.html'));
   }
 
-  // TMDB rows
-  const norm = arr => (arr?.results || []).filter(m => m.poster_path).map(TMDB.normalize);
+  // TMDB rows with duplicate removal
+const norm = arr =>
+  (arr?.results || [])
+    .filter(m => m.poster_path)
+    .map(TMDB.normalize);
 
-  if (trending)  wrap.appendChild(buildCardRow('Trending Now 🔥', norm(trending)));
-  if (topRated)  wrap.appendChild(buildTop10Row('Top 10 in India Today', norm(topRated).slice(0,10)));
-  if (popular)   wrap.appendChild(buildCardRow('Popular on XverseMovies', norm(popular)));
-  if (hindi)     wrap.appendChild(buildCardRow('Hindi Movies 🇮🇳', norm(hindi)));
-  if (south)     wrap.appendChild(buildCardRow('South Indian Hits 🎭', norm(south)));
-  if (tv)        wrap.appendChild(buildCardRow('Popular TV Shows 📺', norm(tv)));
+const trendingFiltered = removeDuplicateMovies(
+  adminMovies,
+  norm(trending)
+);
+
+const topRatedFiltered = removeDuplicateMovies(
+  adminMovies,
+  norm(topRated)
+);
+
+const popularFiltered = removeDuplicateMovies(
+  adminMovies,
+  norm(popular)
+);
+
+const hindiFiltered = removeDuplicateMovies(
+  adminMovies,
+  norm(hindi)
+);
+
+const southFiltered = removeDuplicateMovies(
+  adminMovies,
+  norm(south)
+);
+
+const tvFiltered = removeDuplicateMovies(
+  adminMovies,
+  norm(tv)
+);
+
+if (trendingFiltered.length)
+  wrap.appendChild(
+    buildCardRow('Trending Now 🔥', [
+      ...adminMovies.slice(0,5),
+      ...trendingFiltered
+    ])
+  );
+
+if (topRatedFiltered.length)
+  wrap.appendChild(
+    buildTop10Row(
+      'Top 10 in India Today',
+      topRatedFiltered.slice(0,10)
+    )
+  );
+
+if (popularFiltered.length)
+  wrap.appendChild(
+    buildCardRow(
+      'Popular on XverseMovies',
+      popularFiltered
+    )
+  );
+
+if (hindiFiltered.length)
+  wrap.appendChild(
+    buildCardRow(
+      'Hindi Movies 🇮🇳',
+      hindiFiltered
+    )
+  );
+
+if (southFiltered.length)
+  wrap.appendChild(
+    buildCardRow(
+      'South Indian Hits 🎭',
+      southFiltered
+    )
+  );
+
+if (tvFiltered.length)
+  wrap.appendChild(
+    buildCardRow(
+      'Popular TV Shows 📺',
+      tvFiltered
+    )
+  );
 }
 
 function buildCardRow(title, movies, seeAllHref) {
