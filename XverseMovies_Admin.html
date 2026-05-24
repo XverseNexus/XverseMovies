@@ -193,29 +193,56 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
 
       <!-- Streamtape -->
       <div class="fc">
-        <div class="fc-title"><div class="fc-ico">🔗</div> Streamtape Video Link</div>
-        <div class="fw">
-          <label>Embed URL</label>
-          <input type="url" id="stLink" placeholder="https://example.com/embed/abc123" oninput="parseSTLink(this.value)">
-          <div class="hint">Example: https://streamtape.com/v/VIDEO_ID/ ya https://streamtape.com/e/VIDEO_ID/</div>
-        </div>
-        <div class="stprev" id="stPrev">
-          <span>✅ Valid Streamtape ID:</span>
-          <span class="sid" id="stIdEl"></span>
-          <span style="color:var(--muted);font-size:.7rem">— Embed ready ✓</span>
-        </div>
-        <!-- TMDB Auto-fill -->
-        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
-          <div class="fw">
-            <label>TMDB ID (Optional — auto-fill karta hai poster/overview/cast)</label>
-            <div style="display:flex;gap:8px">
-              <input type="number" id="tmdbId" placeholder="e.g. 155 (The Dark Knight)" style="flex:1;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.08);color:#fff;padding:9px 11px;font-size:.84rem;border-radius:6px;font-family:'Barlow',sans-serif;outline:none">
-              <button class="btn-sec" onclick="autoFillTMDB()" style="white-space:nowrap">🔍 Auto Fill</button>
-            </div>
-            <div class="hint">TMDB pe movie search karo → URL mein ID milegi → Yahan daalo</div>
-          </div>
-        </div>
+        <!-- AUTO EMBED -->
+<div class="fc">
+  <div class="fc-title">
+    <div class="fc-ico">⚡</div>
+    Auto Embed System
+  </div>
+
+  <div class="fg">
+    <div class="fw">
+      <label>TMDB ID *</label>
+
+      <input
+        type="number"
+        id="tmdbId"
+        placeholder="e.g. 155"
+      >
+
+      <div class="hint">
+        Sirf TMDB ID daalo — embed/movie data automatically generate ho jayega
       </div>
+    </div>
+
+    <div class="fw">
+      <label>Content Type</label>
+
+      <select id="autoType">
+        <option value="movie">Movie</option>
+        <option value="tv">TV Show</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="brow" style="margin-top:10px">
+    <button class="btn-add" onclick="generateAutoMovie()">
+      ⚡ Generate Movie Data
+    </button>
+  </div>
+
+  <div
+    id="autoEmbedPreview"
+    style="
+      display:none;
+      margin-top:14px;
+      padding:12px;
+      border-radius:8px;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.08)
+    "
+  ></div>
+</div>
 
       <!-- Movie Details -->
       <div class="fc">
@@ -483,23 +510,151 @@ function validateEmbedUrl(url) {
   }
 }
 
-function parseSTLink(url) {
-  const prev = document.getElementById('stPrev');
-
-  if (validateEmbedUrl(url)) {
-    document.getElementById('stIdEl').textContent = 'VALID EMBED URL';
-    prev.classList.add('show');
-  } else {
-    prev.classList.remove('show');
-  }
-}
-
 // ─────────────────────────────────────────
 //  TMDB AUTO-FILL
 // ─────────────────────────────────────────
+async function generateAutoMovie() {
+
+  const tmdbId = document.getElementById('tmdbId').value.trim();
+  const type = document.getElementById('autoType').value;
+
+  if (!tmdbId) {
+    showToast('❌ TMDB ID daalo');
+    return;
+  }
+
+  showToast('⚡ Generating movie data...');
+
+  try {
+
+    const data =
+      type === 'tv'
+      ? await TMDB.tvDetails(tmdbId)
+      : await TMDB.movieDetails(tmdbId);
+
+    if (!data) {
+      showToast('❌ TMDB fetch failed');
+      return;
+    }
+
+    // AUTO EMBED
+    const embedUrl =
+      type === 'tv'
+      ? `https://vidsrc.to/embed/tv/${tmdbId}`
+      : `https://vidsrc.to/embed/movie/${tmdbId}`;
+
+    // BASIC DATA
+    document.getElementById('mTitle').value =
+      data.title || data.name || '';
+
+    document.getElementById('mYear').value =
+      (data.release_date || data.first_air_date || '')
+      .slice(0,4);
+
+    document.getElementById('mRating').value =
+      data.vote_average
+      ? data.vote_average.toFixed(1)
+      : '';
+
+    document.getElementById('mOverview').value =
+      data.overview || '';
+
+    // POSTER
+    const poster =
+      data.poster_path
+      ? `https://image.tmdb.org/t/p/w500${data.poster_path}`
+      : '';
+
+    // BACKDROP
+    const backdrop =
+      data.backdrop_path
+      ? `https://image.tmdb.org/t/p/original${data.backdrop_path}`
+      : '';
+
+    document.getElementById('mPoster').value   = poster;
+    document.getElementById('mBackdrop').value = backdrop;
+
+    prevImg(poster,'posterPrev','pp');
+    prevImg(backdrop,'backdropPrev','bp');
+
+    // CAST
+    const cast =
+      (data.credits?.cast || [])
+      .slice(0,5)
+      .map(c => c.name)
+      .join(', ');
+
+    document.getElementById('mCast').value = cast;
+
+    // DIRECTOR
+    const director =
+      (data.credits?.crew || [])
+      .find(c => c.job === 'Director')?.name || '';
+
+    document.getElementById('mDirector').value = director;
+
+    // GENRES
+    selGenres = [];
+
+    document.querySelectorAll('.gtag').forEach(t => {
+      t.classList.remove('on');
+    });
+
+    (data.genres || []).forEach(g => {
+
+      selGenres.push(g.name);
+
+      document.querySelectorAll('.gtag').forEach(t => {
+        if (t.textContent === g.name) {
+          t.classList.add('on');
+        }
+      });
+
+    });
+
+    // PREVIEW
+    const prev = document.getElementById('autoEmbedPreview');
+
+    prev.style.display = 'block';
+
+    prev.innerHTML = `
+      <div style="font-size:.8rem;color:#46d369;font-weight:700">
+        ✅ Auto Embed Ready
+      </div>
+
+      <div style="margin-top:8px;font-size:.75rem;color:#aaa">
+        Embed URL:
+      </div>
+
+      <div style="
+        margin-top:5px;
+        background:#111;
+        padding:8px;
+        border-radius:6px;
+        font-family:monospace;
+        word-break:break-all;
+        color:#fff;
+        font-size:.74rem
+      ">
+        ${embedUrl}
+      </div>
+    `;
+
+    window.generatedEmbedUrl = embedUrl;
+
+    showToast('✅ Auto movie generated');
+
+  } catch(err) {
+
+    console.error(err);
+
+    showToast('❌ Failed');
+
+  }
+}
 async function autoFillTMDB() {
   const id   = document.getElementById('tmdbId').value.trim();
-  const type = document.getElementById('mType').value;
+  const type = document.getElementById('autoType').value;
   if (!id) { showToast('❌ TMDB ID daalo'); return; }
   showToast('🔍 Fetching from TMDB...');
   const data = type === 'tv' ? await TMDB.tvDetails(id) : await TMDB.movieDetails(id);
@@ -564,78 +719,148 @@ function prevImg(url, elId, cls) {
 //  ADD MOVIE
 // ─────────────────────────────────────────
 async function addMovie() {
-  const title   = document.getElementById('mTitle').value.trim();
-  const stLink  = document.getElementById('stLink').value.trim();
-  if (!title)  { showToast('❌ Title daalo'); return; }
-  if (!stLink) { showToast('❌ Streamtape link daalo'); return; }
+const title = document.getElementById('mTitle').value.trim();
+const btn = document.getElementById('addBtn');
 
-if (!validateEmbedUrl(stLink)) {
-  showToast('❌ Valid Embed URL daalo');
+const exists = allMovies.find(
+  m => m.title.toLowerCase() === title.toLowerCase()
+);
+
+if (exists) {
+  showToast('❌ Movie already exists');
+  btn.disabled = false;
   return;
 }
 
-  const btn = document.getElementById('addBtn');
-  btn.textContent = 'Adding...'; btn.disabled = true;
+  if (!title) {
+    showToast('❌ Title daalo');
+    return;
+  }
+
+  btn.textContent = 'Adding...';
+  btn.disabled = true;
 
   const movie = {
     title,
-    type:          document.getElementById('mType').value,
-    embed_url: stLink,
-    tmdb_id:       parseInt(document.getElementById('tmdbId').value)||null,
-    year:          document.getElementById('mYear').value || new Date().getFullYear().toString(),
-    rating:        parseFloat(document.getElementById('mRating').value)||null,
-    duration:      document.getElementById('mDur').value || null,
-    language:      document.getElementById('mLang').value,
-    quality:       document.getElementById('mQuality').value,
-    overview:      document.getElementById('mOverview').value.trim()||null,
-    genres:        [...selGenres],
-    poster_url:    document.getElementById('mPoster').value.trim()||null,
-    backdrop_url:  document.getElementById('mBackdrop').value.trim()||null,
-    cast_text:     document.getElementById('mCast').value.trim()||null,
-    director:      document.getElementById('mDirector').value.trim()||null,
-    status:        document.getElementById('mStatus').value,
-    featured:      document.getElementById('mFeatured').value === 'true',
-    min_plan:      document.getElementById('mPlan').value,
-    age_rating:    document.getElementById('mAge').value,
-    tags:          document.getElementById('mTags').value.split(',').map(t=>t.trim()).filter(Boolean),
+
+    type: document.getElementById('mType').value,
+
+    embed_url: window.generatedEmbedUrl || null,
+
+    tmdb_id:
+      parseInt(document.getElementById('tmdbId').value) || null,
+
+    year:
+      document.getElementById('mYear').value ||
+      new Date().getFullYear().toString(),
+
+    rating:
+      parseFloat(document.getElementById('mRating').value) || null,
+
+    duration:
+      document.getElementById('mDur').value || null,
+
+    language:
+      document.getElementById('mLang').value,
+
+    quality:
+      document.getElementById('mQuality').value,
+
+    overview:
+      document.getElementById('mOverview').value.trim() || null,
+
+    genres: [...selGenres],
+
+    poster_url:
+      document.getElementById('mPoster').value.trim() || null,
+
+    backdrop_url:
+      document.getElementById('mBackdrop').value.trim() || null,
+
+    cast_text:
+      document.getElementById('mCast').value.trim() || null,
+
+    director:
+      document.getElementById('mDirector').value.trim() || null,
+
+    status:
+      document.getElementById('mStatus').value,
+
+    featured:
+      document.getElementById('mFeatured').value === 'true',
+
+    min_plan:
+      document.getElementById('mPlan').value,
+
+    age_rating:
+      document.getElementById('mAge').value,
+
+    tags:
+      document.getElementById('mTags')
+        .value
+        .split(',')
+        .map(t => t.trim())
+        .filter(Boolean),
   };
 
-  const { data, error } = await getSB().from('movies').insert(movie).select().single();
-  btn.textContent = '✅ Add to XverseMovies'; btn.disabled = false;
+  const { data, error } =
+    await getSB()
+      .from('movies')
+      .insert(movie)
+      .select()
+      .single();
+
+  btn.textContent = '✅ Add to XverseMovies';
+  btn.disabled = false;
 
   const res = document.getElementById('addResult');
+
   if (error) {
-    res.style.display = 'block'; res.style.color = '#ff6b6b';
-    res.textContent = '❌ Error: ' + error.message;
+
+    res.style.display = 'block';
+    res.style.color = '#ff6b6b';
+
+    res.textContent =
+      '❌ Error: ' + error.message;
+
     showToast('❌ ' + error.message);
+
   } else {
-    res.style.display = 'block'; res.style.color = '#46d369';
-    res.textContent = `✅ "${title}" successfully added! ID: ${data.id}`;
+
+    res.style.display = 'block';
+    res.style.color = '#46d369';
+
+    res.textContent =
+      `✅ "${title}" successfully added! ID: ${data.id}`;
+
     showToast(`✅ "${title}" added!`);
+
     allMovies.unshift(data);
+
     updateCounts();
+
     resetForm();
   }
 }
 
 function resetForm() {
-  ['stLink','mTitle','tmdbId','mYear','mRating','mDur','mOverview','mPoster','mBackdrop','mCast','mDirector','mTags'].forEach(id => {
+  ['mTitle','tmdbId','mYear','mRating','mDur','mOverview','mPoster','mBackdrop','mCast','mDirector','mTags'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = '';
   });
-  document.getElementById('stPrev').classList.remove('show');
   document.getElementById('posterPrev').innerHTML   = '<span>No<br>Poster</span>';
   document.getElementById('backdropPrev').innerHTML = '<span>No Backdrop</span>';
   selGenres = [];
   document.querySelectorAll('.gtag').forEach(t => t.classList.remove('on'));
   document.getElementById('addResult').style.display = 'none';
+  window.generatedEmbedUrl = null;
 }
 
 function testVideo() {
 
-  const url = document.getElementById('stLink').value.trim();
+  const url = window.generatedEmbedUrl;
 
-  if (!validateEmbedUrl(url)) {
-    showToast('❌ Pehle valid embed URL daalo');
+  if (!url) {
+    showToast('❌ Pehle Generate Movie Data karo');
     return;
   }
 
@@ -646,7 +871,6 @@ function testVideo() {
 
   document.getElementById('testModal').classList.add('open');
 }
-function closeTest() { document.getElementById('testModal').classList.remove('open'); document.getElementById('testFrame').src=''; }
 
 // ─────────────────────────────────────────
 //  TABLE
@@ -800,8 +1024,56 @@ async function loadFeatured() {
 // ─────────────────────────────────────────
 //  FILTER TABLE
 // ─────────────────────────────────────────
-function filterTable(type, q) { loadTable(type); } // re-load (simple approach)
-function filterTableLang(type, lang) { loadTable(type); }
+async function filterTable(type, q) {
+
+  const el =
+    document.getElementById(
+      type === 'movies'
+      ? 'moviesTable'
+      : 'tvTable'
+    );
+
+  const { data } = await getSB()
+    .from('movies')
+    .select('*')
+    .eq('type', type === 'movies' ? 'movie' : 'tv')
+    .ilike('title', `%${q}%`)
+    .order('created_at', { ascending:false });
+
+  const items = data || [];
+
+  if (!items.length) {
+    el.innerHTML = `
+      <div class="empty">
+        <div class="empty-ico">📭</div>
+        <div style="font-size:.84rem;color:var(--muted)">
+          No results found
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  el.innerHTML = `
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th></th>
+          <th>Title</th>
+          <th>Year</th>
+          <th>Rating</th>
+          <th>Quality</th>
+          <th>Language</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${items.map(m => rowHTML(m)).join('')}
+      </tbody>
+    </table>
+  `;
+}
 
 // ─────────────────────────────────────────
 //  BULK IMPORT
@@ -952,6 +1224,40 @@ async function exportCSV() {
 document.addEventListener('keydown', e => {
   if (e.key==='Escape') { closeEditModal(); closeTest(); }
 });
+
+function showToast(msg) {
+
+  const t = document.createElement('div');
+
+  t.textContent = msg;
+
+  t.style.cssText = `
+    position:fixed;
+    bottom:20px;
+    right:20px;
+    background:#111;
+    color:#fff;
+    padding:12px 18px;
+    border:1px solid rgba(255,255,255,.1);
+    border-radius:8px;
+    z-index:9999;
+    font-size:.82rem;
+    box-shadow:0 10px 30px rgba(0,0,0,.4);
+    animation:fi .2s ease;
+  `;
+
+  document.body.appendChild(t);
+
+  setTimeout(() => {
+    t.remove();
+  }, 2600);
+}
+
+function closeTest() {
+  document.getElementById('testModal').classList.remove('open');
+  document.getElementById('testFrame').src = '';
+}
+
 </script>
 </body>
 </html>
