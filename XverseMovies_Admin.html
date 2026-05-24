@@ -191,10 +191,8 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
       <div class="ptit">Add Movie / Show</div>
       <div class="psub">Streamtape link paste karo — sab Supabase mein save ho jayega</div>
 
-      <!-- Streamtape -->
-      <div class="fc">
         <!-- AUTO EMBED -->
-<div class="fc">
+       <div class="fc">
   <div class="fc-title">
     <div class="fc-ico">⚡</div>
     Auto Embed System
@@ -1256,6 +1254,64 @@ function showToast(msg) {
 function closeTest() {
   document.getElementById('testModal').classList.remove('open');
   document.getElementById('testFrame').src = '';
+}
+
+async function filterTableLang(type, lang) {
+
+  const el =
+    document.getElementById(
+      type === 'movies'
+      ? 'moviesTable'
+      : 'tvTable'
+    );
+
+  let query = getSB()
+    .from('movies')
+    .select('*')
+    .eq('type', type === 'movies' ? 'movie' : 'tv');
+
+  if (lang) {
+    query = query.eq('language', lang);
+  }
+
+  const { data } = await query.order(
+    'created_at',
+    { ascending:false }
+  );
+
+  const items = data || [];
+
+  if (!items.length) {
+    el.innerHTML = `
+      <div class="empty">
+        <div class="empty-ico">📭</div>
+        <div style="font-size:.84rem;color:var(--muted)">
+          No results
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  el.innerHTML = `
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th></th>
+          <th>Title</th>
+          <th>Year</th>
+          <th>Rating</th>
+          <th>Quality</th>
+          <th>Language</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${items.map(m => rowHTML(m)).join('')}
+      </tbody>
+    </table>
+  `;
 }
 
 </script>
