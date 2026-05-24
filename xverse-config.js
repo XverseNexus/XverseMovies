@@ -227,6 +227,18 @@ const DB = {
             .range(page * limit, (page + 1) * limit - 1);
   },
 
+  async getAllMovies(limit = 100) {
+
+  const { data } = await getSB()
+    .from('movies')
+    .select('*')
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  return data || [];
+},
+
   async getMovie(id) {
     const { data } = await getSB().from('movies').select('*').eq('id', id).single();
     return data;
