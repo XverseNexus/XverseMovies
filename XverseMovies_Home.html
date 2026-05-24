@@ -527,6 +527,30 @@ function toggleSearch() {
   if (wrap.classList.contains('show')) setTimeout(() => document.getElementById('searchInput').focus(), 100);
   else { document.getElementById('searchResults').innerHTML = ''; document.getElementById('searchInput').value = ''; }
 }
+
+function removeDuplicateMovies(dbMovies, tmdbMovies) {
+
+  const dbTitles = new Set(
+    dbMovies.map(m =>
+      (m.title || '')
+      .toLowerCase()
+      .trim()
+    )
+  );
+
+  return tmdbMovies.filter(tmdbMovie => {
+
+    const title =
+      (tmdbMovie.title || '')
+      .toLowerCase()
+      .trim();
+
+    return !dbTitles.has(title);
+
+  });
+
+}
+
 function doSearch(q) {
   clearTimeout(searchTimer);
   if (q.length < 2) { document.getElementById('searchResults').innerHTML = ''; return; }
@@ -536,8 +560,21 @@ function doSearch(q) {
       DB.searchMovies(q),
       TMDB.search(q),
     ]);
-    const tmdb = (tmdbResults?.results || []).slice(0,8).map(TMDB.normalize);
-    const all  = [...dbResults, ...tmdb].slice(0,12);
+    const tmdb = (tmdbResults?.results || [])
+  .slice(0,8)
+  .map(TMDB.normalize);
+
+// Remove duplicate TMDB movies
+const filteredTMDB = removeDuplicateMovies(
+  dbResults,
+  tmdb
+);
+
+// Admin uploaded movies first
+const all = [
+  ...dbResults,
+  ...filteredTMDB
+].slice(0,12);
     const res  = document.getElementById('searchResults');
     res.innerHTML = all.length
       ? all.map(m => {
