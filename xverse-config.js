@@ -47,9 +47,12 @@ function getSB() {
 const Auth = {
   // Get current session user (fast, no network)
   async getUser() {
-    const { data } = await getSB().auth.getUser();
-    return data?.user || null;
-  },
+
+  const { data: { session } } =
+  await getSB().auth.getSession();
+
+  return session?.user || null;
+},
 
   // Get full profile from DB
   async getProfile(uid) {
@@ -381,12 +384,32 @@ function showToast(msg, duration = 2800) {
 //  AUTH GUARD  — call on every protected page
 // ─────────────────────────────────────────────────────────
 async function requireAuth(redirectTo = 'index.html') {
-  const sb   = getSB();
-  const { data: { session } } = await sb.auth.getSession();
+
+  const sb = getSB();
+
+  // FIRST TRY
+  let { data: { session } } = await sb.auth.getSession();
+
+  // Wait little if session restoring
   if (!session) {
-    window.location.href = redirectTo;
+
+    await new Promise(resolve => setTimeout(resolve, 1200));
+
+    const retry = await sb.auth.getSession();
+
+    session = retry.data.session;
+  }
+
+  // FINAL CHECK
+  if (!session) {
+
+    console.warn('No session found → redirecting');
+
+    window.location.replace(redirectTo);
+
     return null;
   }
+
   return session.user;
 }
 
