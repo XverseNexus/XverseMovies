@@ -427,15 +427,13 @@ html,body{
   </div>
 
   <!-- IFRAME -->
-  <iframe
-    id="stFrame"
-    allowfullscreen
-    webkitallowfullscreen
-    mozallowfullscreen
-    allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-    sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation"
-    referrerpolicy="origin"
-  ></iframe>
+<iframe
+  id="stFrame"
+  allowfullscreen
+  allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+  referrerpolicy="no-referrer-when-downgrade"
+  style="border:none;"
+></iframe>
 
   <!-- SYNC -->
   <div id="syncDot">
@@ -485,7 +483,7 @@ html,body{
       <div class="ctrl-spacer"></div>
 
       <span style="font-size:.72rem;color:#777;">
-        Streamtape controls inside video
+        Video controls inside player
       </span>
 
       <button class="ctrl-btn" onclick="reqFS()">⛶</button>
@@ -607,17 +605,14 @@ function loadVideo(m){
     return;
   }
 
-  /* STREAMTAPE FIX */
-  if(embedUrl.includes("streamtape.com")){
-    embedUrl = embedUrl.replace(/\/$/,"");
-    embedUrl += "?autoplay=1";
-  }
 
-  const frame = document.getElementById('stFrame');
+const frame = document.getElementById('stFrame');
 
-  frame.src = embedUrl;
+console.log("Embed URL:", embedUrl);
 
-  frame.style.display = 'block';
+frame.src = embedUrl;
+
+frame.style.display = 'block';
 
   setTimeout(()=>{
 
