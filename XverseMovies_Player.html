@@ -555,6 +555,63 @@ const PLAN_ORDER = {
     return;
   }
 
+  // ─────────────────────────────────────────────────────
+  //  NEW: Auto-embed logic for movies (if not manually set or broken)
+  // ─────────────────────────────────────────────────────
+  if (movie.type === 'movie') {
+    let needUpdate = false;
+
+    // Generate embed if missing or auto-generated but broken
+    if (!movie.embed_url || (!movie.embed_working && !movie.manual_embed)) {
+      if (movie.tmdb_id) {
+        const newUrl = `https://vidsrc.to/embed/movie/${movie.tmdb_id}`;
+        movie.embed_url = newUrl;
+        movie.auto_embed = true;
+        movie.manual_embed = false;
+        needUpdate = true;
+      }
+    }
+
+    // If a new embed was set or last check was older than 1 day, verify availability
+    const shouldCheck = needUpdate ||
+                        !movie.last_checked ||
+                        (Date.now() - new Date(movie.last_checked).getTime() > 86400000);
+
+    if (shouldCheck && movie.embed_url) {
+      // Check in background (don't block loading)
+      Vidsrc.checkAvailability(movie.embed_url).then(async (working) => {
+        const updates = {
+          embed_working: working,
+          last_checked: new Date().toISOString()
+        };
+        // If we generated the URL, also set auto_embed and embed_url
+        if (needUpdate) {
+          updates.embed_url = movie.embed_url;
+          updates.auto_embed = true;
+          updates.manual_embed = false;
+        }
+        if (movie.id) {
+          await getSB().from('movies').update(updates).eq('id', movie.id);
+        }
+        // If not working, we could notify the user (optional)
+        if (!working) {
+          console.warn('Embed not available:', movie.title);
+        }
+      }).catch(()=>{});
+    }
+
+    // If we generated a new URL but didn't wait for check, save it to DB immediately
+    if (needUpdate && movie.id) {
+      getSB().from('movies').update({
+        embed_url: movie.embed_url,
+        auto_embed: true,
+        manual_embed: false
+      }).eq('id', movie.id).then(()=>{}).catch(()=>{});
+    }
+  }
+
+  // ─────────────────────────────────────────────────────
+
   if(movie.id){
     isInML = await DB.isInMyList(currentUser.id,movie.id);
     updateMLBtn();
@@ -588,59 +645,35 @@ function loadVideo(m){
 
   document.title = `${m.title || 'Movie'} — XverseMovies`;
 
-  let embedUrl =
-    m.embed_url ||
-    (m.streamtape_id
-      ? `https://streamtape.com/e/${m.streamtape_id}/`
-      : null);
+  let embedUrl = m.embed_url;
 
   if(!embedUrl){
-
     document.getElementById('ldMsg').innerHTML =
     '⚠️ Video URL not found';
-
     document.getElementById('ldMsg').style.color =
     '#ff6b6b';
-
     return;
   }
 
-
-const frame = document.getElementById('stFrame');
-
-console.log("Embed URL:", embedUrl);
-
-frame.src = embedUrl;
-
-frame.style.display = 'block';
+  const frame = document.getElementById('stFrame');
+  console.log("Embed URL:", embedUrl);
+  frame.src = embedUrl;
+  frame.style.display = 'block';
 
   setTimeout(()=>{
-
-    document.getElementById('loadScreen').style.display =
-    'none';
-
+    document.getElementById('loadScreen').style.display = 'none';
     showUI();
-
   },2000);
-
 }
 
 /* UI */
 
 function showUI(){
-
-  document.getElementById('playerWrap')
-  .classList.add('ui-on');
-
+  document.getElementById('playerWrap').classList.add('ui-on');
   clearTimeout(uiTimer);
-
   uiTimer = setTimeout(()=>{
-
-    document.getElementById('playerWrap')
-    .classList.remove('ui-on');
-
+    document.getElementById('playerWrap').classList.remove('ui-on');
   },4000);
-
 }
 
 document.addEventListener('mousemove',showUI);
@@ -649,156 +682,94 @@ document.addEventListener('click',showUI);
 /* FULLSCREEN */
 
 function reqFS(){
-
   const el = document.getElementById('playerWrap');
-
   if(document.fullscreenElement){
     document.exitFullscreen();
   }else{
     el.requestFullscreen().catch(()=>{});
   }
-
 }
 
 /* MY LIST */
 
 async function toggleML(){
-
   if(!currentUser || !movieData?.id) return;
-
   if(isInML){
-
     await DB.removeFromMyList(currentUser.id,movieData.id);
-
     isInML = false;
-
   }else{
-
     await DB.addToMyList(currentUser.id,movieData.id);
-
     isInML = true;
-
   }
-
   updateMLBtn();
-
 }
 
 function updateMLBtn(){
-
   const btn = document.getElementById('mlBtn');
-
   if(isInML){
-
     btn.textContent = '✓ In My List';
     btn.classList.add('added');
-
   }else{
-
     btn.textContent = '＋ My List';
     btn.classList.remove('added');
-
   }
-
 }
 
 /* PLAN */
 
 function showPlanGate(reqPlan){
-
   document.getElementById('loadScreen').style.display='none';
-
-  document.getElementById('planGate')
-  .classList.add('show');
-
+  document.getElementById('planGate').classList.add('show');
 }
 
 function upgradePlan(plan){
-
   const link = XVERSE.PAYMENT[plan];
-
   if(link){
     window.open(link,'_blank');
   }
-
 }
 
 /* SHARE */
 
 function shareMovie(){
-
   if(navigator.share){
-
     navigator.share({
       title:movieData?.title,
       url:location.href
     });
-
   }
-
 }
 
 /* BACK */
 
 async function goBack(){
-
   clearInterval(syncTimer);
-
   await syncProgress();
-
   location.href='XverseMovies_Home.html';
-
 }
 
 /* PROGRESS */
 
 async function syncProgress(){
-
   if(!currentUser || !movieData?.id || !watchStart) return;
-
-  const watched =
-  Math.floor((Date.now()-watchStart)/1000);
-
-  const dur =
-  movieData.duration
-  ? parseInt(movieData.duration)*60
-  : 5400;
-
-  await DB.upsertContinueWatching(
-    currentUser.id,
-    movieData.id,
-    watched,
-    dur
-  );
-
+  const watched = Math.floor((Date.now()-watchStart)/1000);
+  const dur = movieData.duration ? parseInt(movieData.duration)*60 : 5400;
+  await DB.upsertContinueWatching(currentUser.id, movieData.id, watched, dur);
   const dot = document.getElementById('syncDot');
-
   dot.classList.add('show');
-
-  setTimeout(()=>{
-    dot.classList.remove('show');
-  },2000);
-
+  setTimeout(()=>{ dot.classList.remove('show'); },2000);
 }
 
 /* KEYS */
-
 document.addEventListener('keydown',e=>{
-
   showUI();
-
   if(e.key==='Escape') goBack();
-
   if(e.key==='f' || e.key==='F') reqFS();
-
 });
 
 /* BEFORE UNLOAD */
-
 window.addEventListener('beforeunload',()=>{
-
   clearInterval(syncTimer);
-
 });
 
 </script>
