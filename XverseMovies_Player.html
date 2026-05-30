@@ -555,39 +555,6 @@ const PLAN_ORDER = {
     return;
   }
 
-  // ─────────────────────────────────────────────────────
-  //  SAFE AUTO-EMBED LOGIC (FIXED)
-  //  Only generate if embed_url is missing. Never overwrite existing embed.
-  // ─────────────────────────────────────────────────────
-  if (movie.type === 'movie') {
-    // Only generate if embed_url is empty and we have tmdb_id
-    if (!movie.embed_url && movie.tmdb_id) {
-      const newUrl = `https://vidsrc.to/embed/movie/${movie.tmdb_id}`;
-      movie.embed_url = newUrl;
-      movie.auto_embed = true;
-      movie.manual_embed = false;
-      // Save to DB (fire & forget)
-      getSB().from('movies').update({
-        embed_url: newUrl,
-        auto_embed: true,
-        manual_embed: false
-      }).eq('id', movie.id).then(() => {}).catch(() => {});
-    }
-    // Always check availability in background (does NOT change embed_url)
-    if (movie.embed_url) {
-      Vidsrc.checkAvailability(movie.embed_url).then(async (working) => {
-        if (movie.id) {
-          await getSB().from('movies').update({
-            embed_working: working,
-            last_checked: new Date().toISOString()
-          }).eq('id', movie.id);
-        }
-      }).catch(() => {});
-    }
-  }
-
-  // ─────────────────────────────────────────────────────
-
   if(movie.id){
     isInML = await DB.isInMyList(currentUser.id,movie.id);
     updateMLBtn();
@@ -621,24 +588,39 @@ function loadVideo(m){
 
   document.title = `${m.title || 'Movie'} — XverseMovies`;
 
-  let embedUrl = m.embed_url;
+  let embedUrl =
+    m.embed_url ||
+    (m.streamtape_id
+      ? `https://streamtape.com/e/${m.streamtape_id}/`
+      : null);
 
   if(!embedUrl){
+
     document.getElementById('ldMsg').innerHTML =
     '⚠️ Video URL not found';
+
     document.getElementById('ldMsg').style.color =
     '#ff6b6b';
+
     return;
   }
 
-  const frame = document.getElementById('stFrame');
-  console.log("Embed URL:", embedUrl);
-  frame.src = embedUrl;
-  frame.style.display = 'block';
+
+const frame = document.getElementById('stFrame');
+
+console.log("Embed URL:", embedUrl);
+
+frame.src = embedUrl;
+
+frame.style.display = 'block';
 
   setTimeout(()=>{
-    document.getElementById('loadScreen').style.display = 'none';
+
+    document.getElementById('loadScreen').style.display =
+    'none';
+
     showUI();
+
   },2000);
 
 }
@@ -646,11 +628,19 @@ function loadVideo(m){
 /* UI */
 
 function showUI(){
-  document.getElementById('playerWrap').classList.add('ui-on');
+
+  document.getElementById('playerWrap')
+  .classList.add('ui-on');
+
   clearTimeout(uiTimer);
+
   uiTimer = setTimeout(()=>{
-    document.getElementById('playerWrap').classList.remove('ui-on');
+
+    document.getElementById('playerWrap')
+    .classList.remove('ui-on');
+
   },4000);
+
 }
 
 document.addEventListener('mousemove',showUI);
@@ -659,83 +649,156 @@ document.addEventListener('click',showUI);
 /* FULLSCREEN */
 
 function reqFS(){
+
   const el = document.getElementById('playerWrap');
+
   if(document.fullscreenElement){
     document.exitFullscreen();
   }else{
     el.requestFullscreen().catch(()=>{});
   }
+
 }
 
 /* MY LIST */
 
 async function toggleML(){
+
   if(!currentUser || !movieData?.id) return;
+
   if(isInML){
+
     await DB.removeFromMyList(currentUser.id,movieData.id);
+
     isInML = false;
+
   }else{
+
     await DB.addToMyList(currentUser.id,movieData.id);
+
     isInML = true;
+
   }
+
   updateMLBtn();
+
 }
 
 function updateMLBtn(){
+
   const btn = document.getElementById('mlBtn');
+
   if(isInML){
+
     btn.textContent = '✓ In My List';
     btn.classList.add('added');
+
   }else{
+
     btn.textContent = '＋ My List';
     btn.classList.remove('added');
+
   }
+
 }
 
 /* PLAN */
 
 function showPlanGate(reqPlan){
+
   document.getElementById('loadScreen').style.display='none';
-  document.getElementById('planGate').classList.add('show');
+
+  document.getElementById('planGate')
+  .classList.add('show');
+
 }
 
 function upgradePlan(plan){
+
   const link = XVERSE.PAYMENT[plan];
+
   if(link){
     window.open(link,'_blank');
   }
+
+}
+
+/* SHARE */
+
+function shareMovie(){
+
+  if(navigator.share){
+
+    navigator.share({
+      title:movieData?.title,
+      url:location.href
+    });
+
+  }
+
 }
 
 /* BACK */
 
 async function goBack(){
+
   clearInterval(syncTimer);
+
   await syncProgress();
+
   location.href='XverseMovies_Home.html';
+
 }
 
 /* PROGRESS */
 
 async function syncProgress(){
+
   if(!currentUser || !movieData?.id || !watchStart) return;
-  const watched = Math.floor((Date.now()-watchStart)/1000);
-  const dur = movieData.duration ? parseInt(movieData.duration)*60 : 5400;
-  await DB.upsertContinueWatching(currentUser.id, movieData.id, watched, dur);
+
+  const watched =
+  Math.floor((Date.now()-watchStart)/1000);
+
+  const dur =
+  movieData.duration
+  ? parseInt(movieData.duration)*60
+  : 5400;
+
+  await DB.upsertContinueWatching(
+    currentUser.id,
+    movieData.id,
+    watched,
+    dur
+  );
+
   const dot = document.getElementById('syncDot');
+
   dot.classList.add('show');
-  setTimeout(()=>{ dot.classList.remove('show'); },2000);
+
+  setTimeout(()=>{
+    dot.classList.remove('show');
+  },2000);
+
 }
 
 /* KEYS */
+
 document.addEventListener('keydown',e=>{
+
   showUI();
+
   if(e.key==='Escape') goBack();
+
   if(e.key==='f' || e.key==='F') reqFS();
+
 });
 
 /* BEFORE UNLOAD */
+
 window.addEventListener('beforeunload',()=>{
+
   clearInterval(syncTimer);
+
 });
 
 </script>
