@@ -530,6 +530,7 @@ const PLAN_ORDER = {
 
     movie = {
       id:movieId ? parseInt(movieId) : null,
+      tmdb_id: p.get('tmdb_id') ? parseInt(p.get('tmdb_id')) : null,
       title:p.get('title') || 'Movie',
       type:p.get('type') || 'movie',
       year:p.get('year') || '',
@@ -594,34 +595,31 @@ function loadVideo(m){
       ? `https://streamtape.com/e/${m.streamtape_id}/`
       : null);
 
+  // Auto-build vidsrc URL from tmdb_id if no embed set
+  if (!embedUrl) {
+    const tid = m.tmdb_id || (m.id && !m.streamtape_id ? m.id : null);
+    if (tid) {
+      embedUrl = m.type === 'tv'
+        ? `https://vidsrc.to/embed/tv/${tid}`
+        : `https://vidsrc.to/embed/movie/${tid}`;
+    }
+  }
+
   if(!embedUrl){
-
-    document.getElementById('ldMsg').innerHTML =
-    '⚠️ Video URL not found';
-
-    document.getElementById('ldMsg').style.color =
-    '#ff6b6b';
-
+    document.getElementById('ldMsg').innerHTML = '⚠️ Video URL not found';
+    document.getElementById('ldMsg').style.color = '#ff6b6b';
     return;
   }
 
+  const frame = document.getElementById('stFrame');
+  frame.src = embedUrl;
+  frame.style.display = 'block';
 
-const frame = document.getElementById('stFrame');
-
-console.log("Embed URL:", embedUrl);
-
-frame.src = embedUrl;
-
-frame.style.display = 'block';
-
+  // Hide loader after 2s
   setTimeout(()=>{
-
-    document.getElementById('loadScreen').style.display =
-    'none';
-
+    document.getElementById('loadScreen').style.display = 'none';
     showUI();
-
-  },2000);
+  }, 2000);
 
 }
 
