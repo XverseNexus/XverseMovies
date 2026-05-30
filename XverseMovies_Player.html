@@ -519,7 +519,7 @@ const PLAN_ORDER = {
 
   const p       = new URLSearchParams(location.search);
   const movieId = p.get('id');
-
+  const tmdb_id = p.get('tmdb_id');
   let movie = null;
 
   if(movieId){
