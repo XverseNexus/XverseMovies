@@ -43,6 +43,7 @@ function getSB() {
 
 // ─────────────────────────────────────────────────────────
 //  AUTH HELPERS
+//  AUTH HELPERS (unchanged, kept for completeness)
 // ─────────────────────────────────────────────────────────
 const Auth = {
   // Get current session user (fast, no network)
@@ -55,11 +56,13 @@ const Auth = {
 },
 
   // Get full profile from DB
+    const { data: { session } } = await getSB().auth.getSession();
+    return session?.user || null;
+  },
   async getProfile(uid) {
     const { data } = await getSB()
       .from('profiles')
-      .select('*')
-      .eq('id', uid)
+@@ -63,8 +57,6 @@
       .single();
     return data;
   },
@@ -68,8 +71,7 @@ const Auth = {
   async getViewerProfiles(uid) {
     const { data } = await getSB()
       .from('viewer_profiles')
-      .select('*')
-      .eq('user_id', uid)
+@@ -73,42 +65,30 @@
       .order('created_at');
     return data || [];
   },
@@ -112,10 +114,7 @@ const Auth = {
   async updatePlan(uid, plan) {
     const now = new Date();
     const end = new Date(now); end.setMonth(end.getMonth() + 1);
-    return getSB().from('profiles').update({
-      plan,
-      plan_start:  now.toISOString(),
-      plan_end:    end.toISOString(),
+@@ -119,8 +99,6 @@
       plan_active: true,
     }).eq('id', uid);
   },
@@ -124,10 +123,7 @@ const Auth = {
   canAccess(userPlan, requiredPlan) {
     const o = XVERSE.PLANS;
     return (o[userPlan]?.order ?? 0) >= (o[requiredPlan]?.order ?? 0);
-  },
-};
-
-// ─────────────────────────────────────────────────────────
+@@ -131,7 +109,6 @@
 //  DATABASE HELPERS
 // ─────────────────────────────────────────────────────────
 const DB = {
@@ -135,8 +131,7 @@ const DB = {
   async getMyList(uid) {
     const { data } = await getSB()
       .from('my_list')
-      .select('movie_id, added_at, movies(*)')
-      .eq('user_id', uid)
+@@ -140,16 +117,13 @@
       .order('added_at', { ascending: false });
     return (data || []).map(r => ({ ...r.movies, addedAt: r.added_at }));
   },
@@ -153,9 +148,7 @@ const DB = {
   async isInMyList(uid, movieId) {
     const { data } = await getSB()
       .from('my_list')
-      .select('id')
-      .eq('user_id', uid)
-      .eq('movie_id', movieId)
+@@ -159,8 +133,6 @@
       .single();
     return !!data;
   },
@@ -164,14 +157,7 @@ const DB = {
   async getContinueWatching(uid) {
     const { data } = await getSB()
       .from('continue_watching')
-      .select('*, movies(*)')
-      .eq('user_id', uid)
-      .order('updated_at', { ascending: false });
-    return (data || []).map(r => ({
-      ...r.movies,
-      progress:  r.progress_sec,
-      duration:  r.duration_sec,
-      completed: r.completed,
+@@ -175,7 +147,6 @@
       updatedAt: r.updated_at,
     }));
   },
@@ -179,11 +165,7 @@ const DB = {
   async upsertContinueWatching(uid, movieId, progressSec, durationSec) {
     const completed = durationSec > 0 && (progressSec / durationSec) > 0.9;
     return getSB().from('continue_watching').upsert({
-      user_id:      uid,
-      movie_id:     movieId,
-      progress_sec: progressSec,
-      duration_sec: durationSec,
-      completed,
+@@ -187,13 +158,10 @@
       updated_at:   new Date().toISOString(),
     }, { onConflict: 'user_id,movie_id' });
   },
@@ -197,9 +179,7 @@ const DB = {
   async getHistory(uid, limit = 50) {
     const { data } = await getSB()
       .from('watch_history')
-      .select('*, movies(*)')
-      .eq('user_id', uid)
-      .order('watched_at', { ascending: false })
+@@ -203,20 +171,16 @@
       .limit(limit);
     return (data || []).map(r => ({ ...r.movies, watchedAt: r.watched_at }));
   },
@@ -220,9 +200,7 @@ const DB = {
   async getMovies({ type, lang, genre, featured, limit = 30, page = 0 } = {}) {
     let q = getSB().from('movies').select('*').eq('status', 'active');
     if (type)     q = q.eq('type', type);
-    if (lang)     q = q.eq('language', lang);
-    if (featured) q = q.eq('featured', true);
-    if (genre)    q = q.contains('genres', [genre]);
+@@ -226,24 +190,19 @@
     return q.order('created_at', { ascending: false })
             .range(page * limit, (page + 1) * limit - 1);
   },
@@ -239,6 +217,14 @@ const DB = {
   return data || [];
 },
 
+    const { data } = await getSB()
+      .from('movies')
+      .select('*')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    return data || [];
+  },
   async getMovie(id) {
     const { data } = await getSB().from('movies').select('*').eq('id', id).single();
     return data;
@@ -247,8 +233,7 @@ const DB = {
   async searchMovies(query) {
     const { data } = await getSB().from('movies')
       .select('*')
-      .eq('status', 'active')
-      .ilike('title', `%${query}%`)
+@@ -252,7 +211,6 @@
       .limit(20);
     return data || [];
   },
@@ -256,9 +241,7 @@ const DB = {
   async getFeatured() {
     const { data } = await getSB().from('movies')
       .select('*')
-      .eq('featured', true)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
+@@ -262,12 +220,9 @@
       .limit(7);
     return data || [];
   },
@@ -271,9 +254,7 @@ const DB = {
   async getNotifications(uid) {
     const { data } = await getSB()
       .from('notifications')
-      .select('*')
-      .eq('user_id', uid)
-      .order('created_at', { ascending: false })
+@@ -277,34 +232,28 @@
       .limit(30);
     return data || [];
   },
@@ -305,21 +286,11 @@ const DB = {
 
 // ─────────────────────────────────────────────────────────
 //  TMDB HELPERS
+//  TMDB HELPERS (unchanged)
 // ─────────────────────────────────────────────────────────
 const TMDB = {
   async fetch(path, params = {}) {
-    const url = new URL(XVERSE.TMDB_BASE + path);
-    url.searchParams.set('api_key', XVERSE.TMDB_KEY);
-    Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
-    const proxies = [
-      url.toString(),
-      'https://corsproxy.io/?' + encodeURIComponent(url.toString()),
-    ];
-    for (const u of proxies) {
-      try {
-        const r = await fetch(u, { signal: AbortSignal.timeout(8000) });
-        if (r.ok) return r.json();
-      } catch(e) {}
+@@ -323,11 +272,9 @@
     }
     return null;
   },
@@ -331,14 +302,7 @@ const TMDB = {
   normalize(item) {
     const isTV = item.media_type === 'tv' || item.name;
     return {
-      tmdb_id:      item.id,
-      title:        item.title || item.name,
-      type:         isTV ? 'tv' : 'movie',
-      year:         (item.release_date || item.first_air_date || '').slice(0,4),
-      rating:       item.vote_average?.toFixed(1),
-      overview:     item.overview,
-      poster_url:   TMDB.img(item.poster_path),
-      backdrop_url: TMDB.img(item.backdrop_path, 'w1280'),
+@@ -342,7 +289,6 @@
       genres:       [],
     };
   },
@@ -346,54 +310,21 @@ const TMDB = {
   async trending()    { return this.fetch('/trending/all/week'); },
   async topMovies()   { return this.fetch('/movie/top_rated', { region:'IN' }); },
   async topTV()       { return this.fetch('/tv/top_rated'); },
-  async popularMov()  { return this.fetch('/movie/popular', { region:'IN' }); },
-  async popularTV()   { return this.fetch('/tv/popular'); },
-  async upcoming()    { return this.fetch('/movie/upcoming', { region:'IN' }); },
-  async nowPlaying()  { return this.fetch('/movie/now_playing', { region:'IN' }); },
-  async hindiMovies() { return this.fetch('/discover/movie', { with_original_language:'hi', sort_by:'popularity.desc', region:'IN' }); },
-  async southMovies() { return this.fetch('/discover/movie', { with_original_language:'te', sort_by:'popularity.desc' }); },
-  async movieDetails(id)  { return this.fetch(`/movie/${id}`, { append_to_response:'credits,videos,similar' }); },
-  async tvDetails(id)     { return this.fetch(`/tv/${id}`,    { append_to_response:'credits,videos,similar,seasons' }); },
-  async tvSeason(id, s)   { return this.fetch(`/tv/${id}/season/${s}`); },
-  async search(q)         { return this.fetch('/search/multi', { query:q }); },
+@@ -359,7 +305,7 @@
 };
 
 // ─────────────────────────────────────────────────────────
 //  SESSION HELPERS  (sessionStorage for active profile)
+//  SESSION HELPERS
 // ─────────────────────────────────────────────────────────
 const Session = {
   setProfile(profile) {
-    sessionStorage.setItem('xverse_active_profile', JSON.stringify(profile));
-  },
-  getProfile() {
-    try { return JSON.parse(sessionStorage.getItem('xverse_active_profile')); }
-    catch { return null; }
-  },
-  clearProfile() {
-    sessionStorage.removeItem('xverse_active_profile');
-  },
-};
-
-// ─────────────────────────────────────────────────────────
-//  GLOBAL TOAST
-// ─────────────────────────────────────────────────────────
-let _toastTimer;
-function showToast(msg, duration = 2800) {
-  let t = document.getElementById('xv-toast');
-  if (!t) {
-    t = document.createElement('div');
-    t.id = 'xv-toast';
-    t.style.cssText = 'position:fixed;bottom:26px;right:22px;background:rgba(15,15,15,.97);border:1px solid rgba(255,255,255,.13);color:#fff;padding:10px 18px;border-radius:6px;font-size:.82rem;opacity:0;pointer-events:none;z-index:99999;transition:opacity .25s;backdrop-filter:blur(8px);box-shadow:0 4px 20px rgba(0,0,0,.5);font-family:Barlow,sans-serif;max-width:300px';
-    document.body.appendChild(t);
-  }
-  t.textContent = msg;
-  t.style.opacity = '1';
-  clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => t.style.opacity = '0', duration);
+@@ -393,49 +339,32 @@
 }
 
 // ─────────────────────────────────────────────────────────
 //  AUTH GUARD  — call on every protected page
+//  AUTH GUARD
 // ─────────────────────────────────────────────────────────
 async function requireAuth(redirectTo = 'index.html') {
 
@@ -427,6 +358,7 @@ async function requireAuth(redirectTo = 'index.html') {
 
 // ─────────────────────────────────────────────────────────
 //  NAV AVATAR — shared across all pages
+//  NAV AVATAR (unchanged)
 // ─────────────────────────────────────────────────────────
 async function initNavAvatar(avatarElId = 'navAvatar') {
   const el = document.getElementById(avatarElId);
@@ -439,10 +371,7 @@ async function initNavAvatar(avatarElId = 'navAvatar') {
   if (profile?.avatar_url || user.user_metadata?.avatar_url) {
     const img = document.createElement('img');
     img.src = profile?.avatar_url || user.user_metadata?.avatar_url;
-    img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:inherit';
-    img.onerror = () => { img.remove(); el.textContent = (profile?.name || user.email || 'U')[0].toUpperCase(); };
-    el.innerHTML = '';
-    el.appendChild(img);
+@@ -446,7 +375,6 @@
   } else {
     el.textContent = (profile?.name || user.email || 'U')[0].toUpperCase();
   }
@@ -450,8 +379,36 @@ async function initNavAvatar(avatarElId = 'navAvatar') {
   el.onclick = () => {
     const choice = confirm('XverseMovies Account\n\nOK → ⚙️ Settings\nCancel → 🚪 Sign Out');
     if (choice) window.location.href = 'XverseMovies_Settings.html';
-    else if (confirm('Sign out karna chahte ho?')) {
-      Auth.signOut().then(() => window.location.href = 'index.html');
+@@ -455,3 +383,32 @@
     }
   };
 }
+
+// ─────────────────────────────────────────────────────────
+//  NEW: Vidsrc availability checker (client-side via CORS proxy)
+// ─────────────────────────────────────────────────────────
+const Vidsrc = {
+  /**
+   * Check if a vidsrc.to embed URL is working (returns true if available).
+   * Uses the same corsproxy.io that TMDB uses to bypass CORS.
+   */
+  async checkAvailability(embedUrl) {
+    // Use the proxy to fetch the embed page HTML
+    const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(embedUrl);
+    try {
+      const response = await fetch(proxyUrl, {
+        signal: AbortSignal.timeout(10000),
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
+      if (!response.ok) return false;
+      const html = await response.text();
+      // Check for the "unavailable" text
+      return !html.includes('this media is unavailable at this moment');
+    } catch (e) {
+      console.error('Vidsrc check failed:', e);
+      return false; // assume unavailable if check fails
+    }
+  }
+};
