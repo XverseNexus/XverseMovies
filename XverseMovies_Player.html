@@ -556,57 +556,33 @@ const PLAN_ORDER = {
   }
 
   // ─────────────────────────────────────────────────────
-  //  NEW: Auto-embed logic for movies (if not manually set or broken)
+  //  SAFE AUTO-EMBED LOGIC (FIXED)
+  //  Only generate if embed_url is missing. Never overwrite existing embed.
   // ─────────────────────────────────────────────────────
   if (movie.type === 'movie') {
-    let needUpdate = false;
-
-    // Generate embed if missing or auto-generated but broken
-    if (!movie.embed_url || (!movie.embed_working && !movie.manual_embed)) {
-      if (movie.tmdb_id) {
-        const newUrl = `https://vidsrc.to/embed/movie/${movie.tmdb_id}`;
-        movie.embed_url = newUrl;
-        movie.auto_embed = true;
-        movie.manual_embed = false;
-        needUpdate = true;
-      }
-    }
-
-    // If a new embed was set or last check was older than 1 day, verify availability
-    const shouldCheck = needUpdate ||
-                        !movie.last_checked ||
-                        (Date.now() - new Date(movie.last_checked).getTime() > 86400000);
-
-    if (shouldCheck && movie.embed_url) {
-      // Check in background (don't block loading)
-      Vidsrc.checkAvailability(movie.embed_url).then(async (working) => {
-        const updates = {
-          embed_working: working,
-          last_checked: new Date().toISOString()
-        };
-        // If we generated the URL, also set auto_embed and embed_url
-        if (needUpdate) {
-          updates.embed_url = movie.embed_url;
-          updates.auto_embed = true;
-          updates.manual_embed = false;
-        }
-        if (movie.id) {
-          await getSB().from('movies').update(updates).eq('id', movie.id);
-        }
-        // If not working, we could notify the user (optional)
-        if (!working) {
-          console.warn('Embed not available:', movie.title);
-        }
-      }).catch(()=>{});
-    }
-
-    // If we generated a new URL but didn't wait for check, save it to DB immediately
-    if (needUpdate && movie.id) {
+    // Only generate if embed_url is empty and we have tmdb_id
+    if (!movie.embed_url && movie.tmdb_id) {
+      const newUrl = `https://vidsrc.to/embed/movie/${movie.tmdb_id}`;
+      movie.embed_url = newUrl;
+      movie.auto_embed = true;
+      movie.manual_embed = false;
+      // Save to DB (fire & forget)
       getSB().from('movies').update({
-        embed_url: movie.embed_url,
+        embed_url: newUrl,
         auto_embed: true,
         manual_embed: false
-      }).eq('id', movie.id).then(()=>{}).catch(()=>{});
+      }).eq('id', movie.id).then(() => {}).catch(() => {});
+    }
+    // Always check availability in background (does NOT change embed_url)
+    if (movie.embed_url) {
+      Vidsrc.checkAvailability(movie.embed_url).then(async (working) => {
+        if (movie.id) {
+          await getSB().from('movies').update({
+            embed_working: working,
+            last_checked: new Date().toISOString()
+          }).eq('id', movie.id);
+        }
+      }).catch(() => {});
     }
   }
 
@@ -664,6 +640,7 @@ function loadVideo(m){
     document.getElementById('loadScreen').style.display = 'none';
     showUI();
   },2000);
+
 }
 
 /* UI */
@@ -726,17 +703,6 @@ function upgradePlan(plan){
   const link = XVERSE.PAYMENT[plan];
   if(link){
     window.open(link,'_blank');
-  }
-}
-
-/* SHARE */
-
-function shareMovie(){
-  if(navigator.share){
-    navigator.share({
-      title:movieData?.title,
-      url:location.href
-    });
   }
 }
 
