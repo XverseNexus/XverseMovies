@@ -363,25 +363,48 @@ function cHTML(m,isList){
   if(isList) return `<div class="card lc" onclick="openMod(${ms})"><div class="cth"><img class="ci" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555'"><div class="cov"><button class="cpl" onclick="event.stopPropagation();play(${ms})">▶</button></div></div><div class="cif"><div class="cn">${m.title}</div><div class="cm"><span>${m.year||''}</span>${rat?`<span>·</span><span style="color:var(--green)">★ ${rat}</span>`:''}</div></div><div class="lacts"><button class="lb" onclick="event.stopPropagation();play(${ms})">▶</button><button class="lb" onclick="event.stopPropagation();addML(${ms})">+</button></div></div>`;
   return `<div class="card" onclick="openMod(${ms})"><div class="cth"><img class="ci" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555&size=400'"><span class="ctyp ${m.type||'movie'}">${m.type==='tv'?'TV':'MOVIE'}</span>${rat?`<span class="crat">★ ${rat}</span>`:''}<div class="cov"><button class="cpl" onclick="event.stopPropagation();play(${ms})">▶</button><button class="cad" onclick="event.stopPropagation();addML(${ms})">+</button></div></div><div class="cif"><div class="cn">${m.title}</div><div class="cm"><span>${m.year||''}</span></div></div></div>`;
 }
-function play(m){
-  let embedUrl = m.embed_url || '';
-  if (!embedUrl) {
-    const tid = m.tmdb_id || m.id;
-    if (tid) embedUrl = (m.type==='tv') ? `https://vidsrc.to/embed/tv/${tid}` : `https://vidsrc.to/embed/movie/${tid}`;
+async function play(m) {
+  let dbMovie = m;
+  if (!m.id && m.tmdb_id) {
+    dbMovie = await DB.getOrCreateMovie(m);
+    if (!dbMovie) { showToast('❌ Cannot play'); return; }
   }
-  const p = new URLSearchParams({id:m.id||'',tmdb_id:m.tmdb_id||'',title:m.title,type:m.type||'movie',year:m.year||'',quality:m.quality||'',embed:embedUrl,poster:m.poster_url||'',backdrop:m.backdrop_url||''});
-  window.location.href='XverseMovies_Player.html?'+p.toString();
+  const params = new URLSearchParams({
+    id:       dbMovie.id,
+    tmdb_id:  dbMovie.tmdb_id || '',
+    title:    dbMovie.title,
+    type:     dbMovie.type,
+    year:     dbMovie.year || '',
+    quality:  dbMovie.quality || '',
+    embed:    dbMovie.embed_url || '',
+    poster:   dbMovie.poster_url || '',
+    backdrop: dbMovie.backdrop_url || '',
+  });
+  window.location.href = 'XverseMovies_Player.html?' + params.toString();
 }
-async function addML(m){ if(!currentUser||!m.id){showToast('⚠️ Admin Panel mein add karo'); return;} await DB.addToMyList(currentUser.id,m.id); showToast('✅ Added to My List'); }
-function openMod(m){
-  const ms=JSON.stringify(m).replace(/"/g,'&quot;');
-  const match=Math.round(65+parseFloat(m.rating||m.vote_average||7)*3.5);
-  document.getElementById('modImg').src=m.backdrop_url||m.poster_url||'';
-  document.getElementById('modTit').textContent=m.title;
-  document.getElementById('modMeta').innerHTML=`<span class="mmt">${match}% Match</span><span>${m.year||''}</span><span class="mce">${m.age_rating||'UA'}</span>${m.quality?`<span style="background:rgba(70,211,105,.1);color:var(--green);font-size:.61rem;font-weight:700;padding:1px 6px;border-radius:3px">${m.quality}</span>`:''}`;
-  document.getElementById('modOv').textContent=m.overview||'';
-  document.getElementById('mPlayBtn').onclick=()=>{closeMod();play(m);};
-  document.getElementById('mAddBtn').onclick=()=>{addML(m);closeMod();};
+async function addML(m) {
+  if (!currentUser) return;
+  let dbMovie = m;
+  if (!m.id && m.tmdb_id) {
+    dbMovie = await DB.getOrCreateMovie(m);
+    if (!dbMovie) { showToast('❌ Cannot add to list'); return; }
+  }
+  await DB.addToMyList(currentUser.id, dbMovie.id);
+  showToast('✅ Added to My List');
+}async function openMod(m) {
+  let dbMovie = m;
+  if (!m.id && m.tmdb_id) {
+    dbMovie = await DB.getOrCreateMovie(m);
+    if (!dbMovie) { showToast('❌ Cannot open'); return; }
+  }
+  const ms = JSON.stringify(dbMovie).replace(/"/g, '&quot;');
+  const match = Math.round(65 + parseFloat(dbMovie.rating||dbMovie.vote_average||7)*3.5);
+  document.getElementById('modImg').src = dbMovie.backdrop_url||dbMovie.poster_url||'';
+  document.getElementById('modTit').textContent = dbMovie.title;
+  document.getElementById('modMeta').innerHTML = `<span class="mmt">${match}% Match</span><span>${dbMovie.year||''}</span><span class="mce">${dbMovie.age_rating||'UA'}</span>${dbMovie.quality?`<span style="background:rgba(70,211,105,.1);color:var(--green);font-size:.61rem;font-weight:700;padding:1px 6px;border-radius:3px">${dbMovie.quality}</span>`:''}`;
+  document.getElementById('modOv').textContent = dbMovie.overview||'';
+  document.getElementById('mPlayBtn').onclick = () => { closeMod(); play(dbMovie); };
+  document.getElementById('mAddBtn').onclick = () => { addML(dbMovie); closeMod(); };
   document.getElementById('modBg').classList.add('open');
 }
 function closeMod(){ document.getElementById('modBg').classList.remove('open'); }
