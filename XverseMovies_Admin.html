@@ -9,6 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="xverse-config.js"></script>
 <style>
+/* (your existing CSS – same as before) */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{--red:#E50914;--bg:#0f0f0f;--card:#1a1a1a;--card2:#222;--text:#e5e5e5;--muted:#666;--border:rgba(255,255,255,.08);--green:#46d369;--yellow:#f5c518}
 html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;overflow-x:hidden}
@@ -20,9 +21,7 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
 .badge{background:rgba(229,9,20,.14);color:var(--red);border:1px solid rgba(229,9,20,.22);font-size:.68rem;font-weight:700;padding:3px 9px;border-radius:20px;letter-spacing:.5px}
 .btn-view{background:rgba(255,255,255,.07);border:1px solid var(--border);color:#fff;padding:6px 14px;border-radius:5px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s}
 .btn-view:hover{background:rgba(255,255,255,.13)}
-/* LAYOUT */
 .layout{display:flex;min-height:calc(100vh - 58px)}
-/* SIDEBAR */
 .sb{width:214px;background:#111;border-right:1px solid var(--border);padding:14px 0;flex-shrink:0;position:sticky;top:58px;height:calc(100vh - 58px);overflow-y:auto;scrollbar-width:none}
 .sb::-webkit-scrollbar{display:none}
 .sblbl{font-size:.58rem;font-weight:700;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;padding:9px 16px 4px}
@@ -31,24 +30,20 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
 .sbtn.on{background:rgba(229,9,20,.07);color:#fff;border-left-color:var(--red);font-weight:600}
 .sbico{width:17px;text-align:center;font-size:.92rem;flex-shrink:0}
 .sbcnt{margin-left:auto;background:rgba(255,255,255,.1);color:rgba(255,255,255,.5);font-size:.58rem;font-weight:700;min-width:17px;height:17px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px}
-/* MAIN */
 .main{flex:1;padding:26px 28px 60px;min-width:0}
 .panel{display:none}
 .panel.on{display:block;animation:fi .2s ease}
 @keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .ptit{font-family:'Bebas Neue',cursive;font-size:1.65rem;color:#fff;letter-spacing:1.5px;margin-bottom:3px}
 .psub{font-size:.8rem;color:var(--muted);margin-bottom:22px}
-/* STATS */
 .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:26px}
 .stat{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px 16px}
 .stn{font-family:'Bebas Neue',cursive;font-size:1.85rem;color:#fff;line-height:1}
 .stl{font-size:.64rem;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.5px}
 .sts{font-size:.68rem;color:var(--green);margin-top:3px}
-/* FORM CARD */
 .fc{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:20px 22px;margin-bottom:16px}
 .fc-title{font-size:.9rem;font-weight:700;color:#fff;margin-bottom:16px;display:flex;align-items:center;gap:8px}
 .fc-ico{width:30px;height:30px;background:rgba(229,9,20,.1);border:1px solid rgba(229,9,20,.18);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.85rem}
-/* FORM FIELDS */
 .fg{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
 .fg.c3{grid-template-columns:1fr 1fr 1fr}
 .fg.c1{grid-template-columns:1fr}
@@ -60,22 +55,18 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
 .fw select option{background:#1a1a1a}
 .fw textarea{resize:vertical;min-height:76px;line-height:1.5}
 .fw .hint{font-size:.64rem;color:var(--muted);margin-top:2px}
-/* ST PREVIEW */
 .stprev{background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.07);border-radius:6px;padding:9px 11px;margin-top:7px;font-size:.76rem;color:rgba(255,255,255,.5);display:none;align-items:center;gap:8px}
 .stprev.show{display:flex}
 .stprev .sid{color:var(--green);font-weight:700;font-family:monospace;font-size:.8rem}
-/* POSTER PREVIEW */
 .pw{display:flex;gap:12px;align-items:flex-start}
 .pp{width:76px;height:114px;border-radius:5px;background:rgba(255,255,255,.05);border:1.5px solid var(--border);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.6rem;text-align:center}
 .pp img{width:100%;height:100%;object-fit:cover}
 .bp{width:100%;height:56px;border-radius:5px;background:rgba(255,255,255,.05);border:1.5px solid var(--border);overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.6rem;text-align:center;margin-bottom:8px}
 .bp img{width:100%;height:100%;object-fit:cover}
-/* GENRE TAGS */
 .gtags{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .gtag{background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.1);color:rgba(255,255,255,.62);padding:4px 13px;border-radius:20px;font-size:.72rem;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .17s;user-select:none}
 .gtag:hover{border-color:rgba(255,255,255,.28);color:#fff}
 .gtag.on{background:rgba(229,9,20,.14);border-color:rgba(229,9,20,.45);color:#fff}
-/* BUTTONS */
 .brow{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
 .btn-add{background:var(--red);color:#fff;border:none;padding:9px 24px;font-size:.86rem;font-weight:700;border-radius:6px;cursor:pointer;font-family:'Barlow',sans-serif;transition:background .18s,transform .1s;display:flex;align-items:center;gap:7px}
 .btn-add:hover{background:#f40612}
@@ -85,7 +76,6 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
 .btn-sec:hover{background:rgba(255,255,255,.12)}
 .btn-dng{background:rgba(229,9,20,.07);border:1px solid rgba(229,9,20,.2);color:#ff6b6b;padding:9px 18px;font-size:.86rem;font-weight:600;border-radius:6px;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .17s}
 .btn-dng:hover{background:rgba(229,9,20,.14)}
-/* TABLE */
 .tbar{display:flex;align-items:center;gap:9px;margin-bottom:14px;flex-wrap:wrap}
 .tsearch{background:rgba(255,255,255,.06);border:1.5px solid var(--border);color:#fff;padding:7px 13px;border-radius:6px;font-size:.8rem;font-family:'Barlow',sans-serif;outline:none;width:210px;transition:border .2s}
 .tsearch:focus{border-color:rgba(255,255,255,.24)}
@@ -112,17 +102,14 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
 .tab-btn.del:hover{background:rgba(229,9,20,.1)}
 .tab-btn.play{color:var(--green);border-color:rgba(70,211,105,.18)}
 .tab-btn.play:hover{background:rgba(70,211,105,.08)}
-/* EMPTY */
 .empty{text-align:center;padding:50px 20px;color:var(--muted)}
 .empty-ico{font-size:2.8rem;margin-bottom:12px;opacity:.26}
-/* EDIT MODAL */
 .mbg{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:500;display:none;align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(4px)}
 .mbg.open{display:flex;animation:fi .2s ease}
 .mo{background:#1a1a1a;border:1px solid rgba(255,255,255,.1);border-radius:9px;width:min(95vw,560px);max-height:90vh;overflow-y:auto;padding:22px 24px}
 .mo-title{font-size:.95rem;font-weight:700;color:#fff;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between}
 .mo-x{background:none;border:none;color:var(--muted);font-size:.95rem;cursor:pointer;padding:2px;transition:color .15s}
 .mo-x:hover{color:#fff}
-/* TEST PLAYER */
 .tp-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:600;display:none;align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(4px)}
 .tp-bg.open{display:flex;animation:fi .2s ease}
 .tp{background:#000;border-radius:8px;overflow:hidden;width:min(95vw,720px)}
@@ -131,13 +118,10 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
 .tp-x{background:none;border:none;color:#888;cursor:pointer;font-size:.95rem}
 .tp-frame{position:relative;padding-bottom:56.25%;height:0}
 .tp-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:none}
-/* IMPORT */
 .import-area{background:rgba(255,255,255,.04);border:2px dashed rgba(255,255,255,.12);border-radius:8px;padding:24px;text-align:center;cursor:pointer;transition:border-color .2s;margin-bottom:14px}
 .import-area:hover{border-color:rgba(255,255,255,.28)}
-/* BULK TEXTAREA */
 .bulk-ta{background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.08);color:#fff;padding:11px 13px;font-size:.75rem;font-family:monospace;border-radius:6px;outline:none;width:100%;min-height:200px;resize:vertical;line-height:1.6;transition:border .2s}
 .bulk-ta:focus{border-color:rgba(255,255,255,.25)}
-/* SKEL */
 .sk{background:linear-gradient(90deg,#222 25%,#2a2a2a 50%,#222 75%);background-size:200% 100%;animation:ska 1.4s infinite;border-radius:4px}
 @keyframes ska{0%{background-position:200%}100%{background-position:-200%}}
 @media(max-width:768px){.sb{display:none}.main{padding:18px 14px 40px}.fg{grid-template-columns:1fr}.fg.c3{grid-template-columns:1fr 1fr}.stats{grid-template-columns:repeat(2,1fr)}}
@@ -170,307 +154,45 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
   </aside>
 
   <main class="main">
-
     <!-- DASHBOARD -->
     <div class="panel on" id="panel-dashboard">
       <div class="ptit">Dashboard</div>
       <div class="psub">XverseMovies content overview</div>
-      <div class="stats" id="dashStats">
-        <div class="sk" style="height:80px;border-radius:8px"></div>
-        <div class="sk" style="height:80px;border-radius:8px"></div>
-        <div class="sk" style="height:80px;border-radius:8px"></div>
-        <div class="sk" style="height:80px;border-radius:8px"></div>
-      </div>
-      <div class="fc">
-        <div class="fc-title"><div class="fc-ico">🎬</div> Recently Added</div>
-        <div id="recentList"><div class="sk" style="height:200px;border-radius:6px"></div></div>
-      </div>
+      <div class="stats" id="dashStats"><div class="sk" style="height:80px;border-radius:8px"></div><div class="sk" style="height:80px;border-radius:8px"></div><div class="sk" style="height:80px;border-radius:8px"></div><div class="sk" style="height:80px;border-radius:8px"></div></div>
+      <div class="fc"><div class="fc-title"><div class="fc-ico">🎬</div> Recently Added</div><div id="recentList"><div class="sk" style="height:200px;border-radius:6px"></div></div></div>
     </div>
-
     <!-- ADD MOVIE -->
     <div class="panel" id="panel-add">
       <div class="ptit">Add Movie / Show</div>
       <div class="psub">TMDB ID se automatic ya manual embed URL se add karo</div>
-
-      <!-- TABS -->
       <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px">
         <button id="addTab-auto" onclick="switchAddTab('auto')" style="background:none;border:none;border-bottom:2px solid var(--red);color:#fff;font-size:.85rem;font-weight:600;padding:10px 20px;cursor:pointer;font-family:'Barlow',sans-serif">⚡ Auto (TMDB ID)</button>
         <button id="addTab-manual" onclick="switchAddTab('manual')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-size:.85rem;font-weight:600;padding:10px 20px;cursor:pointer;font-family:'Barlow',sans-serif">✏️ Manual / Series</button>
       </div>
-
-      <!-- AUTO TAB -->
       <div id="addSection-auto">
-        <div class="fc">
-          <div class="fc-title"><div class="fc-ico">⚡</div> Auto Add — TMDB ID se</div>
-          <div class="fg">
-            <div class="fw">
-              <label>TMDB ID *</label>
-              <input type="number" id="tmdbId" placeholder="e.g. 155 (The Dark Knight)">
-              <div class="hint">themoviedb.org → Movie search karo → URL mein ID milegi e.g. /movie/155</div>
-            </div>
-            <div class="fw">
-              <label>Content Type</label>
-              <select id="autoType" onchange="document.getElementById('mType').value=this.value">
-                <option value="movie">Movie</option>
-                <option value="tv">TV Show</option>
-              </select>
-            </div>
-          </div>
-          <div class="brow" style="margin-top:10px;border-top:none;padding-top:0">
-            <button class="btn-add" onclick="generateAutoMovie()">⚡ Auto Fill + Generate Embed</button>
-          </div>
-          <div id="autoEmbedPreview" style="display:none;margin-top:14px;padding:12px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)"></div>
-        </div>
+        <div class="fc"><div class="fc-title"><div class="fc-ico">⚡</div> Auto Add — TMDB ID se</div><div class="fg"><div class="fw"><label>TMDB ID *</label><input type="number" id="tmdbId" placeholder="e.g. 155 (The Dark Knight)"><div class="hint">themoviedb.org → Movie search karo → URL mein ID milegi e.g. /movie/155</div></div><div class="fw"><label>Content Type</label><select id="autoType" onchange="document.getElementById('mType').value=this.value"><option value="movie">Movie</option><option value="tv">TV Show</option></select></div></div><div class="brow" style="margin-top:10px;border-top:none;padding-top:0"><button class="btn-add" onclick="generateAutoMovie()">⚡ Auto Fill + Generate Embed</button></div><div id="autoEmbedPreview" style="display:none;margin-top:14px;padding:12px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)"></div></div>
       </div>
-
-      <!-- MANUAL TAB -->
       <div id="addSection-manual" style="display:none">
-        <div class="fc">
-          <div class="fc-title"><div class="fc-ico">✏️</div> Manual Embed URL</div>
-          <div class="fg">
-            <div class="fw">
-              <label>Content Type *</label>
-              <select id="manualType" onchange="toggleSeriesFields(this.value)">
-                <option value="movie">Movie</option>
-                <option value="tv">TV Show</option>
-                <option value="series">Web Series (Season + Episode)</option>
-              </select>
-            </div>
-            <div class="fw">
-              <label>TMDB ID (optional — for auto-fill details)</label>
-              <div style="display:flex;gap:8px">
-                <input type="number" id="manualTmdbId" placeholder="e.g. 1396" style="flex:1;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.08);color:#fff;padding:9px 11px;font-size:.84rem;border-radius:6px;font-family:'Barlow',sans-serif;outline:none">
-                <button class="btn-sec" onclick="autoFillManual()" style="white-space:nowrap;padding:8px 14px">🔍 Fill Details</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Series season/episode fields -->
-          <div id="seriesFields" style="display:none;margin-top:4px">
-            <div class="fg c3">
-              <div class="fw"><label>Season Number</label><input type="number" id="sSeason" placeholder="1" min="1" value="1"></div>
-              <div class="fw"><label>Episode Number</label><input type="number" id="sEpisode" placeholder="1" min="1" value="1"></div>
-              <div class="fw"><label>Episode Title (optional)</label><input type="text" id="sEpTitle" placeholder="e.g. Pilot"></div>
-            </div>
-            <div class="fg c1" style="margin-top:4px">
-              <div class="fw">
-                <label>vidsrc URL Preview</label>
-                <div style="display:flex;gap:8px;align-items:center">
-                  <input type="text" id="seriesEmbedPreview" placeholder="Fill TMDB ID + Season + Episode then click Build" readonly style="background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.08);color:#46d369;padding:9px 11px;font-size:.76rem;border-radius:6px;font-family:monospace;flex:1;outline:none">
-                  <button class="btn-sec" onclick="buildSeriesEmbed()" style="padding:8px 14px;white-space:nowrap">Build URL</button>
-                </div>
-                <div class="hint">Format: https://vidsrc.to/embed/tv/TMDB_ID/SEASON/EPISODE</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Custom embed override -->
-          <div class="fg c1" style="margin-top:10px">
-            <div class="fw">
-              <label>Custom Embed URL (paste any embed link)</label>
-              <input type="url" id="manualEmbed" placeholder="https://vidsrc.to/embed/movie/12345  OR  https://vidsrc.to/embed/tv/1396/1/1  OR  https://streamtape.com/e/xxxxx/">
-              <div class="hint" style="margin-top:4px">
-                Movie: https://vidsrc.to/embed/movie/TMDB_ID &nbsp;|&nbsp;
-                TV Show: https://vidsrc.to/embed/tv/TMDB_ID &nbsp;|&nbsp;
-                Series Ep: https://vidsrc.to/embed/tv/TMDB_ID/1/1
-              </div>
-            </div>
-          </div>
-        </div>
+        <div class="fc"><div class="fc-title"><div class="fc-ico">✏️</div> Manual Embed URL</div><div class="fg"><div class="fw"><label>Content Type *</label><select id="manualType" onchange="toggleSeriesFields(this.value)"><option value="movie">Movie</option><option value="tv">TV Show</option><option value="series">Web Series (Season + Episode)</option></select></div><div class="fw"><label>TMDB ID (optional — for auto-fill details)</label><div style="display:flex;gap:8px"><input type="number" id="manualTmdbId" placeholder="e.g. 1396" style="flex:1;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.08);color:#fff;padding:9px 11px;font-size:.84rem;border-radius:6px;font-family:'Barlow',sans-serif;outline:none"><button class="btn-sec" onclick="autoFillManual()" style="white-space:nowrap;padding:8px 14px">🔍 Fill Details</button></div></div></div><div id="seriesFields" style="display:none;margin-top:4px"><div class="fg c3"><div class="fw"><label>Season Number</label><input type="number" id="sSeason" placeholder="1" min="1" value="1"></div><div class="fw"><label>Episode Number</label><input type="number" id="sEpisode" placeholder="1" min="1" value="1"></div><div class="fw"><label>Episode Title (optional)</label><input type="text" id="sEpTitle" placeholder="e.g. Pilot"></div></div><div class="fg c1" style="margin-top:4px"><div class="fw"><label>vidsrc URL Preview</label><div style="display:flex;gap:8px;align-items:center"><input type="text" id="seriesEmbedPreview" placeholder="Fill TMDB ID + Season + Episode then click Build" readonly style="background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.08);color:#46d369;padding:9px 11px;font-size:.76rem;border-radius:6px;font-family:monospace;flex:1;outline:none"><button class="btn-sec" onclick="buildSeriesEmbed()" style="padding:8px 14px;white-space:nowrap">Build URL</button></div><div class="hint">Format: https://vidsrc.to/embed/tv/TMDB_ID/SEASON/EPISODE</div></div></div></div><div class="fg c1" style="margin-top:10px"><div class="fw"><label>Custom Embed URL (paste any embed link)</label><input type="url" id="manualEmbed" placeholder="https://vidsrc.to/embed/movie/12345  OR  https://vidsrc.to/embed/tv/1396/1/1  OR  https://streamtape.com/e/xxxxx/"><div class="hint" style="margin-top:4px">Movie: https://vidsrc.to/embed/movie/TMDB_ID &nbsp;|&nbsp; TV Show: https://vidsrc.to/embed/tv/TMDB_ID &nbsp;|&nbsp; Series Ep: https://vidsrc.to/embed/tv/TMDB_ID/1/1</div></div></div></div>
       </div>
-
-      <!-- SHARED FIELDS -->
-      <div class="fc">
-        <div class="fc-title"><div class="fc-ico">📋</div> Movie / Show Details</div>
-        <div class="fg">
-          <div class="fw"><label>Title *</label><input type="text" id="mTitle" placeholder="e.g. The Dark Knight"></div>
-          <div class="fw"><label>Type *</label><select id="mType"><option value="movie">Movie</option><option value="tv">TV Show / Series</option></select></div>
-        </div>
-        <div class="fg c3">
-          <div class="fw"><label>Year</label><input type="number" id="mYear" placeholder="2024" min="1900" max="2030"></div>
-          <div class="fw"><label>Rating (0–10)</label><input type="number" id="mRating" placeholder="8.5" min="0" max="10" step="0.1"></div>
-          <div class="fw"><label>Duration</label><input type="text" id="mDur" placeholder="2h 32m"></div>
-        </div>
-        <div class="fg">
-          <div class="fw"><label>Language</label><select id="mLang"><option value="hi">Hindi</option><option value="en">English</option><option value="te">Telugu</option><option value="ta">Tamil</option><option value="kn">Kannada</option><option value="ml">Malayalam</option><option value="bn">Bengali</option><option value="ko">Korean</option><option value="ja">Japanese</option></select></div>
-          <div class="fw"><label>Quality</label><select id="mQuality"><option value="4K">4K Ultra HD</option><option value="1080p" selected>1080p Full HD</option><option value="720p">720p HD</option><option value="480p">480p</option></select></div>
-        </div>
-        <div class="fg c1"><div class="fw"><label>Overview / Description</label><textarea id="mOverview" placeholder="Movie ki short description..."></textarea></div></div>
-        <div class="fw"><label>Genres (click to select)</label><div class="gtags" id="genreTags"></div></div>
-      </div>
-
-      <!-- Images -->
-      <div class="fc">
-        <div class="fc-title"><div class="fc-ico">🖼️</div> Poster & Backdrop</div>
-        <div class="fg">
-          <div class="fw">
-            <label>Poster URL (portrait 2:3)</label>
-            <div class="pw">
-              <div class="pp" id="posterPrev"><span>No<br>Poster</span></div>
-              <div style="flex:1">
-                <input type="url" id="mPoster" placeholder="https://image.tmdb.org/t/p/w500/..." oninput="prevImg(this.value,'posterPrev','pp')">
-                <div class="hint" style="margin-top:5px">TMDB → Movie → Right click poster → Copy image address</div>
-              </div>
-            </div>
-          </div>
-          <div class="fw">
-            <label>Backdrop URL (landscape 16:9)</label>
-            <div class="bp" id="backdropPrev"><span>No Backdrop</span></div>
-            <input type="url" id="mBackdrop" placeholder="https://image.tmdb.org/t/p/original/..." oninput="prevImg(this.value,'backdropPrev','bp')">
-          </div>
-        </div>
-        <div class="fg">
-          <div class="fw"><label>Cast (comma separated)</label><input type="text" id="mCast" placeholder="Shah Rukh Khan, Deepika Padukone"></div>
-          <div class="fw"><label>Director</label><input type="text" id="mDirector" placeholder="Sanjay Leela Bhansali"></div>
-        </div>
-      </div>
-
-      <!-- Settings -->
-      <div class="fc">
-        <div class="fc-title"><div class="fc-ico">⚙️</div> Display Settings</div>
-        <div class="fg c3">
-          <div class="fw"><label>Status</label><select id="mStatus"><option value="active">Active (Visible)</option><option value="inactive">Inactive (Hidden)</option><option value="coming_soon">Coming Soon</option></select></div>
-          <div class="fw"><label>Featured in Hero?</label><select id="mFeatured"><option value="false">No</option><option value="true">Yes — Hero banner</option></select></div>
-          <div class="fw"><label>Min Plan to Watch</label><select id="mPlan"><option value="free">Free (All users)</option><option value="hd">HD ₹29+</option><option value="fhd">Full HD ₹49+</option><option value="uhd">4K ₹99 only</option></select></div>
-        </div>
-        <div class="fg">
-          <div class="fw"><label>Age Rating</label><select id="mAge"><option value="U">U — All Ages</option><option value="UA 7+">UA 7+</option><option value="UA 13+">UA 13+</option><option value="UA 16+" selected>UA 16+</option><option value="A/18+">A/18+</option></select></div>
-          <div class="fw"><label>Tags (comma separated)</label><input type="text" id="mTags" placeholder="Blockbuster, Trending, Award Winning"></div>
-        </div>
-      </div>
-
-      <div class="brow">
-        <button class="btn-add" id="addBtn" onclick="addMovie()">✅ Add to XverseMovies</button>
-        <button class="btn-sec" onclick="resetForm()">🔄 Reset</button>
-        <button class="btn-sec" onclick="testVideo()">▶ Test Video</button>
-      </div>
+      <div class="fc"><div class="fc-title"><div class="fc-ico">📋</div> Movie / Show Details</div><div class="fg"><div class="fw"><label>Title *</label><input type="text" id="mTitle" placeholder="e.g. The Dark Knight"></div><div class="fw"><label>Type *</label><select id="mType"><option value="movie">Movie</option><option value="tv">TV Show / Series</option></select></div></div><div class="fg c3"><div class="fw"><label>Year</label><input type="number" id="mYear" placeholder="2024" min="1900" max="2030"></div><div class="fw"><label>Rating (0–10)</label><input type="number" id="mRating" placeholder="8.5" min="0" max="10" step="0.1"></div><div class="fw"><label>Duration</label><input type="text" id="mDur" placeholder="2h 32m"></div></div><div class="fg"><div class="fw"><label>Language</label><select id="mLang"><option value="hi">Hindi</option><option value="en">English</option><option value="te">Telugu</option><option value="ta">Tamil</option><option value="kn">Kannada</option><option value="ml">Malayalam</option><option value="bn">Bengali</option><option value="ko">Korean</option><option value="ja">Japanese</option></select></div><div class="fw"><label>Quality</label><select id="mQuality"><option value="4K">4K Ultra HD</option><option value="1080p" selected>1080p Full HD</option><option value="720p">720p HD</option><option value="480p">480p</option></select></div></div><div class="fg c1"><div class="fw"><label>Overview / Description</label><textarea id="mOverview" placeholder="Movie ki short description..."></textarea></div></div><div class="fw"><label>Genres (click to select)</label><div class="gtags" id="genreTags"></div></div></div>
+      <div class="fc"><div class="fc-title"><div class="fc-ico">🖼️</div> Poster & Backdrop</div><div class="fg"><div class="fw"><label>Poster URL (portrait 2:3)</label><div class="pw"><div class="pp" id="posterPrev"><span>No<br>Poster</span></div><div style="flex:1"><input type="url" id="mPoster" placeholder="https://image.tmdb.org/t/p/w500/..." oninput="prevImg(this.value,'posterPrev','pp')"><div class="hint" style="margin-top:5px">TMDB → Movie → Right click poster → Copy image address</div></div></div></div><div class="fw"><label>Backdrop URL (landscape 16:9)</label><div class="bp" id="backdropPrev"><span>No Backdrop</span></div><input type="url" id="mBackdrop" placeholder="https://image.tmdb.org/t/p/original/..." oninput="prevImg(this.value,'backdropPrev','bp')"></div></div><div class="fg"><div class="fw"><label>Cast (comma separated)</label><input type="text" id="mCast" placeholder="Shah Rukh Khan, Deepika Padukone"></div><div class="fw"><label>Director</label><input type="text" id="mDirector" placeholder="Sanjay Leela Bhansali"></div></div></div>
+      <div class="fc"><div class="fc-title"><div class="fc-ico">⚙️</div> Display Settings</div><div class="fg c3"><div class="fw"><label>Status</label><select id="mStatus"><option value="active">Active (Visible)</option><option value="inactive">Inactive (Hidden)</option><option value="coming_soon">Coming Soon</option></select></div><div class="fw"><label>Featured in Hero?</label><select id="mFeatured"><option value="false">No</option><option value="true">Yes — Hero banner</option></select></div><div class="fw"><label>Min Plan to Watch</label><select id="mPlan"><option value="free">Free (All users)</option><option value="hd">HD ₹29+</option><option value="fhd">Full HD ₹49+</option><option value="uhd">4K ₹99 only</option></select></div></div><div class="fg"><div class="fw"><label>Age Rating</label><select id="mAge"><option value="U">U — All Ages</option><option value="UA 7+">UA 7+</option><option value="UA 13+">UA 13+</option><option value="UA 16+" selected>UA 16+</option><option value="A/18+">A/18+</option></select></div><div class="fw"><label>Tags (comma separated)</label><input type="text" id="mTags" placeholder="Blockbuster, Trending, Award Winning"></div></div></div>
+      <div class="brow"><button class="btn-add" id="addBtn" onclick="addMovie()">✅ Add to XverseMovies</button><button class="btn-sec" onclick="resetForm()">🔄 Reset</button><button class="btn-sec" onclick="testVideo()">▶ Test Video</button></div>
       <div id="addResult" style="margin-top:12px;font-size:.82rem;display:none"></div>
     </div>
     <!-- MOVIES TABLE -->
-    <div class="panel" id="panel-movies">
-      <div class="ptit">All Movies</div>
-      <div class="psub">Supabase DB mein saved movies</div>
-      <div class="tbar">
-        <input class="tsearch" type="text" placeholder="🔍 Search movies..." oninput="filterTable('movies',this.value)">
-        <select class="tfsel" onchange="filterTableLang('movies',this.value)"><option value="">All Languages</option><option value="hi">Hindi</option><option value="en">English</option><option value="te">Telugu</option><option value="ta">Tamil</option></select>
-        <div class="tsp"></div>
-        <button class="btn-add" style="padding:7px 16px;font-size:.78rem" onclick="nav('add',document.querySelectorAll('.sbtn')[1])">+ Add Movie</button>
-      </div>
-      <div id="moviesTable"></div>
-    </div>
-
-    <!-- TV TABLE -->
-    <div class="panel" id="panel-tv">
-      <div class="ptit">TV Shows</div>
-      <div class="psub">Supabase DB mein saved TV shows</div>
-      <div class="tbar"><input class="tsearch" type="text" placeholder="🔍 Search shows..."><div class="tsp"></div></div>
-      <div id="tvTable"></div>
-    </div>
-
-    <!-- FEATURED -->
-    <div class="panel" id="panel-featured">
-      <div class="ptit">Featured / Hero Banner</div>
-      <div class="psub">Home page hero mein dikhne wali movies</div>
-      <div id="featuredGrid"></div>
-    </div>
-
-    <!-- BULK IMPORT -->
-    <div class="panel" id="panel-bulk">
-      <div class="ptit">Bulk Import</div>
-      <div class="psub">JSON format mein multiple movies ek saath add karo</div>
-      <div class="fc">
-        <div class="fc-title"><div class="fc-ico">📥</div> JSON Import</div>
-        <div class="fw" style="margin-bottom:12px">
-          <label>JSON Array (ek array mein multiple movies)</label>
-          <textarea class="bulk-ta" id="bulkJson" placeholder='[
-  {
-    "title": "Pathaan",
-    "type": "movie",
-    "embed_url":"https://example.com/embed/abc123",
-    "year": "2023",
-    "rating": 5.9,
-    "language": "hi",
-    "quality": "1080p",
-    "poster_url": "https://image.tmdb.org/t/p/w500/xxx.jpg",
-    "backdrop_url": "https://image.tmdb.org/t/p/original/xxx.jpg",
-    "genres": ["Action","Thriller"],
-    "overview": "Movie description...",
-    "cast_text": "Shah Rukh Khan, Deepika Padukone",
-    "status": "active",
-    "featured": false,
-    "min_plan": "free",
-    "age_rating": "UA 16+"
-  }
-]'></textarea>
-        </div>
-        <div class="brow">
-          <button class="btn-add" onclick="bulkImport()">📥 Import All</button>
-          <button class="btn-sec" onclick="downloadTemplate()">⬇️ Download Template</button>
-        </div>
-        <div id="bulkResult" style="margin-top:12px;font-size:.82rem;display:none"></div>
-      </div>
-    </div>
-
-    <!-- EXPORT -->
-    <div class="panel" id="panel-export">
-      <div class="ptit">Export Data</div>
-      <div class="psub">Supabase se sab movies export karo</div>
-      <div class="fc">
-        <div class="fc-title"><div class="fc-ico">💾</div> Export Options</div>
-        <div style="font-size:.84rem;color:rgba(255,255,255,.55);margin-bottom:18px;line-height:1.8">
-          Total movies in DB: <strong id="exportCount" style="color:#fff">Loading...</strong>
-        </div>
-        <div class="brow">
-          <button class="btn-add" onclick="exportAllMovies()">💾 Export as JSON</button>
-          <button class="btn-sec" onclick="exportCSV()">📊 Export as CSV</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- UNAVAILABLE CHECKER -->
-    <div class="panel" id="panel-unavailable">
-      <div class="ptit">Check Unavailable</div>
-      <div class="psub">vidsrc pe kaunsi movies nahi chal rahi — detect karo aur fix karo</div>
-      <div class="fc">
-        <div class="fc-title"><div class="fc-ico">🔍</div> vidsrc Availability Checker</div>
-        <div style="font-size:.84rem;color:rgba(255,255,255,.6);margin-bottom:16px;line-height:1.7">
-          Ye tool DB ki sab movies check karta hai ki unki vidsrc embed URL kaam kar rahi hai ya nahi.<br>
-          Jo movies black screen dikha rahi hain unhe yahan dekho aur custom embed laga sako.
-        </div>
-        <div class="brow" style="border-top:none;padding-top:0;margin-top:0;margin-bottom:16px">
-          <button class="btn-add" id="checkBtn" onclick="checkUnavailable()">🔍 Check All Movies</button>
-          <span style="font-size:.78rem;color:var(--muted)" id="checkStatus"></span>
-        </div>
-        <!-- Progress bar -->
-        <div id="checkProgress" style="display:none;margin-bottom:16px">
-          <div style="background:rgba(255,255,255,.08);border-radius:4px;height:6px;overflow:hidden;margin-bottom:6px">
-            <div id="checkBar" style="height:100%;background:var(--red);border-radius:4px;width:0%;transition:width .3s"></div>
-          </div>
-          <div style="font-size:.72rem;color:var(--muted)" id="checkText">Checking...</div>
-        </div>
-        <!-- Results -->
-        <div id="unavailableResults"></div>
-      </div>
-    </div>
-
+    <div class="panel" id="panel-movies"><div class="ptit">All Movies</div><div class="psub">Supabase DB mein saved movies</div><div class="tbar"><input class="tsearch" type="text" placeholder="🔍 Search movies..." oninput="filterTable('movies',this.value)"><select class="tfsel" onchange="filterTableLang('movies',this.value)"><option value="">All Languages</option><option value="hi">Hindi</option><option value="en">English</option><option value="te">Telugu</option><option value="ta">Tamil</option></select><div class="tsp"></div><button class="btn-add" style="padding:7px 16px;font-size:.78rem" onclick="nav('add',document.querySelectorAll('.sbtn')[1])">+ Add Movie</button></div><div id="moviesTable"></div></div>
+    <div class="panel" id="panel-tv"><div class="ptit">TV Shows</div><div class="psub">Supabase DB mein saved TV shows</div><div class="tbar"><input class="tsearch" type="text" placeholder="🔍 Search shows..."><div class="tsp"></div></div><div id="tvTable"></div></div>
+    <div class="panel" id="panel-featured"><div class="ptit">Featured / Hero Banner</div><div class="psub">Home page hero mein dikhne wali movies</div><div id="featuredGrid"></div></div>
+    <div class="panel" id="panel-bulk"><div class="ptit">Bulk Import</div><div class="psub">JSON format mein multiple movies ek saath add karo</div><div class="fc"><div class="fc-title"><div class="fc-ico">📥</div> JSON Import</div><div class="fw" style="margin-bottom:12px"><label>JSON Array (ek array mein multiple movies)</label><textarea class="bulk-ta" id="bulkJson" placeholder='[\n  {\n    "title": "Pathaan",\n    "type": "movie",\n    "embed_url":"https://example.com/embed/abc123",\n    "year": "2023",\n    "rating": 5.9,\n    "language": "hi",\n    "quality": "1080p",\n    "poster_url": "https://image.tmdb.org/t/p/w500/xxx.jpg",\n    "backdrop_url": "https://image.tmdb.org/t/p/original/xxx.jpg",\n    "genres": ["Action","Thriller"],\n    "overview": "Movie description...",\n    "cast_text": "Shah Rukh Khan, Deepika Padukone",\n    "status": "active",\n    "featured": false,\n    "min_plan": "free",\n    "age_rating": "UA 16+"\n  }\n]'></textarea></div><div class="brow"><button class="btn-add" onclick="bulkImport()">📥 Import All</button><button class="btn-sec" onclick="downloadTemplate()">⬇️ Download Template</button></div><div id="bulkResult" style="margin-top:12px;font-size:.82rem;display:none"></div></div></div>
+    <div class="panel" id="panel-export"><div class="ptit">Export Data</div><div class="psub">Supabase se sab movies export karo</div><div class="fc"><div class="fc-title"><div class="fc-ico">💾</div> Export Options</div><div style="font-size:.84rem;color:rgba(255,255,255,.55);margin-bottom:18px;line-height:1.8">Total movies in DB: <strong id="exportCount" style="color:#fff">Loading...</strong></div><div class="brow"><button class="btn-add" onclick="exportAllMovies()">💾 Export as JSON</button><button class="btn-sec" onclick="exportCSV()">📊 Export as CSV</button></div></div></div>
+    <div class="panel" id="panel-unavailable"><div class="ptit">Check Unavailable</div><div class="psub">vidsrc pe kaunsi movies nahi chal rahi — detect karo aur fix karo</div><div class="fc"><div class="fc-title"><div class="fc-ico">🔍</div> vidsrc Availability Checker</div><div style="font-size:.84rem;color:rgba(255,255,255,.6);margin-bottom:16px;line-height:1.7">Ye tool DB ki sab movies check karta hai ki unki vidsrc embed URL kaam kar rahi hai ya nahi.<br>Jo movies black screen dikha rahi hain unhe yahan dekho aur custom embed laga sako.</div><div class="brow" style="border-top:none;padding-top:0;margin-top:0;margin-bottom:16px"><button class="btn-add" id="checkBtn" onclick="checkUnavailable()">🔍 Check All Movies</button><span style="font-size:.78rem;color:var(--muted)" id="checkStatus"></span></div><div id="checkProgress" style="display:none;margin-bottom:16px"><div style="background:rgba(255,255,255,.08);border-radius:4px;height:6px;overflow:hidden;margin-bottom:6px"><div id="checkBar" style="height:100%;background:var(--red);border-radius:4px;width:0%;transition:width .3s"></div></div><div style="font-size:.72rem;color:var(--muted)" id="checkText">Checking...</div></div><div id="unavailableResults"></div></div></div>
   </main>
 </div>
 
-<!-- EDIT MODAL -->
-<div class="mbg" id="editModal">
-  <div class="mo">
-    <div class="mo-title">Edit Movie <button class="mo-x" onclick="closeEditModal()">✕</button></div>
-    <div id="editForm"></div>
-  </div>
-</div>
-
-<!-- TEST PLAYER -->
-<div class="tp-bg" id="testModal">
-  <div class="tp">
-    <div class="tp-hd"><span class="tp-tit" id="testTitle">Testing...</span><button class="tp-x" onclick="closeTest()">✕</button></div>
-    <div class="tp-frame"><iframe id="testFrame" src="" allowfullscreen allow="autoplay;fullscreen"></iframe></div>
-  </div>
-</div>
+<div class="mbg" id="editModal"><div class="mo"><div class="mo-title">Edit Movie <button class="mo-x" onclick="closeEditModal()">✕</button></div><div id="editForm"></div></div></div>
+<div class="tp-bg" id="testModal"><div class="tp"><div class="tp-hd"><span class="tp-tit" id="testTitle">Testing...</span><button class="tp-x" onclick="closeTest()">✕</button></div><div class="tp-frame"><iframe id="testFrame" src="" allowfullscreen allow="autoplay;fullscreen"></iframe></div></div></div>
 
 <script>
 // ─────────────────────────────────────────
@@ -479,25 +201,38 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
 let allMovies    = [];
 let selGenres    = [];
 let editingId    = null;
-
 const GENRES = ['Action','Comedy','Drama','Horror','Sci-Fi','Romance','Thriller','Animation','Crime','Fantasy','Adventure','Biography','Hindi','Telugu','Tamil','Kannada','Malayalam','South Indian','Bollywood','Web Series'];
 
 // ─────────────────────────────────────────
 //  INIT
 // ─────────────────────────────────────────
 window.addEventListener('load', async () => {
-  // Simple admin check — in production use Supabase RLS + admin role
   const sb = getSB();
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { window.location.href = 'XverseMovies_Login.html'; return; }
+
+  // --- ADMIN ROLE CHECK ---
+  const { data: profile } = await sb
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', session.user.id)
+    .single();
+
+  if (!profile?.is_admin) {
+    alert('Access Denied: Admin only.');
+    window.location.href = 'XverseMovies_Home.html';
+    return;
+  }
+  // --- END ADMIN CHECK ---
 
   buildGenreTags();
   await loadDashboard();
 });
 
 // ─────────────────────────────────────────
-//  NAV
+//  REST OF FUNCTIONS (OUTSIDE LOAD EVENT)
 // ─────────────────────────────────────────
+
 function nav(name, btn) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
   document.querySelectorAll('.sbtn').forEach(b => b.classList.remove('on'));
@@ -512,18 +247,13 @@ function nav(name, btn) {
   if (name === 'unavailable') { document.getElementById('unavailableResults').innerHTML=''; document.getElementById('checkStatus').textContent=''; document.getElementById('checkProgress').style.display='none'; }
 }
 
-// ─────────────────────────────────────────
-//  DASHBOARD
-// ─────────────────────────────────────────
 async function loadDashboard() {
   const { data: movies } = await getSB().from('movies').select('*').order('created_at', { ascending: false });
   allMovies = movies || [];
-
-  const movs     = allMovies.filter(m => m.type === 'movie');
-  const tvs      = allMovies.filter(m => m.type === 'tv');
+  const movs = allMovies.filter(m => m.type === 'movie');
+  const tvs = allMovies.filter(m => m.type === 'tv');
   const featured = allMovies.filter(m => m.featured);
-  const active   = allMovies.filter(m => m.status === 'active');
-
+  const active = allMovies.filter(m => m.status === 'active');
   updateCounts();
   document.getElementById('dashStats').innerHTML = [
     { n: allMovies.length, l: 'Total Titles',   s: 'All content' },
@@ -533,12 +263,7 @@ async function loadDashboard() {
     { n: active.length,    l: 'Live on Site',    s: 'Visible to users' },
     { n: allMovies.filter(m => { const d=new Date(m.created_at); return (Date.now()-d.getTime())<604800000; }).length, l:'This Week', s:'Last 7 days' },
   ].map(s => `<div class="stat"><div class="stn">${s.n}</div><div class="stl">${s.l}</div><div class="sts">${s.s}</div></div>`).join('');
-
-  // Recent
-  document.getElementById('recentList').innerHTML = allMovies.length
-    ? `<table class="tbl"><thead><tr><th></th><th>Title</th><th>Type</th><th>Quality</th><th>Status</th><th>Actions</th></tr></thead><tbody>${
-      allMovies.slice(0,8).map(m => rowHTML(m)).join('')}</tbody></table>`
-    : `<div class="empty"><div class="empty-ico">📭</div><div style="font-size:.84rem;color:var(--muted)">No content yet — Add Movie pe jao</div></div>`;
+  document.getElementById('recentList').innerHTML = allMovies.length ? `<table class="tbl"><thead><tr><th></th><th>Title</th><th>Type</th><th>Quality</th><th>Status</th><th>Actions</th></tr></thead><tbody>${allMovies.slice(0,8).map(m => rowHTML(m)).join('')}</tbody></table>` : `<div class="empty"><div class="empty-ico">📭</div><div style="font-size:.84rem;color:var(--muted)">No content yet — Add Movie pe jao</div></div>`;
 }
 
 function updateCounts() {
@@ -546,65 +271,32 @@ function updateCounts() {
   document.getElementById('sbTCnt').textContent = allMovies.filter(m=>m.type==='tv').length;
 }
 
-// ─────────────────────────────────────────
-//  UNIVERSAL EMBED SYSTEM
-// ─────────────────────────────────────────
-
 function validateEmbedUrl(url) {
   if (!url) return false;
-
   try {
     const u = new URL(url);
-
-    // only http/https allowed
-    if (
-      u.protocol !== "https:" &&
-      u.protocol !== "http:"
-    ) return false;
-
+    if (u.protocol !== "https:" && u.protocol !== "http:") return false;
     return true;
-
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
-// ─────────────────────────────────────────
-//  TMDB AUTO-FILL
-// ─────────────────────────────────────────
 async function generateAutoMovie() {
   const tmdbId = document.getElementById('tmdbId').value.trim();
   const type   = document.getElementById('autoType').value;
   if (!tmdbId) { showToast('❌ TMDB ID daalo'); return; }
-
   showToast('⚡ Generating movie data...');
   try {
     const data = type === 'tv' ? await TMDB.tvDetails(tmdbId) : await TMDB.movieDetails(tmdbId);
     if (!data) { showToast('❌ TMDB fetch failed'); return; }
-
-    // Fill all form fields using shared helper
     fillFormFromTMDB(data, type);
-
-    // Build + store embed URL
-    const embedUrl = type === 'tv'
-      ? `https://vidsrc.to/embed/tv/${tmdbId}`
-      : `https://vidsrc.to/embed/movie/${tmdbId}`;
-
+    const embedUrl = type === 'tv' ? `https://vidsrc.to/embed/tv/${tmdbId}` : `https://vidsrc.to/embed/movie/${tmdbId}`;
     window.generatedEmbedUrl = embedUrl;
-
-    // Sync mType
     const mType = document.getElementById('mType');
     if (mType) mType.value = type;
-
-    // Show preview
     const prev = document.getElementById('autoEmbedPreview');
     if (prev) {
       prev.style.display = 'block';
-      prev.innerHTML = `
-        <div style="font-size:.8rem;color:#46d369;font-weight:700">✅ Auto Embed Ready</div>
-        <div style="margin-top:8px;font-size:.75rem;color:#aaa">Embed URL:</div>
-        <div style="margin-top:5px;background:#111;padding:8px;border-radius:6px;font-family:monospace;word-break:break-all;color:#fff;font-size:.74rem">${embedUrl}</div>
-        <div style="margin-top:10px;font-size:.75rem;color:#aaa">⚠️ If this movie shows black screen (not on vidsrc), use Manual tab to paste a custom embed URL.</div>`;
+      prev.innerHTML = `<div style="font-size:.8rem;color:#46d369;font-weight:700">✅ Auto Embed Ready</div><div style="margin-top:8px;font-size:.75rem;color:#aaa">Embed URL:</div><div style="margin-top:5px;background:#111;padding:8px;border-radius:6px;font-family:monospace;word-break:break-all;color:#fff;font-size:.74rem">${embedUrl}</div><div style="margin-top:10px;font-size:.75rem;color:#aaa">⚠️ If this movie shows black screen (not on vidsrc), use Manual tab to paste a custom embed URL.</div>`;
     }
     showToast('✅ Auto movie generated!');
   } catch(err) {
@@ -613,9 +305,6 @@ async function generateAutoMovie() {
   }
 }
 
-// ─────────────────────────────────────────
-//  GENRE TAGS
-// ─────────────────────────────────────────
 function buildGenreTags() {
   const c = document.getElementById('genreTags');
   c.innerHTML = '';
@@ -630,250 +319,124 @@ function buildGenreTags() {
   });
 }
 
-// ─────────────────────────────────────────
-//  POSTER PREVIEW
-// ─────────────────────────────────────────
 function prevImg(url, elId, cls) {
   const el = document.getElementById(elId);
   if (!url) { el.innerHTML=`<span>No Image</span>`; return; }
   el.innerHTML = `<img src="${url}" onerror="this.parentElement.innerHTML='<span>Invalid URL</span>'">`;
 }
 
-// ─────────────────────────────────────────
-//  ADD MOVIE
-// ─────────────────────────────────────────
 async function addMovie() {
-const title = document.getElementById('mTitle').value.trim();
-const btn = document.getElementById('addBtn');
-
-const exists = allMovies.find(
-  m => m.title.toLowerCase() === title.toLowerCase()
-);
-
-if (exists) {
-  showToast('❌ Movie already exists');
-  btn.disabled = false;
-  return;
-}
-
-  if (!title) {
-    showToast('❌ Title daalo');
-    return;
-  }
-
+  const title = document.getElementById('mTitle').value.trim();
+  const btn = document.getElementById('addBtn');
+  const exists = allMovies.find(m => m.title.toLowerCase() === title.toLowerCase());
+  if (exists) { showToast('❌ Movie already exists'); btn.disabled = false; return; }
+  if (!title) { showToast('❌ Title daalo'); return; }
   btn.textContent = 'Adding...';
   btn.disabled = true;
-
-  // Get tmdb_id from whichever tab is active
-  const tmdbIdVal = parseInt(document.getElementById('tmdbId')?.value)
-    || parseInt(document.getElementById('manualTmdbId')?.value)
-    || null;
-
+  const tmdbIdVal = parseInt(document.getElementById('tmdbId')?.value) || parseInt(document.getElementById('manualTmdbId')?.value) || null;
   const movie = {
-    title,
-
-    type: document.getElementById('mType').value,
-
+    title, type: document.getElementById('mType').value,
     embed_url: getEmbedUrl() || null,
-
     tmdb_id: tmdbIdVal,
-
-    year:
-      document.getElementById('mYear').value ||
-      new Date().getFullYear().toString(),
-
-    rating:
-      parseFloat(document.getElementById('mRating').value) || null,
-
-    duration:
-      document.getElementById('mDur').value || null,
-
-    language:
-      document.getElementById('mLang').value,
-
-    quality:
-      document.getElementById('mQuality').value,
-
-    overview:
-      document.getElementById('mOverview').value.trim() || null,
-
+    year: document.getElementById('mYear').value || new Date().getFullYear().toString(),
+    rating: parseFloat(document.getElementById('mRating').value) || null,
+    duration: document.getElementById('mDur').value || null,
+    language: document.getElementById('mLang').value,
+    quality: document.getElementById('mQuality').value,
+    overview: document.getElementById('mOverview').value.trim() || null,
     genres: [...selGenres],
-
-    poster_url:
-      document.getElementById('mPoster').value.trim() || null,
-
-    backdrop_url:
-      document.getElementById('mBackdrop').value.trim() || null,
-
-    cast_text:
-      document.getElementById('mCast').value.trim() || null,
-
-    director:
-      document.getElementById('mDirector').value.trim() || null,
-
-    status:
-      document.getElementById('mStatus').value,
-
-    featured:
-      document.getElementById('mFeatured').value === 'true',
-
-    min_plan:
-      document.getElementById('mPlan').value,
-
-    age_rating:
-      document.getElementById('mAge').value,
-
-    tags:
-      document.getElementById('mTags')
-        .value
-        .split(',')
-        .map(t => t.trim())
-        .filter(Boolean),
+    poster_url: document.getElementById('mPoster').value.trim() || null,
+    backdrop_url: document.getElementById('mBackdrop').value.trim() || null,
+    cast_text: document.getElementById('mCast').value.trim() || null,
+    director: document.getElementById('mDirector').value.trim() || null,
+    status: document.getElementById('mStatus').value,
+    featured: document.getElementById('mFeatured').value === 'true',
+    min_plan: document.getElementById('mPlan').value,
+    age_rating: document.getElementById('mAge').value,
+    tags: document.getElementById('mTags').value.split(',').map(t=>t.trim()).filter(Boolean),
   };
-
-  const { data, error } =
-    await getSB()
-      .from('movies')
-      .insert(movie)
-      .select()
-      .single();
-
+  const { data, error } = await getSB().from('movies').insert(movie).select().single();
   btn.textContent = '✅ Add to XverseMovies';
   btn.disabled = false;
-
   const res = document.getElementById('addResult');
-
   if (error) {
-
-    res.style.display = 'block';
-    res.style.color = '#ff6b6b';
-
-    res.textContent =
-      '❌ Error: ' + error.message;
-
+    res.style.display = 'block'; res.style.color = '#ff6b6b';
+    res.textContent = '❌ Error: ' + error.message;
     showToast('❌ ' + error.message);
-
   } else {
-
-    res.style.display = 'block';
-    res.style.color = '#46d369';
-
-    res.textContent =
-      `✅ "${title}" successfully added! ID: ${data.id}`;
-
+    res.style.display = 'block'; res.style.color = '#46d369';
+    res.textContent = `✅ "${title}" successfully added! ID: ${data.id}`;
     showToast(`✅ "${title}" added!`);
-
     allMovies.unshift(data);
-
     updateCounts();
-
     resetForm();
   }
 }
 
 function resetForm() {
-  ['mTitle','tmdbId','mYear','mRating','mDur','mOverview',
-   'mPoster','mBackdrop','mCast','mDirector','mTags',
-   'manualTmdbId','manualEmbed','seriesEmbedPreview',
-   'sSeason','sEpisode','sEpTitle'].forEach(id => {
+  ['mTitle','tmdbId','mYear','mRating','mDur','mOverview','mPoster','mBackdrop','mCast','mDirector','mTags','manualTmdbId','manualEmbed','seriesEmbedPreview','sSeason','sEpisode','sEpTitle'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = id==='sSeason'||id==='sEpisode' ? '1' : '';
   });
-  const pp = document.getElementById('posterPrev');
-  const bp = document.getElementById('backdropPrev');
-  if (pp) pp.innerHTML = '<span>No<br>Poster</span>';
-  if (bp) bp.innerHTML = '<span>No Backdrop</span>';
+  const pp = document.getElementById('posterPrev'); if(pp) pp.innerHTML = '<span>No<br>Poster</span>';
+  const bp = document.getElementById('backdropPrev'); if(bp) bp.innerHTML = '<span>No Backdrop</span>';
   selGenres = [];
-  document.querySelectorAll('.gtag').forEach(t => t.classList.remove('on'));
-  const ar = document.getElementById('addResult');
-  if (ar) ar.style.display = 'none';
-  const ap = document.getElementById('autoEmbedPreview');
-  if (ap) { ap.style.display='none'; ap.innerHTML=''; }
+  document.querySelectorAll('.gtag').forEach(t=>t.classList.remove('on'));
+  const ar = document.getElementById('addResult'); if(ar) ar.style.display = 'none';
+  const ap = document.getElementById('autoEmbedPreview'); if(ap) { ap.style.display='none'; ap.innerHTML=''; }
   window.generatedEmbedUrl = null;
 }
 
 function testVideo() {
-  // Use manualEmbed first, then generatedEmbedUrl
-  const url = document.getElementById('manualEmbed')?.value.trim()
-    || window.generatedEmbedUrl;
-
-  if (!url) {
-    showToast('❌ Embed URL daalo ya Auto Generate karo');
-    return;
-  }
-
-  document.getElementById('testTitle').textContent =
-    document.getElementById('mTitle').value || 'Testing...';
-
+  const url = document.getElementById('manualEmbed')?.value.trim() || window.generatedEmbedUrl;
+  if (!url) { showToast('❌ Embed URL daalo ya Auto Generate karo'); return; }
+  document.getElementById('testTitle').textContent = document.getElementById('mTitle').value || 'Testing...';
   document.getElementById('testFrame').src = url;
   document.getElementById('testModal').classList.add('open');
 }
 
-// ─────────────────────────────────────────
-//  ADD TAB SWITCH
-// ─────────────────────────────────────────
 function switchAddTab(tab) {
   const isAuto = tab === 'auto';
-  document.getElementById('addSection-auto').style.display   = isAuto ? 'block' : 'none';
-  document.getElementById('addSection-manual').style.display = isAuto ? 'none'  : 'block';
-  // Update tab button styles
-  const autoBtn   = document.getElementById('addTab-auto');
-  const manualBtn = document.getElementById('addTab-manual');
+  document.getElementById('addSection-auto').style.display = isAuto ? 'block' : 'none';
+  document.getElementById('addSection-manual').style.display = isAuto ? 'none' : 'block';
+  const autoBtn = document.getElementById('addTab-auto'), manualBtn = document.getElementById('addTab-manual');
   if (autoBtn) {
-    autoBtn.style.borderBottom   = isAuto ? '2px solid var(--red)' : '2px solid transparent';
-    autoBtn.style.color          = isAuto ? '#fff' : 'var(--muted)';
+    autoBtn.style.borderBottom = isAuto ? '2px solid var(--red)' : '2px solid transparent';
+    autoBtn.style.color = isAuto ? '#fff' : 'var(--muted)';
     manualBtn.style.borderBottom = isAuto ? '2px solid transparent' : '2px solid var(--red)';
-    manualBtn.style.color        = isAuto ? 'var(--muted)' : '#fff';
+    manualBtn.style.color = isAuto ? 'var(--muted)' : '#fff';
   }
 }
 
-// ─────────────────────────────────────────
-//  SERIES FIELDS TOGGLE
-// ─────────────────────────────────────────
 function toggleSeriesFields(type) {
   const sf = document.getElementById('seriesFields');
   if (sf) sf.style.display = type === 'series' ? 'block' : 'none';
-  // Sync mType
   const mType = document.getElementById('mType');
   if (mType) mType.value = type === 'series' ? 'tv' : type;
 }
 
-// ─────────────────────────────────────────
-//  BUILD SERIES EMBED URL
-// ─────────────────────────────────────────
 function buildSeriesEmbed() {
-  const tid     = document.getElementById('manualTmdbId')?.value.trim()
-    || document.getElementById('tmdbId')?.value.trim();
-  const season  = document.getElementById('sSeason')?.value  || '1';
+  const tid = document.getElementById('manualTmdbId')?.value.trim() || document.getElementById('tmdbId')?.value.trim();
+  const season = document.getElementById('sSeason')?.value || '1';
   const episode = document.getElementById('sEpisode')?.value || '1';
-
   if (!tid) { showToast('❌ Pehle TMDB ID daalo'); return; }
-
   const url = `https://vidsrc.to/embed/tv/${tid}/${season}/${episode}`;
   const prev = document.getElementById('seriesEmbedPreview');
   if (prev) prev.value = url;
-
-  // Auto-set manualEmbed too
   const me = document.getElementById('manualEmbed');
   if (me) me.value = url;
-
   window.generatedEmbedUrl = url;
   showToast('✅ Series URL built: S' + season + 'E' + episode);
 }
 
-// ─────────────────────────────────────────
-//  AUTO-FILL MANUAL TAB (from TMDB)
-// ─────────────────────────────────────────
 async function autoFillManual() {
-  const id   = document.getElementById('manualTmdbId')?.value.trim();
+  const id = document.getElementById('manualTmdbId')?.value.trim();
   const type = document.getElementById('manualType')?.value || 'movie';
   if (!id) { showToast('❌ TMDB ID daalo'); return; }
   showToast('🔍 Fetching from TMDB...');
   const data = type === 'tv' ? await TMDB.tvDetails(id) : await TMDB.movieDetails(id);
   if (!data || (!data.title && !data.name)) { showToast('❌ TMDB ID nahi mila'); return; }
   fillFormFromTMDB(data, type);
-
-  // Also auto-build embed for manual tab
   const manEmbed = document.getElementById('manualEmbed');
   if (manEmbed && !manEmbed.value) {
     const t = type === 'tv' ? 'tv' : 'movie';
@@ -883,151 +446,85 @@ async function autoFillManual() {
   showToast(`✅ Filled: ${data.title || data.name}`);
 }
 
-// ─────────────────────────────────────────
-//  SHARED FORM FILL FROM TMDB DATA
-// ─────────────────────────────────────────
 function fillFormFromTMDB(data, type) {
-  const title    = data.title || data.name || '';
-  const year     = (data.release_date || data.first_air_date || '').slice(0, 4);
+  const title = data.title || data.name || '';
+  const year = (data.release_date || data.first_air_date || '').slice(0,4);
   const overview = data.overview || '';
-  const rating   = data.vote_average?.toFixed(1) || '';
-  const poster   = data.poster_path   ? `https://image.tmdb.org/t/p/w500${data.poster_path}`    : '';
+  const rating = data.vote_average?.toFixed(1) || '';
+  const poster = data.poster_path ? `https://image.tmdb.org/t/p/w500${data.poster_path}` : '';
   const backdrop = data.backdrop_path ? `https://image.tmdb.org/t/p/original${data.backdrop_path}` : '';
-  const genres   = (data.genres || []).map(g => g.name);
-  const cast     = (data.credits?.cast || []).slice(0, 5).map(c => c.name).join(', ');
-  const director = (data.credits?.crew || []).find(c => c.job === 'Director')?.name || '';
-
-  const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
-  set('mTitle',    title);
-  set('mYear',     year);
-  set('mRating',   rating);
-  set('mOverview', overview);
-  set('mPoster',   poster);
-  set('mBackdrop', backdrop);
-  set('mCast',     cast);
-  set('mDirector', director);
-  if (type === 'tv') { const mt = document.getElementById('mType'); if (mt) mt.value = 'tv'; }
-
-  if (poster)   prevImg(poster,   'posterPrev',   'pp');
-  if (backdrop) prevImg(backdrop, 'backdropPrev', 'bp');
-
-  // Select genres
+  const genres = (data.genres || []).map(g => g.name);
+  const cast = (data.credits?.cast || []).slice(0,5).map(c=>c.name).join(', ');
+  const director = (data.credits?.crew || []).find(c=>c.job==='Director')?.name || '';
+  const set = (id,val)=>{const el=document.getElementById(id); if(el) el.value=val;};
+  set('mTitle',title); set('mYear',year); set('mRating',rating); set('mOverview',overview);
+  set('mPoster',poster); set('mBackdrop',backdrop); set('mCast',cast); set('mDirector',director);
+  if (type==='tv') { const mt=document.getElementById('mType'); if(mt) mt.value='tv'; }
+  if(poster) prevImg(poster,'posterPrev','pp');
+  if(backdrop) prevImg(backdrop,'backdropPrev','bp');
   selGenres = [...genres];
-  document.querySelectorAll('.gtag').forEach(t => {
-    t.classList.toggle('on', genres.includes(t.textContent));
-  });
+  document.querySelectorAll('.gtag').forEach(t=>t.classList.toggle('on', genres.includes(t.textContent)));
 }
 
-// ─────────────────────────────────────────
-//  FIX: addMovie reads embed from both tabs
-// ─────────────────────────────────────────
 function getEmbedUrl() {
-  // Manual tab embed
   const manualEmbed = document.getElementById('manualEmbed')?.value.trim();
   if (manualEmbed) return manualEmbed;
-
-  // Auto-generated
   if (window.generatedEmbedUrl) return window.generatedEmbedUrl;
-
-  // Fallback: build from tmdbId
-  const tid  = document.getElementById('tmdbId')?.value.trim()
-    || document.getElementById('manualTmdbId')?.value.trim();
+  const tid = document.getElementById('tmdbId')?.value.trim() || document.getElementById('manualTmdbId')?.value.trim();
   const type = document.getElementById('mType')?.value || 'movie';
-  if (tid) return type === 'tv'
-    ? `https://vidsrc.to/embed/tv/${tid}`
-    : `https://vidsrc.to/embed/movie/${tid}`;
-
+  if (tid) return type === 'tv' ? `https://vidsrc.to/embed/tv/${tid}` : `https://vidsrc.to/embed/movie/${tid}`;
   return '';
 }
 
-// ─────────────────────────────────────────
-//  UNAVAILABLE CHECKER
-// ─────────────────────────────────────────
 async function checkUnavailable() {
   const btn = document.getElementById('checkBtn');
   btn.disabled = true; btn.textContent = '⏳ Checking...';
   document.getElementById('checkProgress').style.display = 'block';
   document.getElementById('unavailableResults').innerHTML = '';
-
   const { data: movies } = await getSB().from('movies').select('*').eq('status','active').order('created_at',{ascending:false});
   if (!movies?.length) { showToast('No active movies found'); btn.disabled=false; btn.textContent='🔍 Check All Movies'; return; }
-
   const results = [];
-  const total   = movies.length;
-  let checked   = 0;
-
+  const total = movies.length;
+  let checked = 0;
   document.getElementById('checkStatus').textContent = `0 / ${total} checked`;
-
   for (const m of movies) {
     const embedUrl = m.embed_url || (m.tmdb_id ? `https://vidsrc.to/embed/movie/${m.tmdb_id}` : null);
-    let available  = false;
-
+    let available = false;
     if (!embedUrl) {
       results.push({ ...m, available: false, reason: 'No embed URL' });
     } else {
       try {
-        // We test by fetching the embed page — if it returns 200 with content it's likely ok
         const isVidsrc = embedUrl.includes('vidsrc');
         if (isVidsrc && m.tmdb_id) {
-          // For vidsrc: try fetching their availability API
           const type = m.type === 'tv' ? 'tv' : 'movie';
-          const r = await fetch(`https://vidsrc.to/embed/${type}/${m.tmdb_id}`, {
-            method: 'HEAD', signal: AbortSignal.timeout(5000)
-          }).catch(() => null);
+          const r = await fetch(`https://vidsrc.to/embed/${type}/${m.tmdb_id}`, { method: 'HEAD', signal: AbortSignal.timeout(5000) }).catch(()=>null);
           available = r?.ok && r.status !== 404;
         } else {
-          available = true; // non-vidsrc (streamtape etc) assume available
+          available = true;
         }
-      } catch(e) {
-        available = false;
-      }
+      } catch(e) { available = false; }
       if (!available) results.push({ ...m, available: false, embedUrl, reason: 'Not on vidsrc' });
     }
-
     checked++;
     const pct = Math.round((checked / total) * 100);
-    document.getElementById('checkBar').style.width  = pct + '%';
+    document.getElementById('checkBar').style.width = pct + '%';
     document.getElementById('checkText').textContent = `Checking: ${m.title} (${checked}/${total})`;
     document.getElementById('checkStatus').textContent = `${checked} / ${total} checked`;
   }
-
   btn.disabled = false; btn.textContent = '🔍 Check All Movies';
   document.getElementById('checkProgress').style.display = 'none';
-
   const unavCnt = document.getElementById('sbUnavCnt');
   if (unavCnt) { unavCnt.textContent = results.length; unavCnt.style.display = results.length ? 'flex' : 'none'; }
-
   if (!results.length) {
-    document.getElementById('unavailableResults').innerHTML = `
-      <div style="text-align:center;padding:30px;color:var(--green);font-size:.92rem">
-        ✅ Sab ${total} movies available hain! Koi issue nahi.
-      </div>`;
+    document.getElementById('unavailableResults').innerHTML = `<div style="text-align:center;padding:30px;color:var(--green);font-size:.92rem">✅ Sab ${total} movies available hain! Koi issue nahi.</div>`;
     return;
   }
-
-  document.getElementById('unavailableResults').innerHTML = `
-    <div style="font-size:.82rem;color:var(--muted);margin-bottom:12px">
-      ⚠️ ${results.length} movies vidsrc pe available nahi — custom embed lagao:
-    </div>
-    ${results.map(m => `
-      <div style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid rgba(229,9,20,.2);border-radius:8px;padding:12px 14px;margin-bottom:8px;flex-wrap:wrap">
-        <img src="${m.poster_url||''}" style="width:40px;height:58px;object-fit:cover;border-radius:4px;background:#222;flex-shrink:0" onerror="this.style.display='none'">
-        <div style="flex:1;min-width:120px">
-          <div style="font-size:.88rem;font-weight:700;color:#fff">${m.title}</div>
-          <div style="font-size:.72rem;color:var(--muted)">${m.year||''} · TMDB: ${m.tmdb_id||'N/A'} · ${m.reason||'Unavailable'}</div>
-        </div>
-        <input type="url" id="fix_${m.id}" placeholder="Paste custom embed URL here..." 
-          style="flex:2;min-width:200px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);color:#fff;padding:8px 11px;font-size:.76rem;border-radius:6px;font-family:'Barlow',sans-serif;outline:none">
-        <div style="display:flex;gap:6px">
-          <button onclick="fixEmbedUrl(${m.id})" class="btn-add" style="padding:7px 14px;font-size:.76rem">💾 Save</button>
-          <button onclick="testById(${m.id},document.getElementById('fix_${m.id}').value||'${m.embed_url||''}')" class="tab-btn play" title="Test">▶</button>
-        </div>
-      </div>`).join('')}`;
+  document.getElementById('unavailableResults').innerHTML = `<div style="font-size:.82rem;color:var(--muted);margin-bottom:12px">⚠️ ${results.length} movies vidsrc pe available nahi — custom embed lagao:</div>${results.map(m => `<div style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid rgba(229,9,20,.2);border-radius:8px;padding:12px 14px;margin-bottom:8px;flex-wrap:wrap"><img src="${m.poster_url||''}" style="width:40px;height:58px;object-fit:cover;border-radius:4px;background:#222;flex-shrink:0" onerror="this.style.display='none'"><div style="flex:1;min-width:120px"><div style="font-size:.88rem;font-weight:700;color:#fff">${m.title}</div><div style="font-size:.72rem;color:var(--muted)">${m.year||''} · TMDB: ${m.tmdb_id||'N/A'} · ${m.reason||'Unavailable'}</div></div><input type="url" id="fix_${m.id}" placeholder="Paste custom embed URL here..." style="flex:2;min-width:200px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);color:#fff;padding:8px 11px;font-size:.76rem;border-radius:6px;font-family:'Barlow',sans-serif;outline:none"><div style="display:flex;gap:6px"><button onclick="fixEmbedUrl(${m.id})" class="btn-add" style="padding:7px 14px;font-size:.76rem">💾 Save</button><button onclick="testById(${m.id},document.getElementById('fix_${m.id}').value||'${m.embed_url||''}')" class="tab-btn play" title="Test">▶</button></div></div>`).join('')}`;
 }
 
 async function fixEmbedUrl(movieId) {
   const input = document.getElementById('fix_' + movieId);
-  const url   = input?.value.trim();
+  const url = input?.value.trim();
   if (!url) { showToast('❌ Embed URL daalo'); return; }
   const { error } = await getSB().from('movies').update({ embed_url: url }).eq('id', movieId);
   if (error) { showToast('❌ ' + error.message); return; }
@@ -1037,8 +534,6 @@ async function fixEmbedUrl(movieId) {
   showToast('✅ Embed URL saved!');
 }
 
-//  TABLE
-// ─────────────────────────────────────────
 async function loadTable(type) {
   const el = document.getElementById(type==='movies'?'moviesTable':'tvTable');
   el.innerHTML = `<div class="sk" style="height:300px;border-radius:6px"></div>`;
@@ -1049,22 +544,7 @@ async function loadTable(type) {
 }
 
 function rowHTML(m) {
-  return `<tr>
-    <td class="tposter"><img src="${m.poster_url||'https://ui-avatars.com/api/?name='+encodeURIComponent(m.title)+'&background=222&color=555&size=200'}" onerror="this.src='https://ui-avatars.com/api/?name=X&background=222&color=444'"></td>
-    <td><div class="ttitle">${m.title}</div><div style="margin-top:2px;display:flex;gap:3px;flex-wrap:wrap">${m.featured?'<span class="chip chip-feat">⭐ FEATURED</span>':''}${m.type==='tv'?'<span class="chip chip-tv">TV</span>':'<span class="chip chip-mov">MOVIE</span>'}</div></td>
-    <td style="color:var(--muted)">${m.year||'—'}</td>
-    <td style="color:var(--green)">★ ${m.rating||'—'}</td>
-    <td><span style="font-size:.7rem;background:rgba(255,255,255,.07);padding:2px 6px;border-radius:3px;color:#fff">${m.quality||'—'}</span></td>
-    <td style="color:var(--muted);font-size:.74rem;text-transform:uppercase">${m.language||'—'}</td>
-    <td><span class="chip ${m.status==='active'?'chip-on':'chip-off'}">${m.status||'active'}</span></td>
-    <td><div class="tacts">
-      <button class="tab-btn play" onclick="testById(${m.id},'${m.embed_url || ''}')" title="Play">▶</button>
-      <button class="tab-btn" onclick="editMovie(${m.id})" title="Edit">✏️</button>
-      <button class="tab-btn" onclick="toggleFeat(${m.id})" title="${m.featured?'Remove featured':'Add featured'}">${m.featured?'★':'☆'}</button>
-      <button class="tab-btn" onclick="toggleStatus(${m.id})" title="Toggle status">${m.status==='active'?'👁':'🚫'}</button>
-      <button class="tab-btn del" onclick="deleteMovie(${m.id},'${m.title.replace(/'/g,'')}')" title="Delete">🗑️</button>
-    </div></td>
-  </tr>`;
+  return `<tr><td class="tposter"><img src="${m.poster_url||'https://ui-avatars.com/api/?name='+encodeURIComponent(m.title)+'&background=222&color=555&size=200'}" onerror="this.src='https://ui-avatars.com/api/?name=X&background=222&color=444'"></td><td><div class="ttitle">${m.title}</div><div style="margin-top:2px;display:flex;gap:3px;flex-wrap:wrap">${m.featured?'<span class="chip chip-feat">⭐ FEATURED</span>':''}${m.type==='tv'?'<span class="chip chip-tv">TV</span>':'<span class="chip chip-mov">MOVIE</span>'}</div></td><td style="color:var(--muted)">${m.year||'—'}</td><td style="color:var(--green)">★ ${m.rating||'—'}</td><td><span style="font-size:.7rem;background:rgba(255,255,255,.07);padding:2px 6px;border-radius:3px;color:#fff">${m.quality||'—'}</span></td><td style="color:var(--muted);font-size:.74rem;text-transform:uppercase">${m.language||'—'}</td><td><span class="chip ${m.status==='active'?'chip-on':'chip-off'}">${m.status||'active'}</span></td><td><div class="tacts"><button class="tab-btn play" onclick="testById(${m.id},'${m.embed_url || ''}')" title="Play">▶</button><button class="tab-btn" onclick="editMovie(${m.id})" title="Edit">✏️</button><button class="tab-btn" onclick="toggleFeat(${m.id})" title="${m.featured?'Remove featured':'Add featured'}">${m.featured?'★':'☆'}</button><button class="tab-btn" onclick="toggleStatus(${m.id})" title="Toggle status">${m.status==='active'?'👁':'🚫'}</button><button class="tab-btn del" onclick="deleteMovie(${m.id},'${m.title.replace(/'/g,'')}')" title="Delete">🗑️</button></div></td></tr>`;
 }
 
 function testById(id, url) {
@@ -1074,73 +554,37 @@ function testById(id, url) {
   document.getElementById('testModal').classList.add('open');
 }
 
-// ─────────────────────────────────────────
-//  EDIT
-// ─────────────────────────────────────────
 function editMovie(id) {
   const m = allMovies.find(x=>x.id===id); if(!m) return;
   editingId = id;
-  document.getElementById('editForm').innerHTML = `
-    <div class="fg" style="margin-bottom:12px"><div class="fw"><label>Title</label><input id="eTitle" class="fi" value="${m.title||''}"></div><div class="fw"><label>Embed URL</label><input id="eEmbed" class="fi" value="${m.embed_url||''}"></div></div>
-    <div class="fg" style="margin-bottom:12px"><div class="fw"><label>Rating</label><input id="eRating" class="fi" type="number" value="${m.rating||''}" step="0.1" min="0" max="10"></div><div class="fw"><label>Year</label><input id="eYear" class="fi" value="${m.year||''}"></div></div>
-    <div class="fg c1" style="margin-bottom:12px"><div class="fw"><label>Poster URL</label><input id="ePoster" class="fi" value="${m.poster_url||''}"></div></div>
-    <div class="fg c1" style="margin-bottom:12px"><div class="fw"><label>Overview</label><textarea id="eOv" style="background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.08);color:#fff;padding:9px 11px;font-size:.84rem;border-radius:6px;font-family:'Barlow',sans-serif;outline:none;width:100%;min-height:70px;resize:vertical">${m.overview||''}</textarea></div></div>
-    <div class="fg" style="margin-bottom:0"><div class="fw"><label>Status</label><select id="eStat" class="fsel"><option value="active" ${m.status==='active'?'selected':''}>Active</option><option value="inactive" ${m.status==='inactive'?'selected':''}>Inactive</option></select></div><div class="fw"><label>Featured</label><select id="eFeat" class="fsel"><option value="true" ${m.featured?'selected':''}>Yes</option><option value="false" ${!m.featured?'selected':''}>No</option></select></div></div>
-    <div class="brow"><button class="btn-add" onclick="saveEdit()">💾 Save</button><button class="btn-sec" onclick="closeEditModal()">Cancel</button></div>`;
+  document.getElementById('editForm').innerHTML = `<div class="fg" style="margin-bottom:12px"><div class="fw"><label>Title</label><input id="eTitle" class="fi" value="${m.title||''}"></div><div class="fw"><label>Embed URL</label><input id="eEmbed" class="fi" value="${m.embed_url||''}"></div></div><div class="fg" style="margin-bottom:12px"><div class="fw"><label>Rating</label><input id="eRating" class="fi" type="number" value="${m.rating||''}" step="0.1" min="0" max="10"></div><div class="fw"><label>Year</label><input id="eYear" class="fi" value="${m.year||''}"></div></div><div class="fg c1" style="margin-bottom:12px"><div class="fw"><label>Poster URL</label><input id="ePoster" class="fi" value="${m.poster_url||''}"></div></div><div class="fg c1" style="margin-bottom:12px"><div class="fw"><label>Overview</label><textarea id="eOv" style="background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.08);color:#fff;padding:9px 11px;font-size:.84rem;border-radius:6px;font-family:'Barlow',sans-serif;outline:none;width:100%;min-height:70px;resize:vertical">${m.overview||''}</textarea></div></div><div class="fg" style="margin-bottom:0"><div class="fw"><label>Status</label><select id="eStat" class="fsel"><option value="active" ${m.status==='active'?'selected':''}>Active</option><option value="inactive" ${m.status==='inactive'?'selected':''}>Inactive</option></select></div><div class="fw"><label>Featured</label><select id="eFeat" class="fsel"><option value="true" ${m.featured?'selected':''}>Yes</option><option value="false" ${!m.featured?'selected':''}>No</option></select></div></div><div class="brow"><button class="btn-add" onclick="saveEdit()">💾 Save</button><button class="btn-sec" onclick="closeEditModal()">Cancel</button></div>`;
   document.getElementById('editModal').classList.add('open');
 }
 
 async function saveEdit() {
-
   const embedUrl = document.getElementById('eEmbed').value.trim();
-
-  if (embedUrl && !validateEmbedUrl(embedUrl)) {
-    showToast('❌ Valid embed URL daalo');
-    return;
-  }
-
+  if (embedUrl && !validateEmbedUrl(embedUrl)) { showToast('❌ Valid embed URL daalo'); return; }
   const updates = {
-    title:       document.getElementById('eTitle').value.trim(),
-    embed_url:   embedUrl || null,
-    rating:      parseFloat(document.getElementById('eRating').value)||null,
-    year:        document.getElementById('eYear').value,
-    poster_url:  document.getElementById('ePoster').value.trim()||null,
-    overview:    document.getElementById('eOv').value.trim()||null,
-    status:      document.getElementById('eStat').value,
-    featured:    document.getElementById('eFeat').value==='true',
+    title: document.getElementById('eTitle').value.trim(),
+    embed_url: embedUrl || null,
+    rating: parseFloat(document.getElementById('eRating').value)||null,
+    year: document.getElementById('eYear').value,
+    poster_url: document.getElementById('ePoster').value.trim()||null,
+    overview: document.getElementById('eOv').value.trim()||null,
+    status: document.getElementById('eStat').value,
+    featured: document.getElementById('eFeat').value==='true',
   };
-
-  const { error } = await getSB()
-    .from('movies')
-    .update(updates)
-    .eq('id', editingId);
-
-  if (error) {
-    showToast('❌ ' + error.message);
-    return;
-  }
-
+  const { error } = await getSB().from('movies').update(updates).eq('id', editingId);
+  if (error) { showToast('❌ ' + error.message); return; }
   const idx = allMovies.findIndex(x => x.id === editingId);
-
-  if (idx >= 0) {
-    allMovies[idx] = {
-      ...allMovies[idx],
-      ...updates
-    };
-  }
-
+  if (idx >= 0) allMovies[idx] = { ...allMovies[idx], ...updates };
   closeEditModal();
-
   showToast(`✅ "${updates.title}" updated!`);
-
   loadDashboard();
 }
 
 function closeEditModal() { document.getElementById('editModal').classList.remove('open'); editingId=null; }
 
-// ─────────────────────────────────────────
-//  ACTIONS
-// ─────────────────────────────────────────
 async function deleteMovie(id, title) {
   if (!confirm(`Delete "${title}"?`)) return;
   const { error } = await getSB().from('movies').delete().eq('id', id);
@@ -1167,81 +611,22 @@ async function toggleStatus(id) {
   loadDashboard();
 }
 
-// ─────────────────────────────────────────
-//  FEATURED
-// ─────────────────────────────────────────
 async function loadFeatured() {
   const { data } = await getSB().from('movies').select('*').eq('featured',true).eq('status','active');
   const items = data||[];
   const c = document.getElementById('featuredGrid');
   if (!items.length) { c.innerHTML=`<div class="empty"><div class="empty-ico">⭐</div><div style="font-size:.84rem;color:var(--muted)">No featured content — Edit karo aur Featured = Yes karo</div></div>`; return; }
-  c.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px">${items.map(m=>`
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:7px;overflow:hidden">
-      <img src="${m.poster_url||'https://ui-avatars.com/api/?name='+encodeURIComponent(m.title)+'&background=333&color=666&size=400'}" style="width:100%;aspect-ratio:2/3;object-fit:cover;display:block;background:#222" onerror="this.src='https://ui-avatars.com/api/?name=X&background=222&color=444'">
-      <div style="padding:7px 9px 9px">
-        <div style="font-size:.78rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px">${m.title}</div>
-        <button onclick="toggleFeat(${m.id})" style="background:rgba(229,9,20,.1);border:1px solid rgba(229,9,20,.22);color:#ff6b6b;font-size:.66rem;padding:3px 8px;border-radius:3px;cursor:pointer;font-family:'Barlow',sans-serif">Remove</button>
-      </div>
-    </div>`).join('')}</div>`;
+  c.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px">${items.map(m=>`<div style="background:var(--card);border:1px solid var(--border);border-radius:7px;overflow:hidden"><img src="${m.poster_url||'https://ui-avatars.com/api/?name='+encodeURIComponent(m.title)+'&background=333&color=666&size=400'}" style="width:100%;aspect-ratio:2/3;object-fit:cover;display:block;background:#222" onerror="this.src='https://ui-avatars.com/api/?name=X&background=222&color=444'"><div style="padding:7px 9px 9px"><div style="font-size:.78rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px">${m.title}</div><button onclick="toggleFeat(${m.id})" style="background:rgba(229,9,20,.1);border:1px solid rgba(229,9,20,.22);color:#ff6b6b;font-size:.66rem;padding:3px 8px;border-radius:3px;cursor:pointer;font-family:'Barlow',sans-serif">Remove</button></div></div>`).join('')}</div>`;
 }
 
-// ─────────────────────────────────────────
-//  FILTER TABLE
-// ─────────────────────────────────────────
 async function filterTable(type, q) {
-
-  const el =
-    document.getElementById(
-      type === 'movies'
-      ? 'moviesTable'
-      : 'tvTable'
-    );
-
-  const { data } = await getSB()
-    .from('movies')
-    .select('*')
-    .eq('type', type === 'movies' ? 'movie' : 'tv')
-    .ilike('title', `%${q}%`)
-    .order('created_at', { ascending:false });
-
+  const el = document.getElementById(type === 'movies' ? 'moviesTable' : 'tvTable');
+  const { data } = await getSB().from('movies').select('*').eq('type', type === 'movies' ? 'movie' : 'tv').ilike('title', `%${q}%`).order('created_at', { ascending: false });
   const items = data || [];
-
-  if (!items.length) {
-    el.innerHTML = `
-      <div class="empty">
-        <div class="empty-ico">📭</div>
-        <div style="font-size:.84rem;color:var(--muted)">
-          No results found
-        </div>
-      </div>
-    `;
-    return;
-  }
-
-  el.innerHTML = `
-    <table class="tbl">
-      <thead>
-        <tr>
-          <th></th>
-          <th>Title</th>
-          <th>Year</th>
-          <th>Rating</th>
-          <th>Quality</th>
-          <th>Language</th>
-          <th>Status</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${items.map(m => rowHTML(m)).join('')}
-      </tbody>
-    </table>
-  `;
+  if (!items.length) { el.innerHTML = `<div class="empty"><div class="empty-ico">📭</div><div style="font-size:.84rem;color:var(--muted)">No results found</div></div>`; return; }
+  el.innerHTML = `<table class="tbl"><thead><tr><th></th><th>Title</th><th>Year</th><th>Rating</th><th>Quality</th><th>Language</th><th>Status</th><th>Actions</th></tr></thead><tbody>${items.map(m=>rowHTML(m)).join('')}</tbody></table>`;
 }
 
-// ─────────────────────────────────────────
-//  BULK IMPORT
-// ─────────────────────────────────────────
 async function bulkImport() {
   const raw = document.getElementById('bulkJson').value.trim();
   const res = document.getElementById('bulkResult');
@@ -1250,22 +635,22 @@ async function bulkImport() {
     const arr = JSON.parse(raw);
     if (!Array.isArray(arr)) throw new Error('Array chahiye — [ {...}, {...} ]');
     const cleaned = arr.map(m => ({
-      title:         m.title || 'Untitled',
-      type:          m.type || 'movie',
-      embed_url:     m.embed_url || null,
-      year:          m.year ? String(m.year) : null,
-      rating:        m.rating ? parseFloat(m.rating) : null,
-      language:      m.language || 'hi',
-      quality:       m.quality || '1080p',
-      overview:      m.overview || null,
-      genres:        m.genres || [],
-      poster_url:    m.poster_url || null,
-      backdrop_url:  m.backdrop_url || null,
-      cast_text:     m.cast_text || null,
-      status:        m.status || 'active',
-      featured:      !!m.featured,
-      min_plan:      m.min_plan || 'free',
-      age_rating:    m.age_rating || 'UA 16+',
+      title: m.title || 'Untitled',
+      type: m.type || 'movie',
+      embed_url: m.embed_url || null,
+      year: m.year ? String(m.year) : null,
+      rating: m.rating ? parseFloat(m.rating) : null,
+      language: m.language || 'hi',
+      quality: m.quality || '1080p',
+      overview: m.overview || null,
+      genres: m.genres || [],
+      poster_url: m.poster_url || null,
+      backdrop_url: m.backdrop_url || null,
+      cast_text: m.cast_text || null,
+      status: m.status || 'active',
+      featured: !!m.featured,
+      min_plan: m.min_plan || 'free',
+      age_rating: m.age_rating || 'UA 16+',
     }));
     const { data, error } = await getSB().from('movies').insert(cleaned).select();
     if (error) throw new Error(error.message);
@@ -1281,53 +666,13 @@ async function bulkImport() {
 }
 
 function downloadTemplate() {
-
-  const t = JSON.stringify([
-    {
-      title:"Movie Name",
-      type:"movie",
-      embed_url:"https://example.com/embed/movie123",
-      year:"2024",
-      rating:8.5,
-      language:"hi",
-      quality:"1080p",
-      poster_url:"https://image.tmdb.org/t/p/w500/xxx.jpg",
-      backdrop_url:"https://image.tmdb.org/t/p/original/xxx.jpg",
-      genres:["Action","Drama"],
-      overview:"Description here.",
-      cast_text:"Actor 1, Actor 2",
-      status:"active",
-      featured:false,
-      min_plan:"free",
-      age_rating:"UA 16+"
-    },
-    {
-      title:"TV Show Name",
-      type:"tv",
-      embed_url:"https://example.com/embed/show123",
-      year:"2023",
-      rating:9.0,
-      language:"en",
-      quality:"720p",
-      genres:["Thriller"],
-      overview:"Show description."
-    }
-  ], null, 2);
-
+  const t = JSON.stringify([{title:"Movie Name",type:"movie",embed_url:"https://example.com/embed/movie123",year:"2024",rating:8.5,language:"hi",quality:"1080p",poster_url:"https://image.tmdb.org/t/p/w500/xxx.jpg",backdrop_url:"https://image.tmdb.org/t/p/original/xxx.jpg",genres:["Action","Drama"],overview:"Description here.",cast_text:"Actor 1, Actor 2",status:"active",featured:false,min_plan:"free",age_rating:"UA 16+"},{title:"TV Show Name",type:"tv",embed_url:"https://example.com/embed/show123",year:"2023",rating:9.0,language:"en",quality:"720p",genres:["Thriller"],overview:"Show description."}], null, 2);
   const a = document.createElement('a');
-
-  a.href = URL.createObjectURL(
-    new Blob([t], { type:'application/json' })
-  );
-
+  a.href = URL.createObjectURL(new Blob([t], { type:'application/json' }));
   a.download = 'xversemovies_bulk_template.json';
-
   a.click();
 }
 
-// ─────────────────────────────────────────
-//  EXPORT
-// ─────────────────────────────────────────
 async function loadExportCount() {
   const { count } = await getSB().from('movies').select('*',{count:'exact',head:true});
   document.getElementById('exportCount').textContent = count || 0;
@@ -1343,143 +688,39 @@ async function exportAllMovies() {
 }
 
 async function exportCSV() {
-
-  const { data } = await getSB()
-    .from('movies')
-    .select('id,title,type,year,rating,language,quality,status,embed_url')
-    .order('created_at', { ascending:false });
-
+  const { data } = await getSB().from('movies').select('id,title,type,year,rating,language,quality,status,embed_url').order('created_at', { ascending:false });
   const items = data || [];
-
-  const headers =
-    'id,title,type,year,rating,language,quality,status,embed_url';
-
-  const rows = items.map(m => [
-    m.id,
-    `"${m.title}"`,
-    m.type,
-    m.year,
-    m.rating,
-    m.language,
-    m.quality,
-    m.status,
-    `"${m.embed_url || ''}"`
-  ].join(','));
-
+  const headers = 'id,title,type,year,rating,language,quality,status,embed_url';
+  const rows = items.map(m => [m.id,`"${m.title}"`,m.type,m.year,m.rating,m.language,m.quality,m.status,`"${m.embed_url || ''}"`].join(','));
   const csv = [headers, ...rows].join('\n');
-
   const a = document.createElement('a');
-
-  a.href = URL.createObjectURL(
-    new Blob([csv], { type:'text/csv' })
-  );
-
-  a.download =
-    `xversemovies_${new Date().toISOString().split('T')[0]}.csv`;
-
+  a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv' }));
+  a.download = `xversemovies_${new Date().toISOString().split('T')[0]}.csv`;
   a.click();
-
   showToast(`📊 CSV exported!`);
 }
 
-// ─────────────────────────────────────────
-//  KEYBOARD
-// ─────────────────────────────────────────
-document.addEventListener('keydown', e => {
-  if (e.key==='Escape') { closeEditModal(); closeTest(); }
-});
+document.addEventListener('keydown', e => { if (e.key==='Escape') { closeEditModal(); closeTest(); } });
 
 function showToast(msg) {
-
   const t = document.createElement('div');
-
   t.textContent = msg;
-
-  t.style.cssText = `
-    position:fixed;
-    bottom:20px;
-    right:20px;
-    background:#111;
-    color:#fff;
-    padding:12px 18px;
-    border:1px solid rgba(255,255,255,.1);
-    border-radius:8px;
-    z-index:9999;
-    font-size:.82rem;
-    box-shadow:0 10px 30px rgba(0,0,0,.4);
-    animation:fi .2s ease;
-  `;
-
+  t.style.cssText = `position:fixed;bottom:20px;right:20px;background:#111;color:#fff;padding:12px 18px;border:1px solid rgba(255,255,255,.1);border-radius:8px;z-index:9999;font-size:.82rem;box-shadow:0 10px 30px rgba(0,0,0,.4);animation:fi .2s ease;`;
   document.body.appendChild(t);
-
-  setTimeout(() => {
-    t.remove();
-  }, 2600);
+  setTimeout(() => { t.remove(); }, 2600);
 }
 
-function closeTest() {
-  document.getElementById('testModal').classList.remove('open');
-  document.getElementById('testFrame').src = '';
-}
+function closeTest() { document.getElementById('testModal').classList.remove('open'); document.getElementById('testFrame').src = ''; }
 
 async function filterTableLang(type, lang) {
-
-  const el =
-    document.getElementById(
-      type === 'movies'
-      ? 'moviesTable'
-      : 'tvTable'
-    );
-
-  let query = getSB()
-    .from('movies')
-    .select('*')
-    .eq('type', type === 'movies' ? 'movie' : 'tv');
-
-  if (lang) {
-    query = query.eq('language', lang);
-  }
-
-  const { data } = await query.order(
-    'created_at',
-    { ascending:false }
-  );
-
+  const el = document.getElementById(type === 'movies' ? 'moviesTable' : 'tvTable');
+  let query = getSB().from('movies').select('*').eq('type', type === 'movies' ? 'movie' : 'tv');
+  if (lang) query = query.eq('language', lang);
+  const { data } = await query.order('created_at', { ascending:false });
   const items = data || [];
-
-  if (!items.length) {
-    el.innerHTML = `
-      <div class="empty">
-        <div class="empty-ico">📭</div>
-        <div style="font-size:.84rem;color:var(--muted)">
-          No results
-        </div>
-      </div>
-    `;
-    return;
-  }
-
-  el.innerHTML = `
-    <table class="tbl">
-      <thead>
-        <tr>
-          <th></th>
-          <th>Title</th>
-          <th>Year</th>
-          <th>Rating</th>
-          <th>Quality</th>
-          <th>Language</th>
-          <th>Status</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${items.map(m => rowHTML(m)).join('')}
-      </tbody>
-    </table>
-  `;
+  if (!items.length) { el.innerHTML = `<div class="empty"><div class="empty-ico">📭</div><div style="font-size:.84rem;color:var(--muted)">No results</div></div>`; return; }
+  el.innerHTML = `<table class="tbl"><thead><tr><th></th><th>Title</th><th>Year</th><th>Rating</th><th>Quality</th><th>Language</th><th>Status</th><th>Actions</th></tr></thead><tbody>${items.map(m=>rowHTML(m)).join('')}</tbody></table>`;
 }
-
 </script>
 </body>
 </html>
