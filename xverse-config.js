@@ -253,6 +253,45 @@ const DB = {
     return data || [];
   },
 
+  // ── TMDB MOVIE PERSISTENCE ─────────────────────────────
+async ensureMovieFromTMDB(tmdbMovie) {
+  // tmdbMovie is the normalized object from TMDB.normalize()
+  if (!tmdbMovie.tmdb_id) return null;
+  
+  const { data, error } = await getSB()
+    .rpc('ensure_tmdb_movie', {
+      p_tmdb_id: tmdbMovie.tmdb_id,
+      p_title: tmdbMovie.title,
+      p_type: tmdbMovie.type,
+      p_poster_url: tmdbMovie.poster_url,
+      p_backdrop_url: tmdbMovie.backdrop_url,
+      p_year: tmdbMovie.year,
+      p_rating: tmdbMovie.rating,
+      p_overview: tmdbMovie.overview
+    });
+  
+  if (error) {
+    console.error('ensureMovieFromTMDB error', error);
+    return null;
+  }
+  return data; // returns the movie id
+},
+
+async getOrCreateMovie(movieLike) {
+  // If it already has an 'id' (from DB), just return it
+  if (movieLike.id) return movieLike;
+  
+  // If it has tmdb_id, ensure it's in DB and fetch full record
+  if (movieLike.tmdb_id) {
+    const newId = await DB.ensureMovieFromTMDB(movieLike);
+    if (newId) {
+      const { data } = await getSB().from('movies').select('*').eq('id', newId).single();
+      return data;
+    }
+  }
+  return null;
+},
+
   async getFeatured() {
     const { data } = await getSB().from('movies')
       .select('*')
@@ -264,8 +303,10 @@ const DB = {
   },
 
   async incrementViews(movieId) {
-    return getSB().rpc('increment_views', { movie_id: movieId });
-  },
+  try {
+    await getSB().rpc('increment_views', { movie_id: movieId });
+  } catch(e) { console.warn('incrementViews failed', e); }
+},
 
   // ── NOTIFICATIONS ────────────────────────────────────
   async getNotifications(uid) {
@@ -302,6 +343,14 @@ const DB = {
     return getSB().from('viewer_profiles').delete().eq('id', id);
   },
 };
+
+// ─────────────────────────────────────────────────────────
+//  GLOBAL HELPER: remove duplicate movies by tmdb_id
+// ─────────────────────────────────────────────────────────
+function removeDuplicateMovies(dbMovies, tmdbMovies) {
+  const existingTmdbIds = new Set(dbMovies.map(m => m.tmdb_id).filter(Boolean));
+  return tmdbMovies.filter(tm => !existingTmdbIds.has(tm.tmdb_id));
+}
 
 // ─────────────────────────────────────────────────────────
 //  TMDB HELPERS
