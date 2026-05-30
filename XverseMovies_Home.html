@@ -544,13 +544,28 @@ function cwCardHTML(m) {
 // ─────────────────────────────────────────
 async function playMovie(m) {
   if (!currentUser) return;
-  // Increment views if it's an admin movie
+
+  // Increment views / history for DB movies
   if (m.id && !m.tmdb_id) DB.incrementViews(m.id).catch(()=>{});
-  // Add to history
   if (m.id && !m.tmdb_id) await DB.addToHistory(currentUser.id, m.id);
+
+  // ── AUTO EMBED LOGIC ──────────────────────────────────────────
+  // Priority: 1) DB embed_url  2) auto-build from tmdb_id via vidsrc
+  let embedUrl = m.embed_url || m.embedUrl || '';
+
+  if (!embedUrl) {
+    const tid = m.tmdb_id || m.id;
+    if (tid) {
+      const t = m.type || 'movie';
+      embedUrl = t === 'tv'
+        ? `https://vidsrc.to/embed/tv/${tid}`
+        : `https://vidsrc.to/embed/movie/${tid}`;
+    }
+  }
 
   const params = new URLSearchParams({
     id:       m.id || '',
+    tmdb_id:  m.tmdb_id || '',
     title:    m.title,
     type:     m.type || 'movie',
     year:     m.year || '',
@@ -558,7 +573,7 @@ async function playMovie(m) {
     age:      m.age_rating || m.ageRating || 'UA',
     dur:      m.duration || m.dur || '',
     minPlan:  m.min_plan || m.minPlan || 'free',
-    embed:    m.embed_url || m.embedUrl || '',
+    embed:    embedUrl,
     poster:   m.poster_url || m.posterUrl || '',
     backdrop: m.backdrop_url || m.backdropUrl || '',
   });
