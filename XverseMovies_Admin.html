@@ -164,6 +164,7 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
     <button class="sbtn" onclick="nav('tv',this)"><span class="sbico">📺</span> TV Shows <span class="sbcnt" id="sbTCnt">0</span></button>
     <button class="sbtn" onclick="nav('featured',this)"><span class="sbico">⭐</span> Featured / Hero</button>
     <div class="sblbl">Tools</div>
+    <button class="sbtn" onclick="nav('unavailable',this)"><span class="sbico">🔍</span> Check Unavailable <span class="sbcnt" id="sbUnavCnt" style="display:none">0</span></button>
     <button class="sbtn" onclick="nav('bulk',this)"><span class="sbico">📥</span> Bulk Import</button>
     <button class="sbtn" onclick="nav('export',this)"><span class="sbico">💾</span> Export Data</button>
   </aside>
@@ -189,60 +190,96 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
     <!-- ADD MOVIE -->
     <div class="panel" id="panel-add">
       <div class="ptit">Add Movie / Show</div>
-      <div class="psub">Streamtape link paste karo — sab Supabase mein save ho jayega</div>
+      <div class="psub">TMDB ID se automatic ya manual embed URL se add karo</div>
 
-        <!-- AUTO EMBED -->
-       <div class="fc">
-  <div class="fc-title">
-    <div class="fc-ico">⚡</div>
-    Auto Embed System
-  </div>
-
-  <div class="fg">
-    <div class="fw">
-      <label>TMDB ID *</label>
-
-      <input
-        type="number"
-        id="tmdbId"
-        placeholder="e.g. 155"
-      >
-
-      <div class="hint">
-        Sirf TMDB ID daalo — embed/movie data automatically generate ho jayega
+      <!-- TABS -->
+      <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px">
+        <button id="addTab-auto" onclick="switchAddTab('auto')" style="background:none;border:none;border-bottom:2px solid var(--red);color:#fff;font-size:.85rem;font-weight:600;padding:10px 20px;cursor:pointer;font-family:'Barlow',sans-serif">⚡ Auto (TMDB ID)</button>
+        <button id="addTab-manual" onclick="switchAddTab('manual')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-size:.85rem;font-weight:600;padding:10px 20px;cursor:pointer;font-family:'Barlow',sans-serif">✏️ Manual / Series</button>
       </div>
-    </div>
 
-    <div class="fw">
-      <label>Content Type</label>
+      <!-- AUTO TAB -->
+      <div id="addSection-auto">
+        <div class="fc">
+          <div class="fc-title"><div class="fc-ico">⚡</div> Auto Add — TMDB ID se</div>
+          <div class="fg">
+            <div class="fw">
+              <label>TMDB ID *</label>
+              <input type="number" id="tmdbId" placeholder="e.g. 155 (The Dark Knight)">
+              <div class="hint">themoviedb.org → Movie search karo → URL mein ID milegi e.g. /movie/155</div>
+            </div>
+            <div class="fw">
+              <label>Content Type</label>
+              <select id="autoType" onchange="document.getElementById('mType').value=this.value">
+                <option value="movie">Movie</option>
+                <option value="tv">TV Show</option>
+              </select>
+            </div>
+          </div>
+          <div class="brow" style="margin-top:10px;border-top:none;padding-top:0">
+            <button class="btn-add" onclick="generateAutoMovie()">⚡ Auto Fill + Generate Embed</button>
+          </div>
+          <div id="autoEmbedPreview" style="display:none;margin-top:14px;padding:12px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)"></div>
+        </div>
+      </div>
 
-      <select id="autoType">
-        <option value="movie">Movie</option>
-        <option value="tv">TV Show</option>
-      </select>
-    </div>
-  </div>
+      <!-- MANUAL TAB -->
+      <div id="addSection-manual" style="display:none">
+        <div class="fc">
+          <div class="fc-title"><div class="fc-ico">✏️</div> Manual Embed URL</div>
+          <div class="fg">
+            <div class="fw">
+              <label>Content Type *</label>
+              <select id="manualType" onchange="toggleSeriesFields(this.value)">
+                <option value="movie">Movie</option>
+                <option value="tv">TV Show</option>
+                <option value="series">Web Series (Season + Episode)</option>
+              </select>
+            </div>
+            <div class="fw">
+              <label>TMDB ID (optional — for auto-fill details)</label>
+              <div style="display:flex;gap:8px">
+                <input type="number" id="manualTmdbId" placeholder="e.g. 1396" style="flex:1;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.08);color:#fff;padding:9px 11px;font-size:.84rem;border-radius:6px;font-family:'Barlow',sans-serif;outline:none">
+                <button class="btn-sec" onclick="autoFillManual()" style="white-space:nowrap;padding:8px 14px">🔍 Fill Details</button>
+              </div>
+            </div>
+          </div>
 
-  <div class="brow" style="margin-top:10px">
-    <button class="btn-add" onclick="generateAutoMovie()">
-      ⚡ Generate Movie Data
-    </button>
-  </div>
+          <!-- Series season/episode fields -->
+          <div id="seriesFields" style="display:none;margin-top:4px">
+            <div class="fg c3">
+              <div class="fw"><label>Season Number</label><input type="number" id="sSeason" placeholder="1" min="1" value="1"></div>
+              <div class="fw"><label>Episode Number</label><input type="number" id="sEpisode" placeholder="1" min="1" value="1"></div>
+              <div class="fw"><label>Episode Title (optional)</label><input type="text" id="sEpTitle" placeholder="e.g. Pilot"></div>
+            </div>
+            <div class="fg c1" style="margin-top:4px">
+              <div class="fw">
+                <label>vidsrc URL Preview</label>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <input type="text" id="seriesEmbedPreview" placeholder="Fill TMDB ID + Season + Episode then click Build" readonly style="background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.08);color:#46d369;padding:9px 11px;font-size:.76rem;border-radius:6px;font-family:monospace;flex:1;outline:none">
+                  <button class="btn-sec" onclick="buildSeriesEmbed()" style="padding:8px 14px;white-space:nowrap">Build URL</button>
+                </div>
+                <div class="hint">Format: https://vidsrc.to/embed/tv/TMDB_ID/SEASON/EPISODE</div>
+              </div>
+            </div>
+          </div>
 
-  <div
-    id="autoEmbedPreview"
-    style="
-      display:none;
-      margin-top:14px;
-      padding:12px;
-      border-radius:8px;
-      background:rgba(255,255,255,.04);
-      border:1px solid rgba(255,255,255,.08)
-    "
-  ></div>
-</div>
+          <!-- Custom embed override -->
+          <div class="fg c1" style="margin-top:10px">
+            <div class="fw">
+              <label>Custom Embed URL (paste any embed link)</label>
+              <input type="url" id="manualEmbed" placeholder="https://vidsrc.to/embed/movie/12345  OR  https://vidsrc.to/embed/tv/1396/1/1  OR  https://streamtape.com/e/xxxxx/">
+              <div class="hint" style="margin-top:4px">
+                Movie: https://vidsrc.to/embed/movie/TMDB_ID &nbsp;|&nbsp;
+                TV Show: https://vidsrc.to/embed/tv/TMDB_ID &nbsp;|&nbsp;
+                Series Ep: https://vidsrc.to/embed/tv/TMDB_ID/1/1
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      <!-- Movie Details -->
+      <!-- SHARED FIELDS -->
       <div class="fc">
         <div class="fc-title"><div class="fc-ico">📋</div> Movie / Show Details</div>
         <div class="fg">
@@ -258,9 +295,7 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
           <div class="fw"><label>Language</label><select id="mLang"><option value="hi">Hindi</option><option value="en">English</option><option value="te">Telugu</option><option value="ta">Tamil</option><option value="kn">Kannada</option><option value="ml">Malayalam</option><option value="bn">Bengali</option><option value="ko">Korean</option><option value="ja">Japanese</option></select></div>
           <div class="fw"><label>Quality</label><select id="mQuality"><option value="4K">4K Ultra HD</option><option value="1080p" selected>1080p Full HD</option><option value="720p">720p HD</option><option value="480p">480p</option></select></div>
         </div>
-        <div class="fg c1">
-          <div class="fw"><label>Overview / Description</label><textarea id="mOverview" placeholder="Movie ki short description..."></textarea></div>
-        </div>
+        <div class="fg c1"><div class="fw"><label>Overview / Description</label><textarea id="mOverview" placeholder="Movie ki short description..."></textarea></div></div>
         <div class="fw"><label>Genres (click to select)</label><div class="gtags" id="genreTags"></div></div>
       </div>
 
@@ -311,7 +346,6 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
       </div>
       <div id="addResult" style="margin-top:12px;font-size:.82rem;display:none"></div>
     </div>
-
     <!-- MOVIES TABLE -->
     <div class="panel" id="panel-movies">
       <div class="ptit">All Movies</div>
@@ -393,6 +427,32 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
       </div>
     </div>
 
+    <!-- UNAVAILABLE CHECKER -->
+    <div class="panel" id="panel-unavailable">
+      <div class="ptit">Check Unavailable</div>
+      <div class="psub">vidsrc pe kaunsi movies nahi chal rahi — detect karo aur fix karo</div>
+      <div class="fc">
+        <div class="fc-title"><div class="fc-ico">🔍</div> vidsrc Availability Checker</div>
+        <div style="font-size:.84rem;color:rgba(255,255,255,.6);margin-bottom:16px;line-height:1.7">
+          Ye tool DB ki sab movies check karta hai ki unki vidsrc embed URL kaam kar rahi hai ya nahi.<br>
+          Jo movies black screen dikha rahi hain unhe yahan dekho aur custom embed laga sako.
+        </div>
+        <div class="brow" style="border-top:none;padding-top:0;margin-top:0;margin-bottom:16px">
+          <button class="btn-add" id="checkBtn" onclick="checkUnavailable()">🔍 Check All Movies</button>
+          <span style="font-size:.78rem;color:var(--muted)" id="checkStatus"></span>
+        </div>
+        <!-- Progress bar -->
+        <div id="checkProgress" style="display:none;margin-bottom:16px">
+          <div style="background:rgba(255,255,255,.08);border-radius:4px;height:6px;overflow:hidden;margin-bottom:6px">
+            <div id="checkBar" style="height:100%;background:var(--red);border-radius:4px;width:0%;transition:width .3s"></div>
+          </div>
+          <div style="font-size:.72rem;color:var(--muted)" id="checkText">Checking...</div>
+        </div>
+        <!-- Results -->
+        <div id="unavailableResults"></div>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -449,6 +509,7 @@ function nav(name, btn) {
   if (name === 'featured') loadFeatured();
   if (name === 'dashboard') loadDashboard();
   if (name === 'export')   loadExportCount();
+  if (name === 'unavailable') { document.getElementById('unavailableResults').innerHTML=''; document.getElementById('checkStatus').textContent=''; document.getElementById('checkProgress').style.display='none'; }
 }
 
 // ─────────────────────────────────────────
@@ -512,179 +573,44 @@ function validateEmbedUrl(url) {
 //  TMDB AUTO-FILL
 // ─────────────────────────────────────────
 async function generateAutoMovie() {
-
   const tmdbId = document.getElementById('tmdbId').value.trim();
-  const type = document.getElementById('autoType').value;
-
-  if (!tmdbId) {
-    showToast('❌ TMDB ID daalo');
-    return;
-  }
+  const type   = document.getElementById('autoType').value;
+  if (!tmdbId) { showToast('❌ TMDB ID daalo'); return; }
 
   showToast('⚡ Generating movie data...');
-
   try {
+    const data = type === 'tv' ? await TMDB.tvDetails(tmdbId) : await TMDB.movieDetails(tmdbId);
+    if (!data) { showToast('❌ TMDB fetch failed'); return; }
 
-    const data =
-      type === 'tv'
-      ? await TMDB.tvDetails(tmdbId)
-      : await TMDB.movieDetails(tmdbId);
+    // Fill all form fields using shared helper
+    fillFormFromTMDB(data, type);
 
-    if (!data) {
-      showToast('❌ TMDB fetch failed');
-      return;
-    }
-
-    // AUTO EMBED
-    const embedUrl =
-      type === 'tv'
+    // Build + store embed URL
+    const embedUrl = type === 'tv'
       ? `https://vidsrc.to/embed/tv/${tmdbId}`
       : `https://vidsrc.to/embed/movie/${tmdbId}`;
 
-    // BASIC DATA
-    document.getElementById('mTitle').value =
-      data.title || data.name || '';
-
-    document.getElementById('mYear').value =
-      (data.release_date || data.first_air_date || '')
-      .slice(0,4);
-
-    document.getElementById('mRating').value =
-      data.vote_average
-      ? data.vote_average.toFixed(1)
-      : '';
-
-    document.getElementById('mOverview').value =
-      data.overview || '';
-
-    // POSTER
-    const poster =
-      data.poster_path
-      ? `https://image.tmdb.org/t/p/w500${data.poster_path}`
-      : '';
-
-    // BACKDROP
-    const backdrop =
-      data.backdrop_path
-      ? `https://image.tmdb.org/t/p/original${data.backdrop_path}`
-      : '';
-
-    document.getElementById('mPoster').value   = poster;
-    document.getElementById('mBackdrop').value = backdrop;
-
-    prevImg(poster,'posterPrev','pp');
-    prevImg(backdrop,'backdropPrev','bp');
-
-    // CAST
-    const cast =
-      (data.credits?.cast || [])
-      .slice(0,5)
-      .map(c => c.name)
-      .join(', ');
-
-    document.getElementById('mCast').value = cast;
-
-    // DIRECTOR
-    const director =
-      (data.credits?.crew || [])
-      .find(c => c.job === 'Director')?.name || '';
-
-    document.getElementById('mDirector').value = director;
-
-    // GENRES
-    selGenres = [];
-
-    document.querySelectorAll('.gtag').forEach(t => {
-      t.classList.remove('on');
-    });
-
-    (data.genres || []).forEach(g => {
-
-      selGenres.push(g.name);
-
-      document.querySelectorAll('.gtag').forEach(t => {
-        if (t.textContent === g.name) {
-          t.classList.add('on');
-        }
-      });
-
-    });
-
-    // PREVIEW
-    const prev = document.getElementById('autoEmbedPreview');
-
-    prev.style.display = 'block';
-
-    prev.innerHTML = `
-      <div style="font-size:.8rem;color:#46d369;font-weight:700">
-        ✅ Auto Embed Ready
-      </div>
-
-      <div style="margin-top:8px;font-size:.75rem;color:#aaa">
-        Embed URL:
-      </div>
-
-      <div style="
-        margin-top:5px;
-        background:#111;
-        padding:8px;
-        border-radius:6px;
-        font-family:monospace;
-        word-break:break-all;
-        color:#fff;
-        font-size:.74rem
-      ">
-        ${embedUrl}
-      </div>
-    `;
-
     window.generatedEmbedUrl = embedUrl;
 
-    showToast('✅ Auto movie generated');
+    // Sync mType
+    const mType = document.getElementById('mType');
+    if (mType) mType.value = type;
 
+    // Show preview
+    const prev = document.getElementById('autoEmbedPreview');
+    if (prev) {
+      prev.style.display = 'block';
+      prev.innerHTML = `
+        <div style="font-size:.8rem;color:#46d369;font-weight:700">✅ Auto Embed Ready</div>
+        <div style="margin-top:8px;font-size:.75rem;color:#aaa">Embed URL:</div>
+        <div style="margin-top:5px;background:#111;padding:8px;border-radius:6px;font-family:monospace;word-break:break-all;color:#fff;font-size:.74rem">${embedUrl}</div>
+        <div style="margin-top:10px;font-size:.75rem;color:#aaa">⚠️ If this movie shows black screen (not on vidsrc), use Manual tab to paste a custom embed URL.</div>`;
+    }
+    showToast('✅ Auto movie generated!');
   } catch(err) {
-
     console.error(err);
-
-    showToast('❌ Failed');
-
+    showToast('❌ Failed: ' + err.message);
   }
-}
-async function autoFillTMDB() {
-  const id   = document.getElementById('tmdbId').value.trim();
-  const type = document.getElementById('autoType').value;
-  if (!id) { showToast('❌ TMDB ID daalo'); return; }
-  showToast('🔍 Fetching from TMDB...');
-  const data = type === 'tv' ? await TMDB.tvDetails(id) : await TMDB.movieDetails(id);
-  if (!data || !data.title && !data.name) { showToast('❌ TMDB ID nahi mila'); return; }
-
-  const title   = data.title || data.name;
-  const year    = (data.release_date || data.first_air_date || '').slice(0,4);
-  const overview= data.overview || '';
-  const rating  = data.vote_average?.toFixed(1) || '';
-  const poster  = data.poster_path   ? `https://image.tmdb.org/t/p/w500${data.poster_path}` : '';
-  const backdrop= data.backdrop_path ? `https://image.tmdb.org/t/p/original${data.backdrop_path}` : '';
-  const genres  = (data.genres||[]).map(g=>g.name);
-  const cast    = (data.credits?.cast||[]).slice(0,5).map(c=>c.name).join(', ');
-  const director= (data.credits?.crew||[]).find(c=>c.job==='Director')?.name || '';
-
-  document.getElementById('mTitle').value    = title;
-  document.getElementById('mYear').value     = year;
-  document.getElementById('mRating').value   = rating;
-  document.getElementById('mOverview').value = overview;
-  document.getElementById('mPoster').value   = poster;
-  document.getElementById('mBackdrop').value = backdrop;
-  document.getElementById('mCast').value     = cast;
-  document.getElementById('mDirector').value = director;
-
-  if (poster)   prevImg(poster,   'posterPrev',   'pp');
-  if (backdrop) prevImg(backdrop, 'backdropPrev', 'bp');
-
-  // Select genres
-  selGenres = genres;
-  document.querySelectorAll('.gtag').forEach(t => { t.classList.toggle('on', genres.includes(t.textContent)); });
-
-  showToast(`✅ Auto-filled: ${title}`);
 }
 
 // ─────────────────────────────────────────
@@ -738,15 +664,19 @@ if (exists) {
   btn.textContent = 'Adding...';
   btn.disabled = true;
 
+  // Get tmdb_id from whichever tab is active
+  const tmdbIdVal = parseInt(document.getElementById('tmdbId')?.value)
+    || parseInt(document.getElementById('manualTmdbId')?.value)
+    || null;
+
   const movie = {
     title,
 
     type: document.getElementById('mType').value,
 
-    embed_url: window.generatedEmbedUrl || null,
+    embed_url: getEmbedUrl() || null,
 
-    tmdb_id:
-      parseInt(document.getElementById('tmdbId').value) || null,
+    tmdb_id: tmdbIdVal,
 
     year:
       document.getElementById('mYear').value ||
@@ -842,23 +772,33 @@ if (exists) {
 }
 
 function resetForm() {
-  ['mTitle','tmdbId','mYear','mRating','mDur','mOverview','mPoster','mBackdrop','mCast','mDirector','mTags'].forEach(id => {
-    const el = document.getElementById(id); if(el) el.value = '';
+  ['mTitle','tmdbId','mYear','mRating','mDur','mOverview',
+   'mPoster','mBackdrop','mCast','mDirector','mTags',
+   'manualTmdbId','manualEmbed','seriesEmbedPreview',
+   'sSeason','sEpisode','sEpTitle'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = id==='sSeason'||id==='sEpisode' ? '1' : '';
   });
-  document.getElementById('posterPrev').innerHTML   = '<span>No<br>Poster</span>';
-  document.getElementById('backdropPrev').innerHTML = '<span>No Backdrop</span>';
+  const pp = document.getElementById('posterPrev');
+  const bp = document.getElementById('backdropPrev');
+  if (pp) pp.innerHTML = '<span>No<br>Poster</span>';
+  if (bp) bp.innerHTML = '<span>No Backdrop</span>';
   selGenres = [];
   document.querySelectorAll('.gtag').forEach(t => t.classList.remove('on'));
-  document.getElementById('addResult').style.display = 'none';
+  const ar = document.getElementById('addResult');
+  if (ar) ar.style.display = 'none';
+  const ap = document.getElementById('autoEmbedPreview');
+  if (ap) { ap.style.display='none'; ap.innerHTML=''; }
   window.generatedEmbedUrl = null;
 }
 
 function testVideo() {
-
-  const url = window.generatedEmbedUrl;
+  // Use manualEmbed first, then generatedEmbedUrl
+  const url = document.getElementById('manualEmbed')?.value.trim()
+    || window.generatedEmbedUrl;
 
   if (!url) {
-    showToast('❌ Pehle Generate Movie Data karo');
+    showToast('❌ Embed URL daalo ya Auto Generate karo');
     return;
   }
 
@@ -866,11 +806,237 @@ function testVideo() {
     document.getElementById('mTitle').value || 'Testing...';
 
   document.getElementById('testFrame').src = url;
-
   document.getElementById('testModal').classList.add('open');
 }
 
 // ─────────────────────────────────────────
+//  ADD TAB SWITCH
+// ─────────────────────────────────────────
+function switchAddTab(tab) {
+  const isAuto = tab === 'auto';
+  document.getElementById('addSection-auto').style.display   = isAuto ? 'block' : 'none';
+  document.getElementById('addSection-manual').style.display = isAuto ? 'none'  : 'block';
+  // Update tab button styles
+  const autoBtn   = document.getElementById('addTab-auto');
+  const manualBtn = document.getElementById('addTab-manual');
+  if (autoBtn) {
+    autoBtn.style.borderBottom   = isAuto ? '2px solid var(--red)' : '2px solid transparent';
+    autoBtn.style.color          = isAuto ? '#fff' : 'var(--muted)';
+    manualBtn.style.borderBottom = isAuto ? '2px solid transparent' : '2px solid var(--red)';
+    manualBtn.style.color        = isAuto ? 'var(--muted)' : '#fff';
+  }
+}
+
+// ─────────────────────────────────────────
+//  SERIES FIELDS TOGGLE
+// ─────────────────────────────────────────
+function toggleSeriesFields(type) {
+  const sf = document.getElementById('seriesFields');
+  if (sf) sf.style.display = type === 'series' ? 'block' : 'none';
+  // Sync mType
+  const mType = document.getElementById('mType');
+  if (mType) mType.value = type === 'series' ? 'tv' : type;
+}
+
+// ─────────────────────────────────────────
+//  BUILD SERIES EMBED URL
+// ─────────────────────────────────────────
+function buildSeriesEmbed() {
+  const tid     = document.getElementById('manualTmdbId')?.value.trim()
+    || document.getElementById('tmdbId')?.value.trim();
+  const season  = document.getElementById('sSeason')?.value  || '1';
+  const episode = document.getElementById('sEpisode')?.value || '1';
+
+  if (!tid) { showToast('❌ Pehle TMDB ID daalo'); return; }
+
+  const url = `https://vidsrc.to/embed/tv/${tid}/${season}/${episode}`;
+  const prev = document.getElementById('seriesEmbedPreview');
+  if (prev) prev.value = url;
+
+  // Auto-set manualEmbed too
+  const me = document.getElementById('manualEmbed');
+  if (me) me.value = url;
+
+  window.generatedEmbedUrl = url;
+  showToast('✅ Series URL built: S' + season + 'E' + episode);
+}
+
+// ─────────────────────────────────────────
+//  AUTO-FILL MANUAL TAB (from TMDB)
+// ─────────────────────────────────────────
+async function autoFillManual() {
+  const id   = document.getElementById('manualTmdbId')?.value.trim();
+  const type = document.getElementById('manualType')?.value || 'movie';
+  if (!id) { showToast('❌ TMDB ID daalo'); return; }
+  showToast('🔍 Fetching from TMDB...');
+  const data = type === 'tv' ? await TMDB.tvDetails(id) : await TMDB.movieDetails(id);
+  if (!data || (!data.title && !data.name)) { showToast('❌ TMDB ID nahi mila'); return; }
+  fillFormFromTMDB(data, type);
+
+  // Also auto-build embed for manual tab
+  const manEmbed = document.getElementById('manualEmbed');
+  if (manEmbed && !manEmbed.value) {
+    const t = type === 'tv' ? 'tv' : 'movie';
+    manEmbed.value = `https://vidsrc.to/embed/${t}/${id}`;
+    window.generatedEmbedUrl = manEmbed.value;
+  }
+  showToast(`✅ Filled: ${data.title || data.name}`);
+}
+
+// ─────────────────────────────────────────
+//  SHARED FORM FILL FROM TMDB DATA
+// ─────────────────────────────────────────
+function fillFormFromTMDB(data, type) {
+  const title    = data.title || data.name || '';
+  const year     = (data.release_date || data.first_air_date || '').slice(0, 4);
+  const overview = data.overview || '';
+  const rating   = data.vote_average?.toFixed(1) || '';
+  const poster   = data.poster_path   ? `https://image.tmdb.org/t/p/w500${data.poster_path}`    : '';
+  const backdrop = data.backdrop_path ? `https://image.tmdb.org/t/p/original${data.backdrop_path}` : '';
+  const genres   = (data.genres || []).map(g => g.name);
+  const cast     = (data.credits?.cast || []).slice(0, 5).map(c => c.name).join(', ');
+  const director = (data.credits?.crew || []).find(c => c.job === 'Director')?.name || '';
+
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+  set('mTitle',    title);
+  set('mYear',     year);
+  set('mRating',   rating);
+  set('mOverview', overview);
+  set('mPoster',   poster);
+  set('mBackdrop', backdrop);
+  set('mCast',     cast);
+  set('mDirector', director);
+  if (type === 'tv') { const mt = document.getElementById('mType'); if (mt) mt.value = 'tv'; }
+
+  if (poster)   prevImg(poster,   'posterPrev',   'pp');
+  if (backdrop) prevImg(backdrop, 'backdropPrev', 'bp');
+
+  // Select genres
+  selGenres = [...genres];
+  document.querySelectorAll('.gtag').forEach(t => {
+    t.classList.toggle('on', genres.includes(t.textContent));
+  });
+}
+
+// ─────────────────────────────────────────
+//  FIX: addMovie reads embed from both tabs
+// ─────────────────────────────────────────
+function getEmbedUrl() {
+  // Manual tab embed
+  const manualEmbed = document.getElementById('manualEmbed')?.value.trim();
+  if (manualEmbed) return manualEmbed;
+
+  // Auto-generated
+  if (window.generatedEmbedUrl) return window.generatedEmbedUrl;
+
+  // Fallback: build from tmdbId
+  const tid  = document.getElementById('tmdbId')?.value.trim()
+    || document.getElementById('manualTmdbId')?.value.trim();
+  const type = document.getElementById('mType')?.value || 'movie';
+  if (tid) return type === 'tv'
+    ? `https://vidsrc.to/embed/tv/${tid}`
+    : `https://vidsrc.to/embed/movie/${tid}`;
+
+  return '';
+}
+
+// ─────────────────────────────────────────
+//  UNAVAILABLE CHECKER
+// ─────────────────────────────────────────
+async function checkUnavailable() {
+  const btn = document.getElementById('checkBtn');
+  btn.disabled = true; btn.textContent = '⏳ Checking...';
+  document.getElementById('checkProgress').style.display = 'block';
+  document.getElementById('unavailableResults').innerHTML = '';
+
+  const { data: movies } = await getSB().from('movies').select('*').eq('status','active').order('created_at',{ascending:false});
+  if (!movies?.length) { showToast('No active movies found'); btn.disabled=false; btn.textContent='🔍 Check All Movies'; return; }
+
+  const results = [];
+  const total   = movies.length;
+  let checked   = 0;
+
+  document.getElementById('checkStatus').textContent = `0 / ${total} checked`;
+
+  for (const m of movies) {
+    const embedUrl = m.embed_url || (m.tmdb_id ? `https://vidsrc.to/embed/movie/${m.tmdb_id}` : null);
+    let available  = false;
+
+    if (!embedUrl) {
+      results.push({ ...m, available: false, reason: 'No embed URL' });
+    } else {
+      try {
+        // We test by fetching the embed page — if it returns 200 with content it's likely ok
+        const isVidsrc = embedUrl.includes('vidsrc');
+        if (isVidsrc && m.tmdb_id) {
+          // For vidsrc: try fetching their availability API
+          const type = m.type === 'tv' ? 'tv' : 'movie';
+          const r = await fetch(`https://vidsrc.to/embed/${type}/${m.tmdb_id}`, {
+            method: 'HEAD', signal: AbortSignal.timeout(5000)
+          }).catch(() => null);
+          available = r?.ok && r.status !== 404;
+        } else {
+          available = true; // non-vidsrc (streamtape etc) assume available
+        }
+      } catch(e) {
+        available = false;
+      }
+      if (!available) results.push({ ...m, available: false, embedUrl, reason: 'Not on vidsrc' });
+    }
+
+    checked++;
+    const pct = Math.round((checked / total) * 100);
+    document.getElementById('checkBar').style.width  = pct + '%';
+    document.getElementById('checkText').textContent = `Checking: ${m.title} (${checked}/${total})`;
+    document.getElementById('checkStatus').textContent = `${checked} / ${total} checked`;
+  }
+
+  btn.disabled = false; btn.textContent = '🔍 Check All Movies';
+  document.getElementById('checkProgress').style.display = 'none';
+
+  const unavCnt = document.getElementById('sbUnavCnt');
+  if (unavCnt) { unavCnt.textContent = results.length; unavCnt.style.display = results.length ? 'flex' : 'none'; }
+
+  if (!results.length) {
+    document.getElementById('unavailableResults').innerHTML = `
+      <div style="text-align:center;padding:30px;color:var(--green);font-size:.92rem">
+        ✅ Sab ${total} movies available hain! Koi issue nahi.
+      </div>`;
+    return;
+  }
+
+  document.getElementById('unavailableResults').innerHTML = `
+    <div style="font-size:.82rem;color:var(--muted);margin-bottom:12px">
+      ⚠️ ${results.length} movies vidsrc pe available nahi — custom embed lagao:
+    </div>
+    ${results.map(m => `
+      <div style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid rgba(229,9,20,.2);border-radius:8px;padding:12px 14px;margin-bottom:8px;flex-wrap:wrap">
+        <img src="${m.poster_url||''}" style="width:40px;height:58px;object-fit:cover;border-radius:4px;background:#222;flex-shrink:0" onerror="this.style.display='none'">
+        <div style="flex:1;min-width:120px">
+          <div style="font-size:.88rem;font-weight:700;color:#fff">${m.title}</div>
+          <div style="font-size:.72rem;color:var(--muted)">${m.year||''} · TMDB: ${m.tmdb_id||'N/A'} · ${m.reason||'Unavailable'}</div>
+        </div>
+        <input type="url" id="fix_${m.id}" placeholder="Paste custom embed URL here..." 
+          style="flex:2;min-width:200px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);color:#fff;padding:8px 11px;font-size:.76rem;border-radius:6px;font-family:'Barlow',sans-serif;outline:none">
+        <div style="display:flex;gap:6px">
+          <button onclick="fixEmbedUrl(${m.id})" class="btn-add" style="padding:7px 14px;font-size:.76rem">💾 Save</button>
+          <button onclick="testById(${m.id},document.getElementById('fix_${m.id}').value||'${m.embed_url||''}')" class="tab-btn play" title="Test">▶</button>
+        </div>
+      </div>`).join('')}`;
+}
+
+async function fixEmbedUrl(movieId) {
+  const input = document.getElementById('fix_' + movieId);
+  const url   = input?.value.trim();
+  if (!url) { showToast('❌ Embed URL daalo'); return; }
+  const { error } = await getSB().from('movies').update({ embed_url: url }).eq('id', movieId);
+  if (error) { showToast('❌ ' + error.message); return; }
+  const m = allMovies.find(x => x.id === movieId);
+  if (m) m.embed_url = url;
+  input.style.borderColor = '#46d369';
+  showToast('✅ Embed URL saved!');
+}
+
 //  TABLE
 // ─────────────────────────────────────────
 async function loadTable(type) {
