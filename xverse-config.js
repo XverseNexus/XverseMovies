@@ -396,23 +396,33 @@ function showToast(msg, duration = 2800) {
 //  AUTH GUARD  — call on every protected page
 // ─────────────────────────────────────────────────────────
 async function requireAuth(redirectTo = 'index.html') {
+
   const sb = getSB();
-  // Try to get current user (this will refresh token if needed)
-  let { data: { user }, error } = await sb.auth.getUser();
-  
-  if (error || !user) {
-    // Wait a bit and try again (for slow networks)
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    const retry = await sb.auth.getUser();
-    if (retry.error || !retry.data.user) {
-      console.warn('No valid session, redirecting to', redirectTo);
-      window.location.replace(redirectTo);
-      return null;
-    }
-    user = retry.data.user;
+
+  // FIRST TRY
+  let { data: { session } } = await sb.auth.getSession();
+
+  // Wait little if session restoring
+  if (!session) {
+
+    await new Promise(resolve => setTimeout(resolve, 1200));
+
+    const retry = await sb.auth.getSession();
+
+    session = retry.data.session;
   }
-  
-  return user;
+
+  // FINAL CHECK
+  if (!session) {
+
+    console.warn('No session found → redirecting');
+
+    window.location.replace(redirectTo);
+
+    return null;
+  }
+
+  return session.user;
 }
 
 // ─────────────────────────────────────────────────────────

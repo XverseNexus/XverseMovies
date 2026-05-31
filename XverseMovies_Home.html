@@ -545,68 +545,62 @@ function cwCardHTML(m) {
 async function playMovie(m) {
   if (!currentUser) return;
 
-  let dbMovie = m;
-  if (!m.id && m.tmdb_id) {
-    dbMovie = await DB.getOrCreateMovie(m);
-    if (!dbMovie) {
-      showToast('❌ Could not load movie. Try again.');
-      return;
+  // Increment views / history for DB movies
+  if (m.id && !m.tmdb_id) DB.incrementViews(m.id).catch(()=>{});
+  if (m.id && !m.tmdb_id) await DB.addToHistory(currentUser.id, m.id);
+
+  // ── AUTO EMBED LOGIC ──────────────────────────────────────────
+  // Priority: 1) DB embed_url  2) auto-build from tmdb_id via vidsrc
+  let embedUrl = m.embed_url || m.embedUrl || '';
+
+  if (!embedUrl) {
+    const tid = m.tmdb_id || m.id;
+    if (tid) {
+      const t = m.type || 'movie';
+      embedUrl = t === 'tv'
+        ? `https://vidsrc.to/embed/tv/${tid}`
+        : `https://vidsrc.to/embed/movie/${tid}`;
     }
-  }
-  const movieId = dbMovie.id;
-
-  DB.incrementViews(movieId).catch(()=>{});
-  await DB.addToHistory(currentUser.id, movieId);
-
-  let embedUrl = dbMovie.embed_url || '';
-  if (!embedUrl && dbMovie.tmdb_id) {
-    embedUrl = dbMovie.type === 'tv'
-      ? `https://vidsrc.to/embed/tv/${dbMovie.tmdb_id}`
-      : `https://vidsrc.to/embed/movie/${dbMovie.tmdb_id}`;
   }
 
   const params = new URLSearchParams({
-    id:       movieId,
-    tmdb_id:  dbMovie.tmdb_id || '',
-    title:    dbMovie.title,
-    type:     dbMovie.type,
-    year:     dbMovie.year || '',
-    quality:  dbMovie.quality || '',
-    age:      dbMovie.age_rating || 'UA',
-    dur:      dbMovie.duration || '',
-    minPlan:  dbMovie.min_plan || 'free',
+    id:       m.id || '',
+    tmdb_id:  m.tmdb_id || '',
+    title:    m.title,
+    type:     m.type || 'movie',
+    year:     m.year || '',
+    quality:  m.quality || '',
+    age:      m.age_rating || m.ageRating || 'UA',
+    dur:      m.duration || m.dur || '',
+    minPlan:  m.min_plan || m.minPlan || 'free',
     embed:    embedUrl,
-    poster:   dbMovie.poster_url || '',
-    backdrop: dbMovie.backdrop_url || '',
+    poster:   m.poster_url || m.posterUrl || '',
+    backdrop: m.backdrop_url || m.backdropUrl || '',
   });
   window.location.href = 'XverseMovies_Player.html?' + params.toString();
 }
+
 // ─────────────────────────────────────────
 //  MY LIST
 // ─────────────────────────────────────────
 async function toggleMyList(m) {
   if (!currentUser) return;
-  
-  let dbMovie = m;
-  if (!m.id && m.tmdb_id) {
-    dbMovie = await DB.getOrCreateMovie(m);
-    if (!dbMovie) { showToast('❌ Cannot add to list'); return; }
-  }
-  const movieId = dbMovie.id;
-  
-  const inList = myListIds.has(String(movieId));
-  if (inList) {
-    await DB.removeFromMyList(currentUser.id, movieId);
-    myListIds.delete(String(movieId));
+  const key = String(m.id || m.tmdb_id);
+  if (myListIds.has(key)) {
+    if (m.id && !m.tmdb_id) await DB.removeFromMyList(currentUser.id, m.id);
+    myListIds.delete(key);
     showToast('Removed from My List');
   } else {
-    await DB.addToMyList(currentUser.id, movieId);
-    myListIds.add(String(movieId));
+    // If TMDB movie not in DB, we just use localStorage as fallback
+    if (m.id && !m.tmdb_id) {
+      await DB.addToMyList(currentUser.id, m.id);
+    }
+    myListIds.add(key);
     showToast('✅ Added to My List');
   }
-  
-  if (modalMovie && (modalMovie.id === movieId || modalMovie.tmdb_id === m.tmdb_id)) {
-    document.getElementById('modalAddBtn').textContent = myListIds.has(String(movieId)) ? '✓ In My List' : '＋ My List';
+  // Update modal button if open
+  if (modalMovie && String(modalMovie.id||modalMovie.tmdb_id) === key) {
+    document.getElementById('modalAddBtn').textContent = myListIds.has(key) ? '✓ In My List' : '＋ My List';
   }
 }
 
@@ -624,31 +618,23 @@ async function removeCW(movieId) {
 // ─────────────────────────────────────────
 //  MODAL
 // ─────────────────────────────────────────
-async function openModal(m) {
-  let dbMovie = m;
-  if (!m.id && m.tmdb_id) {
-    dbMovie = await DB.getOrCreateMovie(m);
-    if (!dbMovie) {
-      showToast('❌ Cannot load details');
-      return;
-    }
-  }
-  modalMovie = dbMovie;
-  document.getElementById('modalImg').src    = dbMovie.backdrop_url || dbMovie.poster_url || '';
-  document.getElementById('modalTitle').textContent = dbMovie.title;
-  const match = Math.round(65 + (parseFloat(dbMovie.rating||dbMovie.vote_average||7) * 3.5));
+function openModal(m) {
+  modalMovie = m;
+  document.getElementById('modalImg').src    = m.backdrop_url || m.poster_url || '';
+  document.getElementById('modalTitle').textContent = m.title;
+  const match = Math.round(65 + (parseFloat(m.rating||m.vote_average||7) * 3.5));
   document.getElementById('modalMeta').innerHTML = `
     <span class="modal-match">${match}% Match</span>
-    <span>${dbMovie.year||''}</span>
-    <span class="modal-cert">${dbMovie.age_rating||'UA'}</span>
-    <span>${dbMovie.type==='tv'?'TV Show':'Movie'}</span>
-    ${dbMovie.quality?`<span style="background:rgba(70,211,105,.1);color:var(--green);font-size:.65rem;font-weight:700;padding:1px 7px;border-radius:3px">${dbMovie.quality}</span>`:''}`;
-  document.getElementById('modalOv').textContent   = dbMovie.overview || '';
-  document.getElementById('modalCast').innerHTML   = dbMovie.cast_text ? `<strong>Cast:</strong> ${dbMovie.cast_text}` : '';
-  const inList = myListIds.has(String(dbMovie.id||dbMovie.tmdb_id));
+    <span>${m.year||''}</span>
+    <span class="modal-cert">${m.age_rating||'UA'}</span>
+    <span>${m.type==='tv'?'TV Show':'Movie'}</span>
+    ${m.quality?`<span style="background:rgba(70,211,105,.1);color:var(--green);font-size:.65rem;font-weight:700;padding:1px 7px;border-radius:3px">${m.quality}</span>`:''}`;
+  document.getElementById('modalOv').textContent   = m.overview || '';
+  document.getElementById('modalCast').innerHTML   = m.cast_text ? `<strong>Cast:</strong> ${m.cast_text}` : '';
+  const inList = myListIds.has(String(m.id||m.tmdb_id));
   document.getElementById('modalAddBtn').textContent = inList ? '✓ In My List' : '＋ My List';
-  document.getElementById('modalPlayBtn').onclick = () => { closeModal(); playMovie(dbMovie); };
-  document.getElementById('modalAddBtn').onclick  = () => toggleMyList(dbMovie);
+  document.getElementById('modalPlayBtn').onclick = () => { closeModal(); playMovie(m); };
+  document.getElementById('modalAddBtn').onclick  = () => toggleMyList(m);
   document.getElementById('modalBg').classList.add('open');
 }
 function closeModal() { document.getElementById('modalBg').classList.remove('open'); }
@@ -665,8 +651,26 @@ function toggleSearch() {
 }
 
 function removeDuplicateMovies(dbMovies, tmdbMovies) {
-  const existingTmdbIds = new Set(dbMovies.map(m => m.tmdb_id).filter(Boolean));
-  return tmdbMovies.filter(tm => !existingTmdbIds.has(tm.tmdb_id));
+
+  const dbTitles = new Set(
+    dbMovies.map(m =>
+      (m.title || '')
+      .toLowerCase()
+      .trim()
+    )
+  );
+
+  return tmdbMovies.filter(tmdbMovie => {
+
+    const title =
+      (tmdbMovie.title || '')
+      .toLowerCase()
+      .trim();
+
+    return !dbTitles.has(title);
+
+  });
+
 }
 
 function doSearch(q) {
