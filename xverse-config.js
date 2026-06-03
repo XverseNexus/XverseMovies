@@ -60,8 +60,8 @@ const Auth = {
       .from('profiles')
       .select('*')
       .eq('id', uid)
-      .limit(1);
-    return data?.[0] ?? null;
+      .single();
+    return data;
   },
 
   // Get viewer profiles
@@ -156,8 +156,8 @@ const DB = {
       .select('id')
       .eq('user_id', uid)
       .eq('movie_id', movieId)
-      .limit(1);
-    return !!(data && data.length > 0);
+      .single();
+    return !!data;
   },
 
   // ── CONTINUE WATCHING ────────────────────────────────
@@ -201,8 +201,6 @@ const DB = {
       starts_at:  new Date().toISOString(),
     });
   },
-
-  async upsertContinueWatching(uid, movieId, progressSec, durationSec, extraData = {}) {
     const completed = durationSec > 0 && (progressSec / durationSec) > 0.9;
     return getSB().from('continue_watching').upsert({
       user_id:      uid,
@@ -269,8 +267,8 @@ const DB = {
 },
 
   async getMovie(id) {
-    const { data } = await getSB().from('movies').select('*').eq('id', id).limit(1);
-    return data?.[0] ?? null;
+    const { data } = await getSB().from('movies').select('*').eq('id', id).single();
+    return data;
   },
 
   async searchMovies(query) {
