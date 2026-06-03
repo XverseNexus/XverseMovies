@@ -201,6 +201,8 @@ const DB = {
       starts_at:  new Date().toISOString(),
     });
   },
+
+  async updateContinueWatching(uid, movieId, progressSec, durationSec, extraData = {}) {
     const completed = durationSec > 0 && (progressSec / durationSec) > 0.9;
     return getSB().from('continue_watching').upsert({
       user_id:      uid,
