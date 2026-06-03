@@ -7,6 +7,10 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="favicon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#E50914">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="XverseMovies">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="xverse-config.js"></script>
 
@@ -520,6 +524,10 @@ const PLAN_ORDER = {
   const p       = new URLSearchParams(location.search);
   const movieId = p.get('id');
 
+  // Season/episode support for TV shows
+  const urlSeason  = parseInt(p.get('season'))  || 1;
+  const urlEpisode = parseInt(p.get('episode')) || 1;
+
   let movie = null;
 
   if(movieId){
@@ -544,6 +552,10 @@ const PLAN_ORDER = {
     };
 
   }
+
+  // Attach season/episode to movie object for use in loadVideo
+  movie._season  = urlSeason;
+  movie._episode = urlEpisode;
 
   movieData = movie;
 
@@ -578,35 +590,63 @@ const PLAN_ORDER = {
 
 function loadVideo(m){
 
-  document.getElementById('topTitle').textContent  = m.title;
-  document.getElementById('topSub').textContent    =
-  m.type === 'tv' ? 'Season 1 · Episode 1' : (m.year || '');
+  const season  = m._season  || 1;
+  const episode = m._episode || 1;
+  const isTV    = m.type === 'tv';
+
+  document.getElementById('topTitle').textContent = m.title;
+
+  // Fix: was always showing "Season 1 · Episode 1" for ALL TV shows
+  document.getElementById('topSub').textContent = isTV
+    ? `Season ${season} · Episode ${episode}`
+    : (m.year || '');
 
   document.getElementById('qualBadge').textContent = m.quality || 'HD';
   document.getElementById('yearBadge').textContent = m.year || '';
   document.getElementById('ageBadge').textContent  = m.age_rating || '';
   document.getElementById('durBadge').textContent  = m.duration || '';
 
-  document.title = `${m.title || 'Movie'} — XverseMovies`;
+  document.title = isTV
+    ? `${m.title || 'Show'} S${season}E${episode} — XverseMovies`
+    : `${m.title || 'Movie'} — XverseMovies`;
 
-  let embedUrl =
-    m.embed_url ||
-    (m.streamtape_id
-      ? `https://streamtape.com/e/${m.streamtape_id}/`
-      : null);
+  // ── EMBED URL PRIORITY ────────────────────────────────────
+  // 1) DB custom embed_url (admin-set manual override)
+  // 2) URL param embed (passed from home page)
+  // 3) Auto-build from tmdb_id via vidsrc
+  //    - For TV: include season + episode in URL
+  //    - For Movies: just tmdb_id
 
-  // Auto-build vidsrc URL from tmdb_id if no embed set
+  const dbEmbed   = (m.embed_url  && m.embed_url.trim())  ? m.embed_url.trim()  : null;
+  const urlEmbed  = (m.embedUrl   && m.embedUrl.trim())   ? m.embedUrl.trim()   : null;
+
+  let embedUrl = dbEmbed || urlEmbed;
+
   if (!embedUrl) {
-    const tid = m.tmdb_id || (m.id && !m.streamtape_id ? m.id : null);
-    if (tid) {
-      embedUrl = m.type === 'tv'
-        ? `https://vidsrc.to/embed/tv/${tid}`
-        : `https://vidsrc.to/embed/movie/${tid}`;
+    const tid = m.tmdb_id || null;
+
+    if (tid && m.auto_embed !== false) {
+      if (isTV) {
+        embedUrl = `https://vidsrc.to/embed/tv/${tid}/${season}/${episode}`;
+      } else {
+        embedUrl = `https://vidsrc.to/embed/movie/${tid}`;
+      }
     }
   }
 
-  if(!embedUrl){
-    document.getElementById('ldMsg').innerHTML = '⚠️ Video URL not found';
+  // If DB says embed not working AND no manual override → warn but still try
+  if (m.embed_working === false && !m.manual_embed) {
+    document.getElementById('ldMsg').innerHTML =
+      '⚠️ This video may be unavailable on vidsrc.<br>' +
+      '<span style="font-size:.72rem;color:#888">Admin panel mein custom embed set karo.</span>';
+    document.getElementById('ldMsg').style.color = '#f5c518';
+    if (!embedUrl) return; // nothing to even try
+    // If we have a URL, still attempt to load it (might have been fixed)
+  }
+
+  if (!embedUrl) {
+    document.getElementById('ldMsg').innerHTML =
+      '⚠️ Video URL not found.<br><span style="font-size:.72rem;color:#888">Admin panel se embed URL set karo.</span>';
     document.getElementById('ldMsg').style.color = '#ff6b6b';
     return;
   }
@@ -615,11 +655,11 @@ function loadVideo(m){
   frame.src = embedUrl;
   frame.style.display = 'block';
 
-  // Hide loader after 2s
+  // Hide loader after 2.5s
   setTimeout(()=>{
     document.getElementById('loadScreen').style.display = 'none';
     showUI();
-  }, 2000);
+  }, 2500);
 
 }
 
@@ -744,7 +784,12 @@ async function goBack(){
 
   await syncProgress();
 
-  location.href='XverseMovies_Home.html';
+  // Go back to previous page, or home as fallback
+  if(document.referrer && document.referrer.includes('XverseMovies')){
+    history.back();
+  } else {
+    location.href = 'XverseMovies_Home.html';
+  }
 
 }
 
@@ -762,11 +807,18 @@ async function syncProgress(){
   ? parseInt(movieData.duration)*60
   : 5400;
 
+  // For TV shows, also store season/episode in continue_watching note
+  const extraData = movieData.type === 'tv' ? {
+    season:  movieData._season  || 1,
+    episode: movieData._episode || 1,
+  } : {};
+
   await DB.upsertContinueWatching(
     currentUser.id,
     movieData.id,
     watched,
-    dur
+    dur,
+    extraData
   );
 
   const dot = document.getElementById('syncDot');
@@ -801,5 +853,6 @@ window.addEventListener('beforeunload',()=>{
 
 </script>
 
+<script>if("serviceWorker"in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){});});}</script>
 </body>
 </html>
