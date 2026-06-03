@@ -6,6 +6,10 @@
 <title>XverseMovies — Browse</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="favicon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#E50914">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="XverseMovies">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="xverse-config.js"></script>
 <style>
@@ -134,8 +138,33 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;ali
 /* SKELETON */
 .sk{background:linear-gradient(90deg,#222 25%,#2a2a2a 50%,#222 75%);background-size:200% 100%;animation:ska 1.4s infinite;border-radius:4px}
 @keyframes ska{0%{background-position:200%}100%{background-position:-200%}}
-/* MODAL */
-.mbg{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:500;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(5px)}
+/* ── EPISODE PICKER ── */
+.ep-wrap{border-top:1px solid rgba(255,255,255,.08);margin-top:18px;padding-top:16px}
+.ep-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.ep-hd-title{font-size:.9rem;font-weight:700;color:#fff}
+.ep-season-sel{background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.16);color:#fff;padding:6px 12px;border-radius:6px;font-size:.78rem;font-family:'Barlow',sans-serif;cursor:pointer;outline:none;transition:border .2s}
+.ep-season-sel:focus{border-color:rgba(255,255,255,.35)}
+.ep-season-sel option{background:#1a1a1a}
+.ep-list{display:flex;flex-direction:column;gap:2px}
+.ep-item{display:flex;align-items:flex-start;gap:12px;padding:10px 4px;border-radius:6px;cursor:pointer;transition:background .18s;border:1px solid transparent}
+.ep-item:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.08)}
+.ep-num-badge{flex-shrink:0;width:28px;text-align:center;font-family:'Bebas Neue',cursive;font-size:1.4rem;color:rgba(255,255,255,.3);line-height:1;margin-top:8px}
+.ep-thumb{flex-shrink:0;width:110px;height:62px;border-radius:5px;overflow:hidden;background:#222;position:relative}
+.ep-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:filter .18s}
+.ep-item:hover .ep-thumb img{filter:brightness(.65)}
+.ep-play-icon{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .18s;background:rgba(0,0,0,.28)}
+.ep-item:hover .ep-play-icon{opacity:1}
+.ep-play-icon div{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;color:#000;font-size:.8rem}
+.ep-thumb-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;background:#1c1c1c}
+.ep-info{flex:1;min-width:0}
+.ep-title-row{display:flex;align-items:baseline;gap:8px;margin-bottom:3px}
+.ep-title{font-size:.84rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ep-runtime{font-size:.7rem;color:var(--muted);flex-shrink:0}
+.ep-overview{font-size:.73rem;color:rgba(255,255,255,.5);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:2px}
+.ep-loading{padding:20px;text-align:center;color:var(--muted);font-size:.84rem}
+.ep-skel{background:linear-gradient(90deg,#222 25%,#282828 50%,#222 75%);background-size:200% 100%;animation:skelA 1.4s infinite;border-radius:4px}
+@keyframes skelA{to{background-position:-200% 0}}
+@media(max-width:640px){.ep-thumb{width:80px;height:46px}}position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:500;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(5px)}
 .mbg.open{display:flex;animation:mfi .22s ease}
 @keyframes mfi{from{opacity:0}to{opacity:1}}
 .mo{background:#181818;border:1px solid rgba(255,255,255,.1);border-radius:10px;width:min(96vw,560px);max-height:90vh;overflow-y:auto;animation:msu .28s ease}
@@ -216,6 +245,14 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;ali
     <div class="mh"><img id="modImg" src="" alt=""><div class="mhg"></div><button class="mx" onclick="closeMod()">✕</button></div>
     <div class="mb"><div class="mt" id="modTit"></div><div class="mm" id="modMeta"></div><div class="mov" id="modOv"></div>
       <div class="mac"><button class="mpl" id="mPlayBtn">▶ Play</button><button class="mad" id="mAddBtn">＋ My List</button><button class="mad" onclick="closeMod()">✕ Close</button></div>
+      <!-- EPISODE PICKER — shown for TV shows only -->
+      <div class="ep-wrap" id="bEpWrap" style="display:none">
+        <div class="ep-hd">
+          <span class="ep-hd-title">Episodes</span>
+          <select class="ep-season-sel" id="bEpSeasonSel" onchange="bLoadEpisodes(this.value)"></select>
+        </div>
+        <div id="bEpList"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -363,30 +400,161 @@ function cHTML(m,isList){
   if(isList) return `<div class="card lc" onclick="openMod(${ms})"><div class="cth"><img class="ci" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555'"><div class="cov"><button class="cpl" onclick="event.stopPropagation();play(${ms})">▶</button></div></div><div class="cif"><div class="cn">${m.title}</div><div class="cm"><span>${m.year||''}</span>${rat?`<span>·</span><span style="color:var(--green)">★ ${rat}</span>`:''}</div></div><div class="lacts"><button class="lb" onclick="event.stopPropagation();play(${ms})">▶</button><button class="lb" onclick="event.stopPropagation();addML(${ms})">+</button></div></div>`;
   return `<div class="card" onclick="openMod(${ms})"><div class="cth"><img class="ci" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555&size=400'"><span class="ctyp ${m.type||'movie'}">${m.type==='tv'?'TV':'MOVIE'}</span>${rat?`<span class="crat">★ ${rat}</span>`:''}<div class="cov"><button class="cpl" onclick="event.stopPropagation();play(${ms})">▶</button><button class="cad" onclick="event.stopPropagation();addML(${ms})">+</button></div></div><div class="cif"><div class="cn">${m.title}</div><div class="cm"><span>${m.year||''}</span></div></div></div>`;
 }
-function play(m){
-  let embedUrl = m.embed_url || '';
+function play(m, season, episode) {
+  // Fix: empty string is not a valid embed URL
+  let embedUrl = (m.embed_url && m.embed_url.trim()) ? m.embed_url.trim() : '';
+  const s = season  || 1;
+  const e = episode || 1;
   if (!embedUrl) {
     const tid = m.tmdb_id || m.id;
-    if (tid) embedUrl = (m.type==='tv') ? `https://vidsrc.to/embed/tv/${tid}` : `https://vidsrc.to/embed/movie/${tid}`;
+    if (tid) embedUrl = (m.type==='tv')
+      ? `https://vidsrc.to/embed/tv/${tid}/${s}/${e}`
+      : `https://vidsrc.to/embed/movie/${tid}`;
   }
-  const p = new URLSearchParams({id:m.id||'',tmdb_id:m.tmdb_id||'',title:m.title,type:m.type||'movie',year:m.year||'',quality:m.quality||'',embed:embedUrl,poster:m.poster_url||'',backdrop:m.backdrop_url||''});
-  window.location.href='XverseMovies_Player.html?'+p.toString();
+  const p = new URLSearchParams({
+    id:m.id||'', tmdb_id:m.tmdb_id||'', title:m.title,
+    type:m.type||'movie', year:m.year||'', quality:m.quality||'',
+    embed:embedUrl, poster:m.poster_url||'', backdrop:m.backdrop_url||'',
+    season:s, episode:e,
+  });
+  window.location.href = 'XverseMovies_Player.html?' + p.toString();
 }
-async function addML(m){ if(!currentUser||!m.id){showToast('⚠️ Admin Panel mein add karo'); return;} await DB.addToMyList(currentUser.id,m.id); showToast('✅ Added to My List'); }
-function openMod(m){
-  const ms=JSON.stringify(m).replace(/"/g,'&quot;');
-  const match=Math.round(65+parseFloat(m.rating||m.vote_average||7)*3.5);
-  document.getElementById('modImg').src=m.backdrop_url||m.poster_url||'';
-  document.getElementById('modTit').textContent=m.title;
-  document.getElementById('modMeta').innerHTML=`<span class="mmt">${match}% Match</span><span>${m.year||''}</span><span class="mce">${m.age_rating||'UA'}</span>${m.quality?`<span style="background:rgba(70,211,105,.1);color:var(--green);font-size:.61rem;font-weight:700;padding:1px 6px;border-radius:3px">${m.quality}</span>`:''}`;
-  document.getElementById('modOv').textContent=m.overview||'';
-  document.getElementById('mPlayBtn').onclick=()=>{closeMod();play(m);};
-  document.getElementById('mAddBtn').onclick=()=>{addML(m);closeMod();};
+
+async function addML(m) {
+  if (!currentUser || !m.id) { showToast('⚠️ Login required'); return; }
+  await DB.addToMyList(currentUser.id, m.id);
+  showToast('✅ Added to My List');
+}
+
+// ── EPISODE PICKER STATE ───────────────────
+let bModalMovie  = null;
+let bTvTmdbId    = null;
+let bTvSeasons   = [];
+
+function openMod(m) {
+  bModalMovie = m;
+  const isTV  = m.type === 'tv';
+  const match = Math.round(65 + parseFloat(m.rating || m.vote_average || 7) * 3.5);
+
+  document.getElementById('modImg').src             = m.backdrop_url || m.poster_url || '';
+  document.getElementById('modTit').textContent     = m.title;
+  document.getElementById('modMeta').innerHTML      = `
+    <span class="mmt">${match}% Match</span>
+    <span>${m.year||''}</span>
+    <span class="mce">${m.age_rating||'UA'}</span>
+    ${isTV ? '<span style="color:var(--muted)">TV Show</span>' : ''}
+    ${m.quality ? `<span style="background:rgba(70,211,105,.1);color:var(--green);font-size:.61rem;font-weight:700;padding:1px 6px;border-radius:3px">${m.quality}</span>` : ''}`;
+  document.getElementById('modOv').textContent      = m.overview || '';
+
+  // Play button label differs for TV
+  document.getElementById('mPlayBtn').textContent   = isTV ? '▶ Play S1 E1' : '▶ Play';
+  document.getElementById('mPlayBtn').onclick       = () => { closeMod(); play(m, 1, 1); };
+  document.getElementById('mAddBtn').onclick        = () => { addML(m); closeMod(); };
+
+  // Episode picker: show for TV, hide for movies
+  const epWrap = document.getElementById('bEpWrap');
+  if (isTV) {
+    epWrap.style.display = 'block';
+    bLoadTVSeasons(m);
+  } else {
+    epWrap.style.display = 'none';
+    bTvTmdbId  = null;
+    bTvSeasons = [];
+  }
+
   document.getElementById('modBg').classList.add('open');
 }
-function closeMod(){ document.getElementById('modBg').classList.remove('open'); }
+
+function closeMod() {
+  document.getElementById('modBg').classList.remove('open');
+}
+
+async function bLoadTVSeasons(m) {
+  const tmdbId = m.tmdb_id || (m.type === 'tv' ? m.id : null);
+  bTvTmdbId    = tmdbId;
+  const selEl  = document.getElementById('bEpSeasonSel');
+  const listEl = document.getElementById('bEpList');
+
+  listEl.innerHTML = `<div class="ep-loading">
+    <div class="ep-skel" style="height:13px;width:55%;margin:0 auto 7px"></div>
+    <div class="ep-skel" style="height:13px;width:38%;margin:0 auto"></div>
+  </div>`;
+
+  if (!tmdbId) {
+    listEl.innerHTML = `<div class="ep-loading" style="color:#ff6b6b">TMDB ID not set for this show.</div>`;
+    return;
+  }
+
+  const details = await TMDB.tvDetails(tmdbId);
+  if (!details) {
+    listEl.innerHTML = `<div class="ep-loading" style="color:#ff6b6b">Could not load episode data.</div>`;
+    return;
+  }
+
+  bTvSeasons = (details.seasons || []).filter(s => s.season_number > 0);
+  if (!bTvSeasons.length) bTvSeasons = details.seasons || [];
+
+  selEl.innerHTML = bTvSeasons
+    .map(s => `<option value="${s.season_number}">Season ${s.season_number} (${s.episode_count} eps)</option>`)
+    .join('');
+
+  await bLoadEpisodes(1);
+}
+
+async function bLoadEpisodes(seasonNum) {
+  const listEl = document.getElementById('bEpList');
+  const sn     = parseInt(seasonNum);
+
+  listEl.innerHTML = Array(4).fill(0).map(() => `
+    <div class="ep-item" style="pointer-events:none">
+      <div class="ep-num-badge"><div class="ep-skel" style="width:20px;height:22px"></div></div>
+      <div class="ep-thumb"><div class="ep-skel" style="width:100%;height:100%"></div></div>
+      <div class="ep-info">
+        <div class="ep-skel" style="height:13px;width:55%;margin-bottom:5px"></div>
+        <div class="ep-skel" style="height:11px;width:85%"></div>
+      </div>
+    </div>`).join('');
+
+  if (!bTvTmdbId) return;
+
+  // Update Play button to selected season
+  const playBtn = document.getElementById('mPlayBtn');
+  if (playBtn) {
+    playBtn.textContent = `▶ Play S${sn} E1`;
+    playBtn.onclick     = () => { closeMod(); play(bModalMovie, sn, 1); };
+  }
+
+  const data = await TMDB.tvSeason(bTvTmdbId, sn);
+
+  if (!data || !data.episodes?.length) {
+    listEl.innerHTML = `<div class="ep-loading">No episodes found for Season ${sn}.</div>`;
+    return;
+  }
+
+  listEl.innerHTML = data.episodes.map(ep => {
+    const thumb = ep.still_path ? `https://image.tmdb.org/t/p/w300${ep.still_path}` : null;
+    return `
+      <div class="ep-item" onclick="closeMod();play(bModalMovie,${sn},${ep.episode_number})">
+        <div class="ep-num-badge">${ep.episode_number}</div>
+        <div class="ep-thumb">
+          ${thumb
+            ? `<img src="${thumb}" alt="E${ep.episode_number}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=ep-thumb-ph>📺</div>'">`
+            : `<div class="ep-thumb-ph">📺</div>`}
+          <div class="ep-play-icon"><div>▶</div></div>
+        </div>
+        <div class="ep-info">
+          <div class="ep-title-row">
+            <div class="ep-title">${ep.name || 'Episode ' + ep.episode_number}</div>
+            ${ep.runtime ? `<div class="ep-runtime">${ep.runtime}m</div>` : ''}
+          </div>
+          <div class="ep-overview">${ep.overview || 'No description available.'}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
 function skelG(n){ return `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px">${Array(n).fill(`<div class="sk" style="aspect-ratio:2/3;border-radius:5px"></div>`).join('')}</div>`; }
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeMod(); });
 </script>
+<script>if("serviceWorker"in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){});});}</script>
 </body>
 </html>
