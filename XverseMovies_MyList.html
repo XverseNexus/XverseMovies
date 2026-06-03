@@ -6,6 +6,10 @@
 <title>XverseMovies — My List</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="favicon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#E50914">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="XverseMovies">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="xverse-config.js"></script>
 <style>
@@ -429,20 +433,53 @@ async function loadCW() {
 function cwCardHTML(m, isDone = false) {
   const pct      = m.duration > 0 ? Math.min(100, (m.progress / m.duration) * 100) : 0;
   const minsLeft = m.duration > 0 ? Math.max(0, Math.round((m.duration - m.progress) / 60)) : 0;
-  const ms       = JSON.stringify(m).replace(/"/g, '&quot;');
   const ago      = timeAgo(m.updatedAt);
-  return `<div class="cw-card" onclick="playMovie(${ms})">
+  const isTV     = m.type === 'tv';
+
+  // For TV shows: resume from last watched season/episode
+  const lastS    = m.lastSeason  || 1;
+  const lastE    = m.lastEpisode || 1;
+
+  // Build subtitle: "S2 E5 · Continue" for TV, "45m left" for movies
+  let subText;
+  if (isDone) {
+    subText = isTV
+      ? `S${lastS} E${lastE} · Watched ${ago}`
+      : `Watched ${ago}`;
+  } else {
+    subText = isTV
+      ? `S${lastS} E${lastE} · Continue · ${ago}`
+      : (minsLeft > 0 ? `${minsLeft}m left · ${ago}` : `Continue · ${ago}`);
+  }
+
+  // Safe onclick — pass season/episode directly as numbers
+  const onClickPlay = isTV
+    ? `playMovie(${JSON.stringify(m).replace(/"/g,'&quot;')},${lastS},${lastE})`
+    : `playMovie(${JSON.stringify(m).replace(/"/g,'&quot;')})`;
+
+  return `<div class="cw-card" onclick="${onClickPlay}">
     <div class="cw-thumb-w">
-      <img class="cw-img" src="${m.backdrop_url||m.poster_url||''}" alt="${m.title}" onerror="this.src='${m.poster_url||''}'">
-      <div class="cw-play-ov"><div style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;color:#000;font-size:.95rem">▶</div></div>
-      <div class="cw-prog-bar"><div class="cw-prog-fill" style="width:${pct}%"></div></div>
-      ${!isDone && minsLeft > 0 ? `<div class="cw-time">${minsLeft}m left</div>` : ''}
-      ${isDone ? `<div class="cw-time" style="color:var(--green)">✓ Done</div>` : ''}
+      <img class="cw-img"
+        src="${m.backdrop_url || m.poster_url || ''}"
+        alt="${m.title}"
+        onerror="this.src='${m.poster_url || ''}'">
+      <div class="cw-play-ov">
+        <div style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;color:#000;font-size:.95rem">▶</div>
+      </div>
+      <div class="cw-prog-bar">
+        <div class="cw-prog-fill" style="width:${pct}%"></div>
+      </div>
+      ${isDone
+        ? `<div class="cw-time" style="color:var(--green)">✓ Done</div>`
+        : (!isTV && minsLeft > 0 ? `<div class="cw-time">${minsLeft}m left</div>` : '')}
+      ${isTV && !isDone
+        ? `<div class="cw-time">S${lastS} E${lastE}</div>`
+        : ''}
       <button class="cw-rem" onclick="event.stopPropagation();removeCWItem(${m.id})" title="Remove">✕</button>
     </div>
     <div class="cw-info">
       <div class="cw-title">${m.title}</div>
-      <div class="cw-sub">${isDone ? 'Watched ' + ago : 'Continue · ' + ago}</div>
+      <div class="cw-sub">${subText}</div>
     </div>
   </div>`;
 }
@@ -510,10 +547,34 @@ async function clearHistory() {
 }
 
 // ─────────────────────────────────────────
-//  PLAY
+//  PLAY  (fixed: builds embed URL + passes season/episode)
 // ─────────────────────────────────────────
-function playMovie(m) {
-  const params = new URLSearchParams({ id:m.id||'', title:m.title, type:m.type||'movie', year:m.year||'', quality:m.quality||'', embed:m.embed_url||m.embedUrl||'', poster:m.poster_url||'', backdrop:m.backdrop_url||'' });
+function playMovie(m, season, episode) {
+  const s = season  || m.lastSeason  || 1;
+  const e = episode || m.lastEpisode || 1;
+
+  // Fix: empty string is not a valid URL
+  let embedUrl = (m.embed_url && m.embed_url.trim()) ? m.embed_url.trim() : '';
+  if (!embedUrl) {
+    const tid = m.tmdb_id || m.id;
+    if (tid) embedUrl = (m.type === 'tv')
+      ? `https://vidsrc.to/embed/tv/${tid}/${s}/${e}`
+      : `https://vidsrc.to/embed/movie/${tid}`;
+  }
+
+  const params = new URLSearchParams({
+    id:       m.id       || '',
+    tmdb_id:  m.tmdb_id  || '',
+    title:    m.title,
+    type:     m.type     || 'movie',
+    year:     m.year     || '',
+    quality:  m.quality  || '',
+    embed:    embedUrl,
+    poster:   m.poster_url  || '',
+    backdrop: m.backdrop_url || '',
+    season:   s,
+    episode:  e,
+  });
   window.location.href = 'XverseMovies_Player.html?' + params.toString();
 }
 
@@ -549,5 +610,6 @@ function timeAgo(ts) {
 function isToday(d)     { const n=new Date(); return d.toDateString()===n.toDateString(); }
 function isYesterday(d) { const y=new Date(); y.setDate(y.getDate()-1); return d.toDateString()===y.toDateString(); }
 </script>
+<script>if("serviceWorker"in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){});});}</script>
 </body>
 </html>
