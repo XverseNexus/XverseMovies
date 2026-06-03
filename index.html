@@ -6,6 +6,10 @@
 <title>XverseMovies — Sign In</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="favicon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#E50914">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="XverseMovies">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="xverse-config.js"></script>
 <style>
@@ -112,7 +116,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
   <h1 class="land-title">Movies, Shows & More<br>Without Limits</h1>
   <p class="land-sub">Watch anywhere. Cancel anytime.</p>
   <div class="land-form">
-    <input class="land-email" id="landEmail" type="email" placeholder="Your email address">
+    <input class="land-email" id="landEmail" type="email" placeholder="Your email address" onkeydown="if(event.key==='Enter')handleGetStarted()">
     <button class="btn-red" onclick="handleGetStarted()">Get Started ›</button>
   </div>
   <div style="margin-top:14px;font-size:.84rem;color:var(--muted)">Already a member? <span style="color:#fff;cursor:pointer;font-weight:600" onclick="showPage('login')">Sign In</span></div>
@@ -151,9 +155,9 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
     <div id="su1">
       <h2 class="box-title">Create Account</h2>
       <p style="font-size:.78rem;color:var(--muted);margin-bottom:18px">Step 1 of 3 — Your details</p>
-      <div class="field"><input type="text" id="suName" placeholder="n" autocomplete="name"><label>Full Name</label></div>
-      <div class="field"><input type="email" id="suEmail" placeholder="e" autocomplete="email"><label>Email address</label></div>
-      <div class="field"><input type="password" id="suPass" placeholder="p"><label>Password (min 6 chars)</label></div>
+      <div class="field"><input type="text" id="suName" placeholder="n" autocomplete="name" onkeydown="if(event.key==='Enter')document.getElementById('suEmail').focus()"><label>Full Name</label></div>
+      <div class="field"><input type="email" id="suEmail" placeholder="e" autocomplete="email" onkeydown="if(event.key==='Enter')document.getElementById('suPass').focus()"><label>Email address</label></div>
+      <div class="field"><input type="password" id="suPass" placeholder="p" onkeydown="if(event.key==='Enter')suStep1()"><label>Password (min 6 chars)</label></div>
       <div class="msg err" id="su1Msg"></div>
       <button class="btn-red" style="width:100%;margin-top:4px" onclick="suStep1()">Continue</button>
       <div class="divider"><span>OR</span></div>
@@ -226,7 +230,17 @@ function showPage(n) { document.querySelectorAll('.page').forEach(p=>p.classList
 function hideLoader() { document.getElementById('initLoader').style.display='none'; }
 
 // ── LANDING ───────────────────────────────────────
-function handleGetStarted() { const e=document.getElementById('landEmail').value.trim(); if(e) document.getElementById('suEmail').value=e; showPage('signup'); }
+function handleGetStarted() {
+  const e = document.getElementById('landEmail').value.trim();
+  // Pre-fill both signup and login email fields
+  if (e) {
+    const suEl = document.getElementById('suEmail');
+    const liEl = document.getElementById('liEmail');
+    if (suEl) suEl.value = e;
+    if (liEl) liEl.value = e;
+  }
+  showPage('signup');
+}
 
 // ── GOOGLE ────────────────────────────────────────
 async function googleSignIn() {
@@ -317,7 +331,23 @@ function jumpStep(n) {
   ['sd1','sd2','sd3'].forEach((id,i)=>{const el=document.getElementById(id);el.className='sdot'+(i+1<n?' done':i+1===n?' active':'');});
 }
 function showMsg(id,msg,ok=false) { const el=document.getElementById(id);if(!el)return;el.textContent=msg;el.className='msg show '+(ok?'ok':'err'); }
-function errText(m) { const map={'Invalid login credentials':'❌ Email ya password galat hai','Email not confirmed':'⚠️ Email confirm karo','User already registered':'⚠️ Email already registered hai','Password should be at least 6 characters':'⚠️ Password min 6 chars'}; for(const[k,v]of Object.entries(map))if(m.includes(k))return v; return'❌ '+m; }
+function errText(m) {
+  const map = {
+    'Invalid login credentials':              '❌ Email ya password galat hai',
+    'Email not confirmed':                    '⚠️ Pehle email confirm karo',
+    'User already registered':                '⚠️ Email already registered — Sign in karo',
+    'Password should be at least 6 characters': '⚠️ Password min 6 characters',
+    'Email rate limit exceeded':              '⏳ Bahut zyada attempts — Thodi der baad try karo',
+    'signup_disabled':                        '⚠️ Registration abhi disabled hai',
+    'over_request_rate_limit':                '⏳ Too many requests — Wait karo',
+    'Network request failed':                 '🌐 Internet connection check karo',
+  };
+  for (const [k, v] of Object.entries(map)) {
+    if (m.toLowerCase().includes(k.toLowerCase())) return v;
+  }
+  return '❌ ' + m;
+}
 </script>
+<script>if("serviceWorker"in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){});});}</script>
 </body>
 </html>
