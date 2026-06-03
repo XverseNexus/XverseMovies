@@ -6,6 +6,10 @@
 <title>XverseMovies — Admin Panel</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="favicon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#E50914">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="XverseMovies">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="xverse-config.js"></script>
 <style>
@@ -140,6 +144,23 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
 /* SKEL */
 .sk{background:linear-gradient(90deg,#222 25%,#2a2a2a 50%,#222 75%);background-size:200% 100%;animation:ska 1.4s infinite;border-radius:4px}
 @keyframes ska{0%{background-position:200%}100%{background-position:-200%}}
+/* EDIT MODAL INPUTS — were missing, causing white browser default inputs */
+.fi{background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.08);color:#fff;padding:9px 11px;font-size:.84rem;border-radius:6px;font-family:'Barlow',sans-serif;outline:none;transition:border .2s;width:100%}
+.fi:focus{border-color:rgba(255,255,255,.28);background:rgba(255,255,255,.07)}
+.fi::placeholder{color:rgba(255,255,255,.2)}
+.fsel{background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.08);color:#fff;padding:9px 11px;font-size:.84rem;border-radius:6px;font-family:'Barlow',sans-serif;outline:none;cursor:pointer;width:100%;transition:border .2s}
+.fsel:focus{border-color:rgba(255,255,255,.28)}
+.fsel option{background:#1a1a1a;color:#fff}
+/* EMBED SOURCE BADGE */
+.esrc{display:inline-flex;align-items:center;gap:4px;font-size:.58rem;font-weight:700;padding:2px 7px;border-radius:3px;letter-spacing:.4px;white-space:nowrap}
+.esrc-custom{background:rgba(70,211,105,.12);border:1px solid rgba(70,211,105,.25);color:#46d369}
+.esrc-vidsrc{background:rgba(100,181,246,.1);border:1px solid rgba(100,181,246,.2);color:#64b5f6}
+.esrc-none{background:rgba(229,9,20,.08);border:1px solid rgba(229,9,20,.18);color:#ff6b6b}
+.esrc-unavail{background:rgba(245,197,24,.1);border:1px solid rgba(245,197,24,.2);color:#f5c518}
+/* UNAVAIL CHECKER RESULTS */
+.unavail-row{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid rgba(229,9,20,.2);border-radius:8px;padding:12px 14px;margin-bottom:8px;flex-wrap:wrap;transition:border-color .2s}
+.unavail-row.fixed{border-color:rgba(70,211,105,.3);background:rgba(70,211,105,.04)}
+.unavail-row:hover{border-color:rgba(229,9,20,.4)}
 @media(max-width:768px){.sb{display:none}.main{padding:18px 14px 40px}.fg{grid-template-columns:1fr}.fg.c3{grid-template-columns:1fr 1fr}.stats{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
@@ -363,7 +384,12 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
     <div class="panel" id="panel-tv">
       <div class="ptit">TV Shows</div>
       <div class="psub">Supabase DB mein saved TV shows</div>
-      <div class="tbar"><input class="tsearch" type="text" placeholder="🔍 Search shows..."><div class="tsp"></div></div>
+      <div class="tbar">
+        <input class="tsearch" type="text" placeholder="🔍 Search shows..." oninput="filterTable('tv',this.value)">
+        <select class="tfsel" onchange="filterTableLang('tv',this.value)"><option value="">All Languages</option><option value="hi">Hindi</option><option value="en">English</option><option value="te">Telugu</option><option value="ta">Tamil</option><option value="ko">Korean</option></select>
+        <div class="tsp"></div>
+        <button class="btn-add" style="padding:7px 16px;font-size:.78rem" onclick="nav('add',document.querySelectorAll('.sbtn')[1])">+ Add Show</button>
+      </div>
       <div id="tvTable"></div>
     </div>
 
@@ -941,100 +967,267 @@ function getEmbedUrl() {
 }
 
 // ─────────────────────────────────────────
-//  UNAVAILABLE CHECKER
+//  UNAVAILABLE CHECKER — Phase 1 Rewrite
+//  Uses corsproxy.io to actually read vidsrc
+//  HTML and detect "unavailable" content
 // ─────────────────────────────────────────
-async function checkUnavailable() {
-  const btn = document.getElementById('checkBtn');
-  btn.disabled = true; btn.textContent = '⏳ Checking...';
-  document.getElementById('checkProgress').style.display = 'block';
-  document.getElementById('unavailableResults').innerHTML = '';
 
-  const { data: movies } = await getSB().from('movies').select('*').eq('status','active').order('created_at',{ascending:false});
-  if (!movies?.length) { showToast('No active movies found'); btn.disabled=false; btn.textContent='🔍 Check All Movies'; return; }
+// Check a single movie's embed URL for availability
+async function checkOneMovie(m) {
+  let embedUrl = (m.embed_url && m.embed_url.trim()) ? m.embed_url.trim() : null;
 
-  const results = [];
-  const total   = movies.length;
-  let checked   = 0;
-
-  document.getElementById('checkStatus').textContent = `0 / ${total} checked`;
-
-  for (const m of movies) {
-    const embedUrl = m.embed_url || (m.tmdb_id ? `https://vidsrc.to/embed/movie/${m.tmdb_id}` : null);
-    let available  = false;
-
-    if (!embedUrl) {
-      results.push({ ...m, available: false, reason: 'No embed URL' });
-    } else {
-      try {
-        // We test by fetching the embed page — if it returns 200 with content it's likely ok
-        const isVidsrc = embedUrl.includes('vidsrc');
-        if (isVidsrc && m.tmdb_id) {
-          // For vidsrc: try fetching their availability API
-          const type = m.type === 'tv' ? 'tv' : 'movie';
-          const r = await fetch(`https://vidsrc.to/embed/${type}/${m.tmdb_id}`, {
-            method: 'HEAD', signal: AbortSignal.timeout(5000)
-          }).catch(() => null);
-          available = r?.ok && r.status !== 404;
-        } else {
-          available = true; // non-vidsrc (streamtape etc) assume available
-        }
-      } catch(e) {
-        available = false;
-      }
-      if (!available) results.push({ ...m, available: false, embedUrl, reason: 'Not on vidsrc' });
-    }
-
-    checked++;
-    const pct = Math.round((checked / total) * 100);
-    document.getElementById('checkBar').style.width  = pct + '%';
-    document.getElementById('checkText').textContent = `Checking: ${m.title} (${checked}/${total})`;
-    document.getElementById('checkStatus').textContent = `${checked} / ${total} checked`;
+  if (!embedUrl && m.tmdb_id && m.auto_embed !== false) {
+    const t = m.type === 'tv' ? 'tv' : 'movie';
+    embedUrl = `https://vidsrc.to/embed/${t}/${m.tmdb_id}`;
   }
 
-  btn.disabled = false; btn.textContent = '🔍 Check All Movies';
+  if (!embedUrl) return { available: false, reason: 'No embed URL', embedUrl: null };
+
+  // Non-vidsrc manual embeds — skip proxy check, mark as ok
+  if (m.manual_embed && !embedUrl.includes('vidsrc')) {
+    return { available: true, reason: 'Custom embed (not checked)', embedUrl };
+  }
+
+  // Non-vidsrc auto embed — also skip
+  if (!embedUrl.includes('vidsrc')) {
+    return { available: true, reason: `${m.embed_source||'custom'} embed (not checked)`, embedUrl };
+  }
+
+  const UNAVAIL_STRINGS = [
+    'the media you are looking for could not be found',
+    'media is unavailable',
+    'no sources found',
+    'sorry, this video is not available',
+    'content unavailable',
+    'could not be found',
+    'video not available',
+  ];
+
+  const proxies = [
+    `https://corsproxy.io/?url=${encodeURIComponent(embedUrl)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(embedUrl)}`,
+  ];
+
+  for (const proxyUrl of proxies) {
+    try {
+      const r = await fetch(proxyUrl, { signal: AbortSignal.timeout(9000) });
+      if (!r.ok) {
+        if (r.status === 404) return { available: false, reason: '404 Not Found', embedUrl };
+        continue;
+      }
+      const html = (await r.text()).toLowerCase();
+      for (const s of UNAVAIL_STRINGS) {
+        if (html.includes(s)) return { available: false, reason: `Shows: "${s}"`, embedUrl };
+      }
+      const hasPlayer = html.includes('<video') || html.includes('player') || html.includes('source');
+      return { available: hasPlayer, reason: hasPlayer ? 'OK' : 'No player found', embedUrl };
+    } catch { /* try next proxy */ }
+  }
+
+  return { available: null, reason: 'Check manually (proxy failed)', embedUrl };
+}
+
+async function checkUnavailable() {
+  const btn = document.getElementById('checkBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Checking...';
+
+  document.getElementById('checkProgress').style.display = 'block';
+  document.getElementById('checkBar').style.width = '0%';
+  document.getElementById('unavailableResults').innerHTML = '';
+  document.getElementById('checkStatus').textContent = '';
+
+  const { data: movies } = await getSB()
+    .from('movies')
+    .select('*')
+    .eq('status', 'active')
+    .order('created_at', { ascending: false });
+
+  if (!movies?.length) {
+    showToast('No active movies found');
+    btn.disabled = false; btn.textContent = '🔍 Check All Movies';
+    document.getElementById('checkProgress').style.display = 'none';
+    return;
+  }
+
+  const total = movies.length;
+  document.getElementById('checkStatus').textContent = `0 / ${total} checked`;
+  document.getElementById('checkText').textContent   = 'Starting checks...';
+
+  const checkResults = await withConcurrency(movies, async (m) => {
+    const result = await checkOneMovie(m);
+    return { movie: m, ...result };
+  }, 5, (done, tot, m) => {
+    const pct = Math.round((done / tot) * 100);
+    document.getElementById('checkBar').style.width  = pct + '%';
+    document.getElementById('checkText').textContent = `Checked: ${m.title} (${done}/${tot})`;
+    document.getElementById('checkStatus').textContent = `${done} / ${tot} checked`;
+  });
+
+  // ── Write results back to DB (embed_working + last_checked) ──
+  const now = new Date().toISOString();
+  const dbUpdates = checkResults
+    .filter(r => r.available !== null) // skip "proxy failed" = null
+    .map(r => getSB().from('movies').update({
+      embed_working: r.available === true,
+      last_checked:  now,
+    }).eq('id', r.movie.id));
+
+  await Promise.allSettled(dbUpdates);
+
+  // Update local allMovies cache
+  for (const r of checkResults) {
+    const m = allMovies.find(x => x.id === r.movie.id);
+    if (m && r.available !== null) {
+      m.embed_working = r.available === true;
+      m.last_checked  = now;
+    }
+  }
+
+  btn.disabled = false;
+  btn.textContent = '🔍 Check All Movies';
   document.getElementById('checkProgress').style.display = 'none';
 
-  const unavCnt = document.getElementById('sbUnavCnt');
-  if (unavCnt) { unavCnt.textContent = results.length; unavCnt.style.display = results.length ? 'flex' : 'none'; }
+  const unavailable  = checkResults.filter(r => r.available === false);
+  const needsReview  = checkResults.filter(r => r.available === null);
+  const ok           = checkResults.filter(r => r.available === true);
 
-  if (!results.length) {
-    document.getElementById('unavailableResults').innerHTML = `
+  const unavCnt = document.getElementById('sbUnavCnt');
+  if (unavCnt) {
+    const n = unavailable.length + needsReview.length;
+    unavCnt.textContent   = n;
+    unavCnt.style.display = n ? 'flex' : 'none';
+  }
+
+  const res = document.getElementById('unavailableResults');
+
+  if (!unavailable.length && !needsReview.length) {
+    res.innerHTML = `
       <div style="text-align:center;padding:30px;color:var(--green);font-size:.92rem">
-        ✅ Sab ${total} movies available hain! Koi issue nahi.
+        ✅ All ${total} movies checked — no issues found!
+        <div style="font-size:.76rem;color:var(--muted);margin-top:6px">${ok.length} available · 0 unavailable</div>
       </div>`;
     return;
   }
 
-  document.getElementById('unavailableResults').innerHTML = `
-    <div style="font-size:.82rem;color:var(--muted);margin-bottom:12px">
-      ⚠️ ${results.length} movies vidsrc pe available nahi — custom embed lagao:
-    </div>
-    ${results.map(m => `
-      <div style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid rgba(229,9,20,.2);border-radius:8px;padding:12px 14px;margin-bottom:8px;flex-wrap:wrap">
-        <img src="${m.poster_url||''}" style="width:40px;height:58px;object-fit:cover;border-radius:4px;background:#222;flex-shrink:0" onerror="this.style.display='none'">
-        <div style="flex:1;min-width:120px">
-          <div style="font-size:.88rem;font-weight:700;color:#fff">${m.title}</div>
-          <div style="font-size:.72rem;color:var(--muted)">${m.year||''} · TMDB: ${m.tmdb_id||'N/A'} · ${m.reason||'Unavailable'}</div>
+  let html = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+      <div style="background:rgba(70,211,105,.08);border:1px solid rgba(70,211,105,.2);border-radius:6px;padding:8px 14px;font-size:.8rem">
+        ✅ <strong style="color:var(--green)">${ok.length}</strong> Available
+      </div>
+      <div style="background:rgba(229,9,20,.08);border:1px solid rgba(229,9,20,.2);border-radius:6px;padding:8px 14px;font-size:.8rem">
+        ❌ <strong style="color:#ff6b6b">${unavailable.length}</strong> Unavailable
+      </div>
+      ${needsReview.length ? `
+      <div style="background:rgba(245,197,24,.08);border:1px solid rgba(245,197,24,.2);border-radius:6px;padding:8px 14px;font-size:.8rem">
+        ⚠️ <strong style="color:#f5c518">${needsReview.length}</strong> Manual check needed
+      </div>` : ''}
+    </div>`;
+
+  if (unavailable.length) {
+    html += `<div style="font-size:.84rem;font-weight:700;color:#ff6b6b;margin-bottom:10px">❌ Unavailable on vidsrc — custom embed lagao:</div>`;
+    html += unavailable.map(r => unavailRowHTML(r, 'red')).join('');
+  }
+  if (needsReview.length) {
+    html += `<div style="font-size:.84rem;font-weight:700;color:#f5c518;margin:16px 0 10px">⚠️ Manual Review Needed (proxy failed):</div>`;
+    html += needsReview.map(r => unavailRowHTML(r, 'yellow')).join('');
+  }
+
+  res.innerHTML = html;
+}
+
+function unavailRowHTML(r, color) {
+  const m = r.movie;
+  const borderColor = color === 'red'
+    ? 'rgba(229,9,20,.3)' : 'rgba(245,197,24,.25)';
+
+  return `
+    <div class="unavail-row" id="unavRow_${m.id}" style="border-color:${borderColor}">
+      <img src="${m.poster_url||''}" 
+        style="width:40px;height:58px;object-fit:cover;border-radius:4px;background:#222;flex-shrink:0" 
+        onerror="this.style.display='none'">
+      <div style="flex:1;min-width:120px">
+        <div style="font-size:.88rem;font-weight:700;color:#fff">${m.title}</div>
+        <div style="font-size:.7rem;color:var(--muted);margin-top:2px">
+          ${m.year||''} · ${m.type==='tv'?'TV':'Movie'} · TMDB: ${m.tmdb_id||'N/A'}
         </div>
-        <input type="url" id="fix_${m.id}" placeholder="Paste custom embed URL here..." 
-          style="flex:2;min-width:200px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);color:#fff;padding:8px 11px;font-size:.76rem;border-radius:6px;font-family:'Barlow',sans-serif;outline:none">
+        <div style="font-size:.67rem;color:${color==='red'?'#ff6b6b':'#f5c518'};margin-top:2px">
+          ${r.reason}
+        </div>
+        <div style="font-size:.64rem;color:var(--muted);margin-top:1px;font-family:monospace;word-break:break-all">
+          ${r.embedUrl||'—'}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;min-width:260px">
+        <input 
+          type="url" 
+          id="fix_${m.id}" 
+          placeholder="Paste custom embed URL (DailyMotion / Streamtape / any embed)..." 
+          value="${m.embed_url && !m.embed_url.includes('vidsrc') ? m.embed_url : ''}"
+          style="background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);color:#fff;padding:8px 11px;font-size:.74rem;border-radius:6px;font-family:'Barlow',sans-serif;outline:none;width:100%"
+          oninput="this.style.borderColor='rgba(255,255,255,.28)'">
         <div style="display:flex;gap:6px">
-          <button onclick="fixEmbedUrl(${m.id})" class="btn-add" style="padding:7px 14px;font-size:.76rem">💾 Save</button>
-          <button onclick="testById(${m.id},document.getElementById('fix_${m.id}').value||'${m.embed_url||''}')" class="tab-btn play" title="Test">▶</button>
+          <button onclick="fixEmbedUrl(${m.id})" class="btn-add" style="padding:6px 14px;font-size:.74rem;flex:1">💾 Save URL</button>
+          <button onclick="clearEmbedUrl(${m.id})" class="btn-sec" style="padding:6px 10px;font-size:.72rem" title="Reset to vidsrc auto">↺ Reset</button>
+          <button onclick="quickTestEmbed(${m.id})" class="tab-btn play" title="Test current embed">▶</button>
         </div>
-      </div>`).join('')}`;
+      </div>
+    </div>`;
+}
+
+async function clearEmbedUrl(movieId) {
+  // Reset to vidsrc auto — clears custom embed, resets all embed flags
+  const updates = {
+    embed_url:     null,
+    embed_working: true,
+    manual_embed:  false,
+    auto_embed:    true,
+    embed_source:  'vidsrc',
+  };
+  const { error } = await getSB().from('movies').update(updates).eq('id', movieId);
+  if (error) { showToast('❌ ' + error.message); return; }
+  const m = allMovies.find(x => x.id === movieId);
+  if (m) Object.assign(m, updates);
+  const input = document.getElementById('fix_' + movieId);
+  if (input) { input.value = ''; input.style.borderColor = ''; }
+  showToast('↺ Reset to vidsrc auto');
+}
+
+function quickTestEmbed(movieId) {
+  const input = document.getElementById('fix_' + movieId);
+  const m     = allMovies.find(x => x.id === movieId) || {};
+  const url   = input?.value.trim() || getPlayUrl(m);
+  if (!url) { showToast('⚠️ No URL to test'); return; }
+  document.getElementById('testTitle').textContent = m.title || 'Testing...';
+  document.getElementById('testFrame').src = url;
+  document.getElementById('testModal').classList.add('open');
 }
 
 async function fixEmbedUrl(movieId) {
   const input = document.getElementById('fix_' + movieId);
   const url   = input?.value.trim();
-  if (!url) { showToast('❌ Embed URL daalo'); return; }
-  const { error } = await getSB().from('movies').update({ embed_url: url }).eq('id', movieId);
+  if (!url)                          { showToast('❌ Embed URL daalo'); return; }
+  if (!validateEmbedUrl(url))        { showToast('❌ Valid URL daalo (https://...)'); return; }
+
+  const source  = detectEmbedSource(url);
+  const updates = {
+    embed_url:     url,
+    embed_working: true,      // admin manually fixed = mark as working
+    manual_embed:  true,      // this is a manual override
+    auto_embed:    false,     // don't auto-build anymore for this movie
+    embed_source:  source,    // 'streamtape' | 'dailymotion' | 'youtube' | 'custom'
+    last_checked:  new Date().toISOString(),
+  };
+
+  const { error } = await getSB().from('movies').update(updates).eq('id', movieId);
   if (error) { showToast('❌ ' + error.message); return; }
+
   const m = allMovies.find(x => x.id === movieId);
-  if (m) m.embed_url = url;
-  input.style.borderColor = '#46d369';
-  showToast('✅ Embed URL saved!');
+  if (m) Object.assign(m, updates);
+
+  const row = document.getElementById('unavRow_' + movieId);
+  if (row) { row.classList.add('fixed'); input.style.borderColor = '#46d369'; }
+  showToast(`✅ ${source} embed saved!`);
 }
 
 //  TABLE
@@ -1048,17 +1241,71 @@ async function loadTable(type) {
   el.innerHTML = `<table class="tbl"><thead><tr><th></th><th>Title</th><th>Year</th><th>Rating</th><th>Quality</th><th>Language</th><th>Status</th><th>Actions</th></tr></thead><tbody>${items.map(m=>rowHTML(m)).join('')}</tbody></table>`;
 }
 
+// Detect embed source string from URL
+function detectEmbedSource(url) {
+  if (!url) return 'vidsrc';
+  if (url.includes('vidsrc'))      return 'vidsrc';
+  if (url.includes('streamtape'))  return 'streamtape';
+  if (url.includes('dailymotion')) return 'dailymotion';
+  if (url.includes('youtube') || url.includes('youtu.be')) return 'youtube';
+  return 'custom';
+}
+
+function embedSourceBadge(m) {
+  // embed_working=false → unavailable warning (highest priority)
+  if (m.embed_working === false) {
+    const ts = m.last_checked
+      ? ' · checked ' + new Date(m.last_checked).toLocaleDateString('en-IN')
+      : '';
+    return `<span class="esrc esrc-unavail">⚠️ Unavailable${ts}</span>`;
+  }
+  // Determine source using real DB columns
+  const src = m.embed_source || detectEmbedSource(m.embed_url);
+  if (m.manual_embed) {
+    const labels = { streamtape:'Streamtape', dailymotion:'Dailymotion', youtube:'YouTube' };
+    const label  = labels[src] || (src !== 'vidsrc' ? src.charAt(0).toUpperCase()+src.slice(1) : 'Custom');
+    return `<span class="esrc esrc-custom">🟢 ${label}</span>`;
+  }
+  if (m.embed_url && m.embed_url.trim()) {
+    return `<span class="esrc esrc-custom">🟢 Custom</span>`;
+  }
+  if (m.tmdb_id && m.auto_embed !== false) {
+    return `<span class="esrc esrc-vidsrc">🔵 vidsrc auto</span>`;
+  }
+  return `<span class="esrc esrc-none">⚫ No URL</span>`;
+}
+
+function getPlayUrl(m) {
+  // manual_embed=true → always use embed_url (admin override)
+  if (m.manual_embed && m.embed_url && m.embed_url.trim()) return m.embed_url.trim();
+  // embed_url set → use it
+  if (m.embed_url && m.embed_url.trim()) return m.embed_url.trim();
+  // auto_embed=true (or not set) + tmdb_id → build vidsrc URL
+  if (m.tmdb_id && m.auto_embed !== false) {
+    return `https://vidsrc.to/embed/${m.type==='tv'?'tv':'movie'}/${m.tmdb_id}`;
+  }
+  return '';
+}
+
 function rowHTML(m) {
+  const playUrl = getPlayUrl(m);
   return `<tr>
     <td class="tposter"><img src="${m.poster_url||'https://ui-avatars.com/api/?name='+encodeURIComponent(m.title)+'&background=222&color=555&size=200'}" onerror="this.src='https://ui-avatars.com/api/?name=X&background=222&color=444'"></td>
-    <td><div class="ttitle">${m.title}</div><div style="margin-top:2px;display:flex;gap:3px;flex-wrap:wrap">${m.featured?'<span class="chip chip-feat">⭐ FEATURED</span>':''}${m.type==='tv'?'<span class="chip chip-tv">TV</span>':'<span class="chip chip-mov">MOVIE</span>'}</div></td>
+    <td>
+      <div class="ttitle">${m.title}</div>
+      <div style="margin-top:3px;display:flex;gap:3px;flex-wrap:wrap;align-items:center">
+        ${m.featured?'<span class="chip chip-feat">⭐</span>':''}
+        ${m.type==='tv'?'<span class="chip chip-tv">TV</span>':'<span class="chip chip-mov">MOVIE</span>'}
+        ${embedSourceBadge(m)}
+      </div>
+    </td>
     <td style="color:var(--muted)">${m.year||'—'}</td>
     <td style="color:var(--green)">★ ${m.rating||'—'}</td>
     <td><span style="font-size:.7rem;background:rgba(255,255,255,.07);padding:2px 6px;border-radius:3px;color:#fff">${m.quality||'—'}</span></td>
     <td style="color:var(--muted);font-size:.74rem;text-transform:uppercase">${m.language||'—'}</td>
     <td><span class="chip ${m.status==='active'?'chip-on':'chip-off'}">${m.status||'active'}</span></td>
     <td><div class="tacts">
-      <button class="tab-btn play" onclick="testById(${m.id},'${m.embed_url || ''}')" title="Play">▶</button>
+      <button class="tab-btn play" onclick="testById(${m.id})" title="Play">▶</button>
       <button class="tab-btn" onclick="editMovie(${m.id})" title="Edit">✏️</button>
       <button class="tab-btn" onclick="toggleFeat(${m.id})" title="${m.featured?'Remove featured':'Add featured'}">${m.featured?'★':'☆'}</button>
       <button class="tab-btn" onclick="toggleStatus(${m.id})" title="Toggle status">${m.status==='active'?'👁':'🚫'}</button>
@@ -1067,10 +1314,13 @@ function rowHTML(m) {
   </tr>`;
 }
 
-function testById(id, url) {
-  const m = allMovies.find(x=>x.id===id)||{title:'Movie',embed_url:url};
-  document.getElementById('testTitle').textContent = m.title;
-  document.getElementById('testFrame').src = m.embed_url || url;
+function testById(id) {
+  const m = allMovies.find(x => x.id === id) || {};
+  // Priority: saved embed_url > build from tmdb_id
+  const url = getPlayUrl(m);
+  if (!url) { showToast('⚠️ No embed URL for this title'); return; }
+  document.getElementById('testTitle').textContent = m.title || 'Testing...';
+  document.getElementById('testFrame').src = url;
   document.getElementById('testModal').classList.add('open');
 }
 
@@ -1080,34 +1330,109 @@ function testById(id, url) {
 function editMovie(id) {
   const m = allMovies.find(x=>x.id===id); if(!m) return;
   editingId = id;
+
+  const currentEmbed = m.embed_url || '';
+  const autoVidsrc = m.tmdb_id
+    ? `https://vidsrc.to/embed/${m.type==='tv'?'tv':'movie'}/${m.tmdb_id}`
+    : '';
+  const srcBadge = embedSourceBadge(m);
+
   document.getElementById('editForm').innerHTML = `
-    <div class="fg" style="margin-bottom:12px"><div class="fw"><label>Title</label><input id="eTitle" class="fi" value="${m.title||''}"></div><div class="fw"><label>Embed URL</label><input id="eEmbed" class="fi" value="${m.embed_url||''}"></div></div>
-    <div class="fg" style="margin-bottom:12px"><div class="fw"><label>Rating</label><input id="eRating" class="fi" type="number" value="${m.rating||''}" step="0.1" min="0" max="10"></div><div class="fw"><label>Year</label><input id="eYear" class="fi" value="${m.year||''}"></div></div>
-    <div class="fg c1" style="margin-bottom:12px"><div class="fw"><label>Poster URL</label><input id="ePoster" class="fi" value="${m.poster_url||''}"></div></div>
-    <div class="fg c1" style="margin-bottom:12px"><div class="fw"><label>Overview</label><textarea id="eOv" style="background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.08);color:#fff;padding:9px 11px;font-size:.84rem;border-radius:6px;font-family:'Barlow',sans-serif;outline:none;width:100%;min-height:70px;resize:vertical">${m.overview||''}</textarea></div></div>
-    <div class="fg" style="margin-bottom:0"><div class="fw"><label>Status</label><select id="eStat" class="fsel"><option value="active" ${m.status==='active'?'selected':''}>Active</option><option value="inactive" ${m.status==='inactive'?'selected':''}>Inactive</option></select></div><div class="fw"><label>Featured</label><select id="eFeat" class="fsel"><option value="true" ${m.featured?'selected':''}>Yes</option><option value="false" ${!m.featured?'selected':''}>No</option></select></div></div>
-    <div class="brow"><button class="btn-add" onclick="saveEdit()">💾 Save</button><button class="btn-sec" onclick="closeEditModal()">Cancel</button></div>`;
+    <div class="fg" style="margin-bottom:12px">
+      <div class="fw">
+        <label>Title</label>
+        <input id="eTitle" class="fi" value="${m.title||''}">
+      </div>
+      <div class="fw">
+        <label>Year</label>
+        <input id="eYear" class="fi" value="${m.year||''}">
+      </div>
+    </div>
+    <div class="fg" style="margin-bottom:12px">
+      <div class="fw">
+        <label>Rating</label>
+        <input id="eRating" class="fi" type="number" value="${m.rating||''}" step="0.1" min="0" max="10">
+      </div>
+      <div class="fw">
+        <label>Quality</label>
+        <select id="eQuality" class="fsel">
+          <option ${m.quality==='4K'?'selected':''}>4K</option>
+          <option ${m.quality==='1080p'?'selected':''}>1080p</option>
+          <option ${m.quality==='720p'?'selected':''}>720p</option>
+          <option ${m.quality==='480p'?'selected':''}>480p</option>
+        </select>
+      </div>
+    </div>
+    <div class="fw" style="margin-bottom:12px">
+      <label>Embed URL &nbsp; ${srcBadge}</label>
+      <input id="eEmbed" class="fi" value="${currentEmbed}" placeholder="Leave empty = vidsrc auto | Paste custom for override">
+      <div class="hint" style="margin-top:4px">
+        Leave empty → auto-use vidsrc (TMDB ID: ${m.tmdb_id||'not set'})
+        ${autoVidsrc ? `<br>Auto URL: <span style="color:#64b5f6;font-family:monospace;font-size:.62rem">${autoVidsrc}</span>` : ''}
+      </div>
+    </div>
+    <div class="fg c1" style="margin-bottom:12px">
+      <div class="fw">
+        <label>Poster URL</label>
+        <input id="ePoster" class="fi" value="${m.poster_url||''}">
+      </div>
+    </div>
+    <div class="fg c1" style="margin-bottom:12px">
+      <div class="fw">
+        <label>Overview</label>
+        <textarea id="eOv" class="fi" style="min-height:70px;resize:vertical">${m.overview||''}</textarea>
+      </div>
+    </div>
+    <div class="fg" style="margin-bottom:0">
+      <div class="fw">
+        <label>Status</label>
+        <select id="eStat" class="fsel">
+          <option value="active" ${m.status==='active'?'selected':''}>Active</option>
+          <option value="inactive" ${m.status==='inactive'?'selected':''}>Inactive</option>
+          <option value="coming_soon" ${m.status==='coming_soon'?'selected':''}>Coming Soon</option>
+        </select>
+      </div>
+      <div class="fw">
+        <label>Featured</label>
+        <select id="eFeat" class="fsel">
+          <option value="true" ${m.featured?'selected':''}>Yes — Hero Banner</option>
+          <option value="false" ${!m.featured?'selected':''}>No</option>
+        </select>
+      </div>
+    </div>
+    <div class="brow">
+      <button class="btn-add" onclick="saveEdit()">💾 Save Changes</button>
+      <button class="btn-sec" onclick="testById(${m.id})">▶ Test</button>
+      <button class="btn-sec" onclick="closeEditModal()">Cancel</button>
+    </div>`;
   document.getElementById('editModal').classList.add('open');
 }
 
 async function saveEdit() {
 
-  const embedUrl = document.getElementById('eEmbed').value.trim();
+  const embedVal = document.getElementById('eEmbed').value.trim();
 
-  if (embedUrl && !validateEmbedUrl(embedUrl)) {
-    showToast('❌ Valid embed URL daalo');
+  if (embedVal && !validateEmbedUrl(embedVal)) {
+    showToast('❌ Valid embed URL daalo (https://...)');
     return;
   }
 
+  const source = embedVal ? detectEmbedSource(embedVal) : 'vidsrc';
+
   const updates = {
-    title:       document.getElementById('eTitle').value.trim(),
-    embed_url:   embedUrl || null,
-    rating:      parseFloat(document.getElementById('eRating').value)||null,
-    year:        document.getElementById('eYear').value,
-    poster_url:  document.getElementById('ePoster').value.trim()||null,
-    overview:    document.getElementById('eOv').value.trim()||null,
-    status:      document.getElementById('eStat').value,
-    featured:    document.getElementById('eFeat').value==='true',
+    title:        document.getElementById('eTitle').value.trim(),
+    embed_url:    embedVal || null,
+    embed_source: source,
+    manual_embed: !!embedVal,          // true if admin set a URL
+    auto_embed:   !embedVal,           // true if no manual URL → use vidsrc auto
+    embed_working: true,               // assume working when admin edits
+    rating:       parseFloat(document.getElementById('eRating').value) || null,
+    year:         document.getElementById('eYear').value,
+    quality:      document.getElementById('eQuality')?.value || null,
+    poster_url:   document.getElementById('ePoster').value.trim() || null,
+    overview:     document.getElementById('eOv').value.trim() || null,
+    status:       document.getElementById('eStat').value,
+    featured:     document.getElementById('eFeat').value === 'true',
   };
 
   const { error } = await getSB()
@@ -1346,24 +1671,33 @@ async function exportCSV() {
 
   const { data } = await getSB()
     .from('movies')
-    .select('id,title,type,year,rating,language,quality,status,embed_url')
+    .select('id,title,type,year,rating,language,quality,status,embed_url,tmdb_id,poster_url,overview,genres,featured,min_plan,age_rating')
     .order('created_at', { ascending:false });
 
   const items = data || [];
 
   const headers =
-    'id,title,type,year,rating,language,quality,status,embed_url';
+    'id,title,type,year,rating,language,quality,status,tmdb_id,featured,min_plan,age_rating,embed_url,poster_url,overview,genres';
+
+  const esc = v => `"${String(v||'').replace(/"/g,'""')}"`;
 
   const rows = items.map(m => [
     m.id,
-    `"${m.title}"`,
+    esc(m.title),
     m.type,
     m.year,
     m.rating,
     m.language,
     m.quality,
     m.status,
-    `"${m.embed_url || ''}"`
+    m.tmdb_id||'',
+    m.featured ? 'true' : 'false',
+    m.min_plan||'free',
+    esc(m.age_rating||''),
+    esc(m.embed_url||''),
+    esc(m.poster_url||''),
+    esc(m.overview||''),
+    esc(Array.isArray(m.genres) ? m.genres.join(';') : (m.genres||'')),
   ].join(','));
 
   const csv = [headers, ...rows].join('\n');
@@ -1379,7 +1713,86 @@ async function exportCSV() {
 
   a.click();
 
-  showToast(`📊 CSV exported!`);
+  showToast(`📊 CSV exported — ${items.length} titles`);
+}
+
+// ─────────────────────────────────────────
+//  LOAD TABLE (called by nav() for movies/tv)
+// ─────────────────────────────────────────
+async function loadTable(type) {
+  const elId   = type === 'movies' ? 'moviesTable' : 'tvTable';
+  const el     = document.getElementById(elId);
+  const dbType = type === 'movies' ? 'movie' : 'tv';
+
+  el.innerHTML = `
+    <div class="empty" style="padding:24px;text-align:center">
+      <div style="font-size:1.5rem;margin-bottom:6px">⏳</div>
+      <div style="font-size:.8rem;color:var(--muted)">Loading...</div>
+    </div>`;
+
+  const { data, error } = await getSB()
+    .from('movies')
+    .select('*')
+    .eq('type', dbType)
+    .order('created_at', { ascending: false })
+    .limit(200);
+
+  const items = data || [];
+
+  if (error) {
+    el.innerHTML = `<div class="empty"><div class="empty-ico">⚠️</div><div style="color:#ff6b6b;font-size:.8rem">${error.message}</div></div>`;
+    return;
+  }
+
+  if (!items.length) {
+    el.innerHTML = `
+      <div class="empty">
+        <div class="empty-ico">${type === 'movies' ? '🎬' : '📺'}</div>
+        <div style="font-size:.84rem;color:var(--muted)">
+          No ${type === 'movies' ? 'movies' : 'TV shows'} added yet.<br>
+          <span style="font-size:.76rem">Add panel se add karo.</span>
+        </div>
+      </div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th></th>
+          <th>Title</th>
+          <th>Year</th>
+          <th>Rating</th>
+          <th>Quality</th>
+          <th>Language</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${items.map(m => rowHTML(m)).join('')}
+      </tbody>
+    </table>`;
+}
+
+// ─────────────────────────────────────────
+//  UPDATE COUNTS (sidebar badges)
+// ─────────────────────────────────────────
+function updateCounts() {
+  const movies = allMovies.filter(m => m.type === 'movie');
+  const tv     = allMovies.filter(m => m.type === 'tv');
+
+  const setCnt = (id, n) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent   = n;
+    el.style.display = n > 0 ? 'flex' : 'none';
+  };
+
+  // IDs from sidebar HTML: sbMCnt, sbTCnt
+  setCnt('sbMCnt', movies.length);
+  setCnt('sbTCnt', tv.length);
 }
 
 // ─────────────────────────────────────────
@@ -1431,10 +1844,13 @@ async function filterTableLang(type, lang) {
       : 'tvTable'
     );
 
+  // Fix: was always filtering by type='movie' even for TV table
+  const dbType = type === 'movies' ? 'movie' : 'tv';
+
   let query = getSB()
     .from('movies')
     .select('*')
-    .eq('type', type === 'movies' ? 'movie' : 'tv');
+    .eq('type', dbType);
 
   if (lang) {
     query = query.eq('language', lang);
@@ -1481,5 +1897,6 @@ async function filterTableLang(type, lang) {
 }
 
 </script>
+<script>if("serviceWorker"in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){});});}</script>
 </body>
 </html>
