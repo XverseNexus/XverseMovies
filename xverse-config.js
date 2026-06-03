@@ -201,8 +201,6 @@ const DB = {
       starts_at:  new Date().toISOString(),
     });
   },
-    
-  async updateContinueWatching(uid, movieId, progressSec, durationSec, extraData = {}) {
     const completed = durationSec > 0 && (progressSec / durationSec) > 0.9;
     return getSB().from('continue_watching').upsert({
       user_id:      uid,
@@ -211,6 +209,7 @@ const DB = {
       duration_sec: durationSec,
       completed,
       updated_at:   new Date().toISOString(),
+      // Store last-watched season/episode for TV shows (ignored if column doesn't exist)
       ...(extraData.season  ? { last_season:  extraData.season  } : {}),
       ...(extraData.episode ? { last_episode: extraData.episode } : {}),
     }, { onConflict: 'user_id,movie_id' });
