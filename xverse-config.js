@@ -60,8 +60,8 @@ const Auth = {
       .from('profiles')
       .select('*')
       .eq('id', uid)
-      .single();
-    return data;
+      .limit(1);
+    return data?.[0] ?? null;
   },
 
   // Get viewer profiles
@@ -156,8 +156,8 @@ const DB = {
       .select('id')
       .eq('user_id', uid)
       .eq('movie_id', movieId)
-      .single();
-    return !!data;
+      .limit(1);
+    return !!(data && data.length > 0);
   },
 
   // ── CONTINUE WATCHING ────────────────────────────────
@@ -269,8 +269,8 @@ const DB = {
 },
 
   async getMovie(id) {
-    const { data } = await getSB().from('movies').select('*').eq('id', id).single();
-    return data;
+    const { data } = await getSB().from('movies').select('*').eq('id', id).limit(1);
+    return data?.[0] ?? null;
   },
 
   async searchMovies(query) {
