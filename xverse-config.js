@@ -169,14 +169,38 @@ const DB = {
       .order('updated_at', { ascending: false });
     return (data || []).map(r => ({
       ...r.movies,
-      progress:  r.progress_sec,
-      duration:  r.duration_sec,
-      completed: r.completed,
-      updatedAt: r.updated_at,
+      progress:    r.progress_sec,
+      duration:    r.duration_sec,
+      completed:   r.completed,
+      updatedAt:   r.updated_at,
+      // TV show resume: last watched season + episode
+      lastSeason:  r.last_season  || 1,
+      lastEpisode: r.last_episode || 1,
     }));
   },
 
-  async upsertContinueWatching(uid, movieId, progressSec, durationSec) {
+  async updateEmbedStatus(movieId, working, source = null) {
+    const updates = {
+      embed_working: working,
+      last_checked:  new Date().toISOString(),
+    };
+    if (source) updates.embed_source = source;
+    return getSB().from('movies').update(updates).eq('id', movieId);
+  },
+
+  async logSubscription(uid, plan, paymentId, amountINR) {
+    // Log payment to subscriptions table (for audit trail)
+    return getSB().from('subscriptions').insert({
+      user_id:    uid,
+      plan,
+      amount:     amountINR,
+      currency:   'INR',
+      payment_id: paymentId || null,
+      gateway:    'cashfree',
+      status:     'active',
+      starts_at:  new Date().toISOString(),
+    });
+  },
     const completed = durationSec > 0 && (progressSec / durationSec) > 0.9;
     return getSB().from('continue_watching').upsert({
       user_id:      uid,
@@ -185,6 +209,9 @@ const DB = {
       duration_sec: durationSec,
       completed,
       updated_at:   new Date().toISOString(),
+      // Store last-watched season/episode for TV shows (ignored if column doesn't exist)
+      ...(extraData.season  ? { last_season:  extraData.season  } : {}),
+      ...(extraData.episode ? { last_episode: extraData.episode } : {}),
     }, { onConflict: 'user_id,movie_id' });
   },
 
