@@ -6,6 +6,10 @@
 <title>XverseMovies — Settings</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="favicon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#E50914">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="XverseMovies">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="xverse-config.js"></script>
 <style>
@@ -370,10 +374,10 @@ const PLAN_DATA  = [
 //  SIDEBAR
 // ─────────────────────────────────────────
 function loadSidebar() {
-  const name     = userProfile?.name || currentUser.email?.split('@')[0] || 'User';
-  const email    = currentUser.email || '';
-  const plan     = userProfile?.plan || 'free';
-  const av       = userProfile?.avatar_url || currentUser.user_metadata?.avatar_url;
+  const name  = userProfile?.name || currentUser.email?.split('@')[0] || 'User';
+  const email = currentUser.email || '';
+  const plan  = userProfile?.plan || 'free';
+  const av    = userProfile?.avatar_url || currentUser.user_metadata?.avatar_url;
 
   document.getElementById('sbName').textContent  = name;
   document.getElementById('sbEmail').textContent = email;
@@ -389,19 +393,15 @@ function loadSidebar() {
     document.getElementById('sbInit').textContent = name[0].toUpperCase();
   }
 
-  // Form fields
+  // Prefill account form fields
   const parts = name.split(' ');
-  const fn = document.getElementById('fName'); if(fn) fn.value = parts[0]||'';
-  const ln = document.getElementById('lName'); if(ln) ln.value = parts.slice(1).join(' ')||'';
-  const em = document.getElementById('accEmail'); if(em) em.value = email;
+  const fn = document.getElementById('fName'); if (fn) fn.value = parts[0] || '';
+  const ln = document.getElementById('lName'); if (ln) ln.value = parts.slice(1).join(' ') || '';
+  const em = document.getElementById('accEmail'); if (em) em.value = email;
 
-  // Notif badge
-  const unread = notifs.filter(n=>!n.is_read).length;
-  if (unread > 0) {
-    document.getElementById('sbNBadge').textContent = unread;
-    document.getElementById('sbNBadge').style.display = 'flex';
-    document.getElementById('npDot').style.display = 'block';
-  }
+  // FIX: Use updateUnreadBadge() to update ALL 3 badge elements (npCnt, sbNBadge, npDot)
+  // Before this fix, npCnt (the count inside the notif panel header) was never updated on load
+  updateUnreadBadge();
 }
 
 // ─────────────────────────────────────────
@@ -438,12 +438,20 @@ function toggleSC(head) { head.closest('.sc').classList.toggle('open'); }
 //  PERSONAL INFO
 // ─────────────────────────────────────────
 async function savePersonalInfo() {
-  const fn = document.getElementById('fName').value.trim();
-  const ln = document.getElementById('lName').value.trim();
-  const name = [fn, ln].filter(Boolean).join(' ');
+  const fn    = document.getElementById('fName').value.trim();
+  const ln    = document.getElementById('lName').value.trim();
+  const phone = document.getElementById('accPhone').value.trim();
+  const name  = [fn, ln].filter(Boolean).join(' ');
   if (!name) { showToast('❌ Name daalo'); return; }
-  await getSB().from('profiles').update({ name }).eq('id', currentUser.id);
+
+  const updates = { name };
+  if (phone) updates.phone = phone;
+
+  const { error } = await getSB().from('profiles').update(updates).eq('id', currentUser.id);
+  if (error) { showToast('❌ ' + error.message); return; }
+
   document.getElementById('sbName').textContent = name;
+  if (userProfile) { userProfile.name = name; if (phone) userProfile.phone = phone; }
   showToast('✅ Personal info saved!');
 }
 
@@ -609,7 +617,7 @@ function buildNotifPanel() { renderNotifs('all'); }
 async function doSignOut() {
   if (!confirm('Sign out karna chahte ho?')) return;
   await Auth.signOut();
-  window.location.href = 'XverseMovies_Login.html';
+  window.location.href = 'index.html';
 }
 
 async function deleteAccount() {
@@ -625,5 +633,6 @@ function saveToggle(el, name) { showToast((el.checked?'✅ ':'🔕 ')+name+(el.c
 function timeAgo(ts){ if(!ts) return ''; const s=Math.floor((Date.now()-new Date(ts).getTime())/1000); if(s<60) return 'just now'; if(s<3600) return Math.floor(s/60)+'m ago'; if(s<86400) return Math.floor(s/3600)+'h ago'; return Math.floor(s/86400)+'d ago'; }
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&npOpen) toggleNP(); });
 </script>
+<script>if("serviceWorker"in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){});});}</script>
 </body>
 </html>
