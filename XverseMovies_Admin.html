@@ -457,25 +457,60 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
     <div class="panel" id="panel-unavailable">
       <div class="ptit">Check Unavailable</div>
       <div class="psub">vidsrc pe kaunsi movies nahi chal rahi — detect karo aur fix karo</div>
-      <div class="fc">
-        <div class="fc-title"><div class="fc-ico">🔍</div> vidsrc Availability Checker</div>
+
+      <!-- ── SECTION 1: Check existing DB movies ── -->
+      <div class="fc" style="margin-bottom:16px">
+        <div class="fc-title"><div class="fc-ico">🔍</div> DB Movies — vidsrc Availability Check</div>
         <div style="font-size:.84rem;color:rgba(255,255,255,.6);margin-bottom:16px;line-height:1.7">
-          Ye tool DB ki sab movies check karta hai ki unki vidsrc embed URL kaam kar rahi hai ya nahi.<br>
-          Jo movies black screen dikha rahi hain unhe yahan dekho aur custom embed laga sako.
+          Tumhare DB ki sab active movies check karta hai. Jo nahi chal rahi unhe yahan se fix karo.
         </div>
         <div class="brow" style="border-top:none;padding-top:0;margin-top:0;margin-bottom:16px">
-          <button class="btn-add" id="checkBtn" onclick="checkUnavailable()">🔍 Check All Movies</button>
+          <button class="btn-add" id="checkBtn" onclick="checkUnavailable()">🔍 Check All My Movies</button>
           <span style="font-size:.78rem;color:var(--muted)" id="checkStatus"></span>
         </div>
-        <!-- Progress bar -->
         <div id="checkProgress" style="display:none;margin-bottom:16px">
           <div style="background:rgba(255,255,255,.08);border-radius:4px;height:6px;overflow:hidden;margin-bottom:6px">
             <div id="checkBar" style="height:100%;background:var(--red);border-radius:4px;width:0%;transition:width .3s"></div>
           </div>
           <div style="font-size:.72rem;color:var(--muted)" id="checkText">Checking...</div>
         </div>
-        <!-- Results -->
         <div id="unavailableResults"></div>
+      </div>
+
+      <!-- ── SECTION 2: TMDB Discovery — check movies NOT in DB ── -->
+      <div class="fc">
+        <div class="fc-title"><div class="fc-ico">🌐</div> TMDB Discovery — Check vidsrc Availability</div>
+        <div style="font-size:.84rem;color:rgba(255,255,255,.6);margin-bottom:16px;line-height:1.7">
+          TMDB ki Trending / Popular movies check karo ki vidsrc pe available hain ya nahi.<br>
+          Jo available hain unhe ek click se apne DB mein add kar sako.
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
+          <select id="tmdbDiscType" class="fsel" style="width:auto;padding:8px 12px">
+            <option value="trending/movie/week">🔥 Trending Movies (This Week)</option>
+            <option value="trending/tv/week">🔥 Trending TV Shows</option>
+            <option value="movie/popular">🎬 Popular Movies</option>
+            <option value="tv/popular">📺 Popular TV Shows</option>
+            <option value="movie/top_rated">⭐ Top Rated Movies</option>
+            <option value="tv/top_rated">⭐ Top Rated TV Shows</option>
+          </select>
+          <select id="tmdbDiscLang" class="fsel" style="width:auto;padding:8px 12px">
+            <option value="">All Languages</option>
+            <option value="hi">Hindi</option>
+            <option value="en">English</option>
+            <option value="te">Telugu</option>
+            <option value="ta">Tamil</option>
+            <option value="ko">Korean</option>
+          </select>
+          <button class="btn-add" onclick="discoverTMDB()">🔍 Discover & Check</button>
+          <span id="discStatus" style="font-size:.78rem;color:var(--muted)"></span>
+        </div>
+        <div id="discProgress" style="display:none;margin-bottom:12px">
+          <div style="background:rgba(255,255,255,.08);border-radius:4px;height:5px;overflow:hidden;margin-bottom:5px">
+            <div id="discBar" style="height:100%;background:#64b5f6;border-radius:4px;width:0%;transition:width .3s"></div>
+          </div>
+          <div style="font-size:.7rem;color:var(--muted)" id="discText">Checking...</div>
+        </div>
+        <div id="discResults"></div>
       </div>
     </div>
 
@@ -1717,8 +1752,141 @@ async function exportCSV() {
 }
 
 // ─────────────────────────────────────────
-//  LOAD TABLE (called by nav() for movies/tv)
+//  TMDB DISCOVERY — check TMDB movies on vidsrc
+//  Checks movies that are NOT yet in your DB
 // ─────────────────────────────────────────
+async function discoverTMDB() {
+  const endpoint = document.getElementById('tmdbDiscType').value;
+  const lang     = document.getElementById('tmdbDiscLang').value;
+  const statusEl = document.getElementById('discStatus');
+  const progEl   = document.getElementById('discProgress');
+  const barEl    = document.getElementById('discBar');
+  const textEl   = document.getElementById('discText');
+  const resEl    = document.getElementById('discResults');
+
+  statusEl.textContent = 'Fetching from TMDB...';
+  progEl.style.display = 'block';
+  barEl.style.width    = '0%';
+  resEl.innerHTML      = '';
+
+  // Fetch 2 pages from TMDB (40 results)
+  const key    = XVERSE.TMDB_KEY;
+  const pages  = [1, 2];
+  let   items  = [];
+
+  for (const page of pages) {
+    const url = `https://api.themoviedb.org/3/${endpoint}?api_key=${key}&language=en-US&page=${page}${lang?'&with_original_language='+lang:''}`;
+    try {
+      const r = await fetch(url);
+      const d = await r.json();
+      items   = [...items, ...(d.results || [])];
+    } catch { /* skip */ }
+  }
+
+  if (!items.length) {
+    statusEl.textContent = '❌ TMDB fetch failed';
+    progEl.style.display = 'none';
+    return;
+  }
+
+  // Filter out movies already in DB
+  const dbIds  = new Set(allMovies.map(m => m.tmdb_id).filter(Boolean));
+  const isTV   = endpoint.includes('/tv/');
+  const fresh  = items.filter(m => !dbIds.has(m.id));
+
+  statusEl.textContent = `${fresh.length} new titles found — checking vidsrc...`;
+
+  // Check each on vidsrc using corsproxy
+  const total   = Math.min(fresh.length, 20); // max 20 checks
+  const toCheck = fresh.slice(0, total);
+
+  const results = await withConcurrency(toCheck, async (m, i) => {
+    const type  = isTV ? 'tv' : 'movie';
+    const fakeM = { tmdb_id: m.id, type, embed_url: null, auto_embed: true, manual_embed: false };
+    const res   = await checkOneMovie(fakeM);
+    return { tmdb: m, type, ...res };
+  }, 5, (done, tot, m) => {
+    const pct = Math.round((done / tot) * 100);
+    barEl.style.width    = pct + '%';
+    textEl.textContent   = `Checking: ${m.title||m.name} (${done}/${tot})`;
+    statusEl.textContent = `${done} / ${tot} checked`;
+  });
+
+  progEl.style.display = 'none';
+
+  const available   = results.filter(r => r.available === true);
+  const unavailable = results.filter(r => r.available === false);
+  const unknown     = results.filter(r => r.available === null);
+
+  statusEl.textContent =
+    `✅ ${available.length} available · ❌ ${unavailable.length} unavailable · ⚠️ ${unknown.length} unknown`;
+
+  if (!available.length && !unavailable.length) {
+    resEl.innerHTML = `<div class="ep-loading">No results to show. Try a different category.</div>`;
+    return;
+  }
+
+  // Show available movies with quick-add button
+  let html = '';
+  if (available.length) {
+    html += `<div style="font-size:.84rem;font-weight:700;color:var(--green);margin-bottom:10px">
+      ✅ Available on vidsrc — Quick Add karo:
+    </div>`;
+    html += available.map(r => {
+      const m     = r.tmdb;
+      const title = m.title || m.name || 'Unknown';
+      const year  = (m.release_date || m.first_air_date || '').slice(0, 4);
+      const poster= m.poster_path ? `https://image.tmdb.org/t/p/w92${m.poster_path}` : '';
+      const ms    = JSON.stringify({ tmdb_id: m.id, type: r.type }).replace(/"/g, '&quot;');
+      return `
+        <div style="display:flex;align-items:center;gap:12px;background:rgba(70,211,105,.05);
+          border:1px solid rgba(70,211,105,.2);border-radius:8px;padding:10px 12px;margin-bottom:6px;flex-wrap:wrap">
+          ${poster ? `<img src="${poster}" style="width:36px;height:52px;object-fit:cover;border-radius:4px;background:#222;flex-shrink:0">` : ''}
+          <div style="flex:1;min-width:100px">
+            <div style="font-size:.88rem;font-weight:700;color:#fff">${title}</div>
+            <div style="font-size:.72rem;color:var(--muted)">${year} · ${r.type==='tv'?'TV Show':'Movie'} · TMDB: ${m.id}</div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="btn-add" style="padding:6px 14px;font-size:.74rem"
+              onclick="quickAddFromTMDB(${m.id},'${r.type}','${title.replace(/'/g,'').slice(0,40)}')">
+              ＋ Add
+            </button>
+            <button class="tab-btn play"
+              onclick="window.open('https://vidsrc.to/embed/${r.type}/${m.id}','_blank')" title="Preview">▶</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  if (unavailable.length) {
+    html += `<div style="font-size:.84rem;font-weight:700;color:#ff6b6b;margin:12px 0 8px">
+      ❌ Not on vidsrc (${unavailable.length}):
+    </div>`;
+    html += `<div style="display:flex;flex-wrap:wrap;gap:6px">` +
+      unavailable.map(r => {
+        const title = r.tmdb.title || r.tmdb.name || 'Unknown';
+        return `<span style="background:rgba(229,9,20,.08);border:1px solid rgba(229,9,20,.18);
+          border-radius:4px;padding:3px 8px;font-size:.72rem;color:#ff6b6b">${title}</span>`;
+      }).join('') + `</div>`;
+  }
+
+  resEl.innerHTML = html;
+}
+
+async function quickAddFromTMDB(tmdbId, type, title) {
+  // Pre-fill the add form and switch to it
+  nav('add', document.querySelectorAll('.sbtn')[0]);
+  await new Promise(r => setTimeout(r, 300)); // wait for panel to show
+
+  const typeEl = document.getElementById('aType');
+  const tmdbEl = document.getElementById('aTmdb');
+  if (typeEl) typeEl.value = type;
+  if (tmdbEl) {
+    tmdbEl.value = tmdbId;
+    await autoFillManual(); // auto-fill TMDB data
+  }
+  showToast(`✅ "${title}" form fill ho gaya — check karo aur add karo`);
+}
 async function loadTable(type) {
   const elId   = type === 'movies' ? 'moviesTable' : 'tvTable';
   const el     = document.getElementById(elId);
