@@ -1,11 +1,12 @@
 // ═══════════════════════════════════════════════════════════
-//  XverseMovies — Service Worker v4
-//  Handles: offline caching + ad/tracker domain blocking
+//  XverseMovies — Service Worker
+//  Handles: offline support, app shell caching, background sync
 // ═══════════════════════════════════════════════════════════
 
-const CACHE_NAME    = 'xverse-v4'; // bumped → clears old cache
-const SHELL_TIMEOUT = 3000;
+const CACHE_NAME    = 'xverse-v4';
+const SHELL_TIMEOUT = 3000; // ms before falling back to cache
 
+// App shell — these files are cached on install
 const APP_SHELL = [
   '/index.html',
   '/XverseMovies_Home.html',
@@ -19,151 +20,162 @@ const APP_SHELL = [
   'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&display=swap',
 ];
 
-// Never cache — always live
+// These domains are always fetched from network (no caching)
 const NETWORK_ONLY = [
-  'supabase.co',
-  'api.themoviedb.org',
-  'vidsrc.to', 'vidsrc.me', 'vidsrc.xyz',
+  'supabase.co',        // Supabase API — always live data
+  'api.themoviedb.org', // TMDB — always fresh
+  'vidsrc.to',          // Video embeds — never cache
   'streamtape.com',
   'dailymotion.com',
   'corsproxy.io',
   'allorigins.win',
 ];
 
-// ─────────────────────────────────────────────────────────
-//  AD / TRACKER BLOCKLIST
-//  These domains are silently blocked — returns empty 200
-//  Works for: requests made by YOUR pages + scripts
-//  Does NOT work for: inside cross-origin iframes
-// ─────────────────────────────────────────────────────────
-const AD_DOMAINS = [
-  // Google ads & tracking
-  'doubleclick.net','googlesyndication.com','googletagmanager.com',
-  'googletagservices.com','google-analytics.com','adservice.google.com',
-  'pagead2.googlesyndication.com','tpc.googlesyndication.com',
-  // Major ad networks
-  'adnxs.com','adsrvr.org','adform.net','advertising.com',
-  'amazon-adsystem.com','media.net','outbrain.com','taboola.com',
-  'revcontent.com','mgid.com','criteo.com','rubiconproject.com',
-  'openx.net','pubmatic.com','appnexus.com','smartadserver.com',
-  'serving-sys.com','adroll.com','adsterra.com',
-  // Popunder/popup ad networks (common on streaming sites)
-  'popads.net','popunder.ru','popcash.net','hilltopads.net',
-  'propellerads.com','exoclick.com','trafficjunky.net','juicyads.com',
-  'adcash.com','clickadu.com','richpush.co','evadav.com',
-  'bidvertiser.com','traffichunt.com','plugrush.com',
-  // Trackers
-  'hotjar.com','mixpanel.com','clarity.ms','fullstory.com',
-  // Known in vidsrc console errors
-  'llypn.com','llvdn.com','llyptn.com',
+// ── AD BLOCKLIST — requests to these domains return empty 200 ──
+const AD_BLOCK = [
+  'doubleclick.net', 'googlesyndication.com', 'adnxs.com',
+  'amazon-adsystem.com', 'llvpn.com', 'me.lol', 'popcash.net',
+  'popads.net', 'trafficjunky.com', 'exoclick.com', 'hilltopads.net',
+  'propellerads.com', 'adsterra.com', 'monetag.com', 'plugrush.com',
+  'juicyads.com', 'mgid.com', 'taboola.com', 'outbrain.com',
+  'zedo.com', 'rubiconproject.com', 'openx.net', 'pubmatic.com',
+  'casalemedia.com', 'appnexus.com', 'advertising.com',
+  'adsrvr.org', 'criteo.com', 'smartadserver.com', 'spotxchange.com',
+  'scorecardresearch.com', 'quantserve.com', 'demdex.net',
 ];
 
-function isAd(url) {
-  try {
-    const h = new URL(url).hostname;
-    return AD_DOMAINS.some(d => h === d || h.endsWith('.' + d));
-  } catch { return false; }
-}
-
-// Block response — empty, silent, no console error shown to users
-const BLOCKED = new Response('', {
-  status: 200,
-  headers: { 'Content-Type': 'text/plain' },
-});
-
 // ─────────────────────────────────────────
-//  INSTALL
+//  INSTALL — cache the app shell
 // ─────────────────────────────────────────
-self.addEventListener('install', e => {
-  e.waitUntil(
+self.addEventListener('install', event => {
+  event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(c => c.addAll(APP_SHELL))
-      .then(() => self.skipWaiting())
+      .then(cache => cache.addAll(APP_SHELL))
+      .then(() => self.skipWaiting()) // activate immediately
   );
 });
 
 // ─────────────────────────────────────────
-//  ACTIVATE — delete old caches
+//  ACTIVATE — clean up old caches
 // ─────────────────────────────────────────
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys
+          .filter(k => k !== CACHE_NAME)
+          .map(k => caches.delete(k))
+      )
+    ).then(() => self.clients.claim()) // take control of all pages
   );
 });
 
 // ─────────────────────────────────────────
-//  FETCH — ad blocking + caching strategy
+//  FETCH — strategy per request type
 // ─────────────────────────────────────────
-self.addEventListener('fetch', e => {
-  const url = e.request.url;
+self.addEventListener('fetch', event => {
+  const url = new URL(event.request.url);
 
-  // 1. BLOCK ad/tracker domains silently
-  if (isAd(url)) {
-    e.respondWith(BLOCKED.clone());
+  // 0. Block ad domains — return empty 200 silently
+  if (AD_BLOCK.some(d => url.hostname === d || url.hostname.endsWith('.' + d))) {
+    event.respondWith(new Response('', {
+      status: 200,
+      headers: { 'Content-Type': 'text/plain' }
+    }));
     return;
   }
 
-  // 2. Network-only for video/API domains
-  if (NETWORK_ONLY.some(d => url.includes(d))) {
-    e.respondWith(fetch(e.request).catch(() => new Response('', {status: 503})));
+  // 1. Network-only for API / video domains
+  if (NETWORK_ONLY.some(d => url.hostname.includes(d))) {
+    event.respondWith(fetch(event.request));
     return;
   }
 
-  // 3. Non-GET → network only
-  if (e.request.method !== 'GET') {
-    e.respondWith(fetch(e.request));
+  // 2. Network-only for non-GET requests
+  if (event.request.method !== 'GET') {
+    event.respondWith(fetch(event.request));
     return;
   }
 
-  // 4. HTML pages → network-first with cache fallback
-  if (url.endsWith('.html') || new URL(url).pathname === '/') {
-    e.respondWith(networkFirstWithTimeout(e.request, SHELL_TIMEOUT));
+  // 3. For HTML pages: Network-first with cache fallback
+  //    Shows cached version if network is slow / offline
+  if (url.pathname.endsWith('.html') || url.pathname === '/') {
+    event.respondWith(
+      networkFirstWithTimeout(event.request, SHELL_TIMEOUT)
+    );
     return;
   }
 
-  // 5. Static assets → cache-first
-  e.respondWith(
-    caches.match(e.request).then(cached => {
+  // 4. For static assets (JS, CSS, fonts, images): Cache-first
+  event.respondWith(
+    caches.match(event.request).then(cached => {
       if (cached) return cached;
-      return fetch(e.request).then(res => {
-        // Only cache http/https — chrome-extension:// causes TypeError
-        if (res.ok && e.request.url.startsWith('http')) {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+      return fetch(event.request).then(res => {
+        // Cache a copy of new static assets for future offline use
+        if (res.ok && event.request.url.startsWith('http')) {
+          const resClone = res.clone();
+          caches.open(CACHE_NAME).then(c => c.put(event.request, resClone));
         }
         return res;
-      }).catch(() => offlinePage());
+      }).catch(() => offlineFallback(url));
     })
   );
 });
 
-async function networkFirstWithTimeout(req, timeout) {
-  const cached  = await caches.match(req);
-  const network = fetch(req).then(res => {
-    if (res.ok && req.url.startsWith('http'))
-      caches.open(CACHE_NAME).then(c => c.put(req, res.clone()));
+// ─────────────────────────────────────────
+//  HELPER: network-first with timeout
+// ─────────────────────────────────────────
+async function networkFirstWithTimeout(request, timeout) {
+  const cached  = await caches.match(request);
+  const network = fetch(request).then(res => {
+    if (res.ok) {
+      const clone = res.clone();
+      caches.open(CACHE_NAME).then(c => c.put(request, clone));
+    }
     return res;
   });
+
   try {
     return await Promise.race([
       network,
-      new Promise((_, r) => setTimeout(() => r(new Error('timeout')), timeout)),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), timeout)
+      ),
     ]);
   } catch {
-    return cached || offlinePage();
+    // Network slow/offline — use cache
+    return cached || offlineFallback(new URL(request.url));
   }
 }
 
-function offlinePage() {
+// ─────────────────────────────────────────
+//  HELPER: minimal offline page
+// ─────────────────────────────────────────
+function offlineFallback(url) {
   return new Response(
-    `<!DOCTYPE html><html><head><meta charset=UTF-8><title>Offline</title>
-<style>body{margin:0;background:#141414;color:#fff;font-family:sans-serif;
-display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center}
-h1{color:#E50914;font-size:3rem;margin:0 0 8px}p{color:rgba(255,255,255,.6)}</style>
-</head><body><div><h1>XverseMovies</h1>
-<p>You're offline. <a href="/" style="color:#E50914">Try again</a></p></div></body></html>`,
-    { status: 200, headers: { 'Content-Type': 'text/html' } }
+    `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>XverseMovies — Offline</title>
+<style>
+  body{margin:0;background:#141414;color:#fff;font-family:'Barlow',sans-serif;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    min-height:100vh;text-align:center;padding:20px}
+  h1{font-family:'Bebas Neue',cursive;font-size:3rem;color:#E50914;margin:0 0 8px}
+  p{color:rgba(255,255,255,.6);max-width:320px;line-height:1.6}
+  a{color:#E50914;text-decoration:none;font-weight:700}
+</style>
+</head>
+<body>
+<h1>XverseMovies</h1>
+<p>You're offline. Please check your internet connection and <a href="/">try again</a>.</p>
+</body>
+</html>`,
+    {
+      status: 200,
+      headers: { 'Content-Type': 'text/html' },
+    }
   );
 }
