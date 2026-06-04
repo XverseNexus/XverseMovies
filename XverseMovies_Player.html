@@ -430,12 +430,13 @@ html,body{
 
   </div>
 
-  <!-- IFRAME -->
+  <!-- IFRAME — sandbox blocks popup ads (allow-popups intentionally excluded) -->
 <iframe
   id="stFrame"
   allowfullscreen
   allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
   referrerpolicy="no-referrer-when-downgrade"
+  sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-fullscreen"
   style="border:none;"
 ></iframe>
 
@@ -830,6 +831,9 @@ async function syncProgress(){
   },2000);
 
 }
+
+/* ── ADBLOCKER: iframe sandbox blocks popup windows from embeds ──
+   No JS needed — handled by sandbox attribute on iframe          */
 
 /* KEYS */
 
