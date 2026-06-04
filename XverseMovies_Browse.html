@@ -8,6 +8,7 @@
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#E50914">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="XverseMovies">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -384,7 +385,7 @@ function setHero(type,m){
   if(!hc) return;
   const match=Math.round(65+parseFloat(m.rating||m.vote_average||7)*3.5);
   const ms=JSON.stringify(m).replace(/"/g,'&quot;');
-  hc.innerHTML=`<div class="h-badge">★ TOP PICK</div><div class="h-title">${m.title}</div><div class="h-meta"><span class="h-match">${match}% Match</span><span>${m.year||''}</span><span class="h-cert">${m.age_rating||'UA'}</span>${m.quality?`<span style="background:rgba(70,211,105,.12);color:var(--green);font-size:.64rem;font-weight:700;padding:2px 6px;border-radius:3px">${m.quality}</span>`:''}</div><div class="h-ov">${m.overview||''}</div><div class="h-btns"><button class="btn-p" onclick="play(${ms})">▶ Play</button><button class="btn-i" onclick="openMod(${ms})">ⓘ Info</button></div>`;
+  hc.innerHTML=`<div class="h-badge">★ TOP PICK</div><div class="h-title">${m.title}</div><div class="h-meta"><span class="h-match">${match}% Match</span><span>${m.year||''}</span><span class="h-cert">${m.age_rating||'UA'}</span>${m.quality?`<span style="background:rgba(70,211,105,.12);color:var(--green);font-size:.64rem;font-weight:700;padding:2px 6px;border-radius:3px">${m.quality}</span>`:''}</div><div class="h-ov">${m.overview||''}</div><div class="h-btns"><button class="btn-p" onclick="${m.type==='tv'?`openMod(${ms})`:`play(${ms})`}">▶ Play</button><button class="btn-i" onclick="openMod(${ms})">ⓘ Info</button></div>`;
 }
 
 // ── HELPERS ───────────────────────────────
@@ -397,8 +398,9 @@ function buildPills(id,list,cb){
 }
 function cHTML(m,isList){
   const ms=JSON.stringify(m).replace(/"/g,'&quot;'), rat=m.rating||m.vote_average||'';
-  if(isList) return `<div class="card lc" onclick="openMod(${ms})"><div class="cth"><img class="ci" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555'"><div class="cov"><button class="cpl" onclick="event.stopPropagation();play(${ms})">▶</button></div></div><div class="cif"><div class="cn">${m.title}</div><div class="cm"><span>${m.year||''}</span>${rat?`<span>·</span><span style="color:var(--green)">★ ${rat}</span>`:''}</div></div><div class="lacts"><button class="lb" onclick="event.stopPropagation();play(${ms})">▶</button><button class="lb" onclick="event.stopPropagation();addML(${ms})">+</button></div></div>`;
-  return `<div class="card" onclick="openMod(${ms})"><div class="cth"><img class="ci" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555&size=400'"><span class="ctyp ${m.type||'movie'}">${m.type==='tv'?'TV':'MOVIE'}</span>${rat?`<span class="crat">★ ${rat}</span>`:''}<div class="cov"><button class="cpl" onclick="event.stopPropagation();play(${ms})">▶</button><button class="cad" onclick="event.stopPropagation();addML(${ms})">+</button></div></div><div class="cif"><div class="cn">${m.title}</div><div class="cm"><span>${m.year||''}</span></div></div></div>`;
+  const playFn = m.type==='tv' ? 'openMod' : 'play'; // TV → modal first; movie → direct play
+  if(isList) return `<div class="card lc" onclick="openMod(${ms})"><div class="cth"><img class="ci" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555'"><div class="cov"><button class="cpl" onclick="event.stopPropagation();${playFn}(${ms})">▶</button></div></div><div class="cif"><div class="cn">${m.title}</div><div class="cm"><span>${m.year||''}</span>${rat?`<span>·</span><span style="color:var(--green)">★ ${rat}</span>`:''}</div></div><div class="lacts"><button class="lb" onclick="event.stopPropagation();${playFn}(${ms})">▶</button><button class="lb" onclick="event.stopPropagation();addML(${ms})">+</button></div></div>`;
+  return `<div class="card" onclick="openMod(${ms})"><div class="cth"><img class="ci" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555&size=400'"><span class="ctyp ${m.type||'movie'}">${m.type==='tv'?'TV':'MOVIE'}</span>${rat?`<span class="crat">★ ${rat}</span>`:''}<div class="cov"><button class="cpl" onclick="event.stopPropagation();${playFn}(${ms})">▶</button><button class="cad" onclick="event.stopPropagation();addML(${ms})">+</button></div></div><div class="cif"><div class="cn">${m.title}</div><div class="cm"><span>${m.year||''}</span></div></div></div>`;
 }
 function play(m, season, episode) {
   // Fix: empty string is not a valid embed URL
