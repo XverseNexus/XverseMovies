@@ -8,6 +8,7 @@
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#E50914">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="XverseMovies">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1008,6 +1009,24 @@ function getEmbedUrl() {
 // ─────────────────────────────────────────
 
 // Check a single movie's embed URL for availability
+// ─────────────────────────────────────────
+//  HELPER: run N promises with max concurrency
+// ─────────────────────────────────────────
+async function withConcurrency(items, fn, limit = 5, onProgress) {
+  const results = new Array(items.length);
+  let idx = 0;
+  async function worker() {
+    while (idx < items.length) {
+      const i = idx++;
+      results[i] = await fn(items[i], i);
+      if (onProgress) onProgress(i + 1, items.length, items[i]);
+    }
+  }
+  const workers = Array.from({ length: Math.min(limit, items.length) }, worker);
+  await Promise.all(workers);
+  return results;
+}
+
 async function checkOneMovie(m) {
   let embedUrl = (m.embed_url && m.embed_url.trim()) ? m.embed_url.trim() : null;
 
