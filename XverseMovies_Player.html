@@ -9,6 +9,7 @@
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#E50914">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="XverseMovies">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -430,13 +431,13 @@ html,body{
 
   </div>
 
-  <!-- IFRAME — sandbox blocks popup ads (allow-popups intentionally excluded) -->
+  <!-- IFRAME — sandbox blocks popup ads without allow-popups -->
 <iframe
   id="stFrame"
   allowfullscreen
   allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
   referrerpolicy="no-referrer-when-downgrade"
-  sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-fullscreen"
+  sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
   style="border:none;"
 ></iframe>
 
@@ -831,9 +832,6 @@ async function syncProgress(){
   },2000);
 
 }
-
-/* ── ADBLOCKER: iframe sandbox blocks popup windows from embeds ──
-   No JS needed — handled by sandbox attribute on iframe          */
 
 /* KEYS */
 
