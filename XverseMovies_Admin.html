@@ -1002,94 +1002,81 @@ function getEmbedUrl() {
   return '';
 }
 
+//  VISUAL TEST OVERLAY
+//  Opens vidsrc embed in overlay so admin
+//  can SEE if it loads — no proxy needed
 // ─────────────────────────────────────────
-//  UNAVAILABLE CHECKER — Phase 1 Rewrite
-//  Uses corsproxy.io to actually read vidsrc
-//  HTML and detect "unavailable" content
-// ─────────────────────────────────────────
+let testingMovieId   = null;
+let testingForDisc   = false;
+let discMovieToAdd   = null;
 
-// Check a single movie's embed URL for availability
-// ─────────────────────────────────────────
-//  HELPER: run N promises with max concurrency
-// ─────────────────────────────────────────
-async function withConcurrency(items, fn, limit = 5, onProgress) {
-  const results = new Array(items.length);
-  let idx = 0;
-  async function worker() {
-    while (idx < items.length) {
-      const i = idx++;
-      results[i] = await fn(items[i], i);
-      if (onProgress) onProgress(i + 1, items.length, items[i]);
-    }
+function openVisualTest(movieId, embedUrl, title, onWorking, onBroken) {
+  testingMovieId = movieId;
+
+  // Create or reuse overlay
+  let ov = document.getElementById('visualTestOv');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'visualTestOv';
+    ov.style.cssText = `position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.95);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px`;
+    document.body.appendChild(ov);
   }
-  const workers = Array.from({ length: Math.min(limit, items.length) }, worker);
-  await Promise.all(workers);
-  return results;
+
+  ov.innerHTML = `
+    <div style="width:100%;max-width:700px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:.9rem;font-weight:700;color:#fff">🎬 Testing: ${title}</div>
+        <button onclick="closeVisualTest()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
+          color:#fff;padding:5px 12px;border-radius:4px;cursor:pointer;font-size:.8rem">✕ Close</button>
+      </div>
+      <div style="font-size:.76rem;color:rgba(255,255,255,.5);margin-bottom:10px">
+        URL: <span style="font-family:monospace;color:#64b5f6">${embedUrl}</span>
+      </div>
+      <iframe src="${embedUrl}" style="width:100%;aspect-ratio:16/9;border:none;border-radius:8px;background:#000"
+        allowfullscreen allow="autoplay;fullscreen"></iframe>
+      <div style="display:flex;gap:10px;margin-top:14px;justify-content:center">
+        <button id="vtWorkBtn" style="background:rgba(70,211,105,.15);border:1px solid rgba(70,211,105,.4);
+          color:#46d369;padding:10px 28px;border-radius:6px;cursor:pointer;font-size:.88rem;font-weight:700">
+          ✅ Chal rahi hai (Working)
+        </button>
+        <button id="vtBrokenBtn" style="background:rgba(229,9,20,.12);border:1px solid rgba(229,9,20,.35);
+          color:#ff6b6b;padding:10px 28px;border-radius:6px;cursor:pointer;font-size:.88rem;font-weight:700">
+          ❌ Nahi chal rahi (Broken)
+        </button>
+      </div>
+      <div style="font-size:.72rem;color:rgba(255,255,255,.35);text-align:center;margin-top:8px">
+        Video load hone do (5-10 sec), phir decide karo
+      </div>
+    </div>`;
+
+  document.getElementById('vtWorkBtn').onclick   = () => { closeVisualTest(); onWorking(); };
+  document.getElementById('vtBrokenBtn').onclick = () => { closeVisualTest(); onBroken(); };
+  ov.style.display = 'flex';
 }
 
-async function checkOneMovie(m) {
-  let embedUrl = (m.embed_url && m.embed_url.trim()) ? m.embed_url.trim() : null;
-
-  if (!embedUrl && m.tmdb_id && m.auto_embed !== false) {
-    const t = m.type === 'tv' ? 'tv' : 'movie';
-    embedUrl = `https://vidsrc.to/embed/${t}/${m.tmdb_id}`;
+function closeVisualTest() {
+  const ov = document.getElementById('visualTestOv');
+  if (ov) {
+    // Stop iframe
+    const fr = ov.querySelector('iframe');
+    if (fr) fr.src = 'about:blank';
+    ov.style.display = 'none';
   }
-
-  if (!embedUrl) return { available: false, reason: 'No embed URL', embedUrl: null };
-
-  // Non-vidsrc manual embeds — skip proxy check, mark as ok
-  if (m.manual_embed && !embedUrl.includes('vidsrc')) {
-    return { available: true, reason: 'Custom embed (not checked)', embedUrl };
-  }
-
-  // Non-vidsrc auto embed — also skip
-  if (!embedUrl.includes('vidsrc')) {
-    return { available: true, reason: `${m.embed_source||'custom'} embed (not checked)`, embedUrl };
-  }
-
-  const UNAVAIL_STRINGS = [
-    'the media you are looking for could not be found',
-    'media is unavailable',
-    'no sources found',
-    'sorry, this video is not available',
-    'content unavailable',
-    'could not be found',
-    'video not available',
-  ];
-
-  const proxies = [
-    `https://corsproxy.io/?url=${encodeURIComponent(embedUrl)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(embedUrl)}`,
-  ];
-
-  for (const proxyUrl of proxies) {
-    try {
-      const r = await fetch(proxyUrl, { signal: AbortSignal.timeout(9000) });
-      if (!r.ok) {
-        if (r.status === 404) return { available: false, reason: '404 Not Found', embedUrl };
-        continue;
-      }
-      const html = (await r.text()).toLowerCase();
-      for (const s of UNAVAIL_STRINGS) {
-        if (html.includes(s)) return { available: false, reason: `Shows: "${s}"`, embedUrl };
-      }
-      const hasPlayer = html.includes('<video') || html.includes('player') || html.includes('source');
-      return { available: hasPlayer, reason: hasPlayer ? 'OK' : 'No player found', embedUrl };
-    } catch { /* try next proxy */ }
-  }
-
-  return { available: null, reason: 'Check manually (proxy failed)', embedUrl };
 }
 
+// ─────────────────────────────────────────
+//  DB MOVIES VISUAL CHECKER
+// ─────────────────────────────────────────
 async function checkUnavailable() {
-  const btn = document.getElementById('checkBtn');
-  btn.disabled = true;
-  btn.textContent = '⏳ Checking...';
+  const btn    = document.getElementById('checkBtn');
+  const resEl  = document.getElementById('unavailableResults');
+  const statEl = document.getElementById('checkStatus');
 
-  document.getElementById('checkProgress').style.display = 'block';
-  document.getElementById('checkBar').style.width = '0%';
-  document.getElementById('unavailableResults').innerHTML = '';
-  document.getElementById('checkStatus').textContent = '';
+  btn.disabled    = true;
+  btn.textContent = '⏳ Loading...';
+  resEl.innerHTML = '';
+  statEl.textContent = '';
 
   const { data: movies } = await getSB()
     .from('movies')
@@ -1097,99 +1084,242 @@ async function checkUnavailable() {
     .eq('status', 'active')
     .order('created_at', { ascending: false });
 
-  if (!movies?.length) {
-    showToast('No active movies found');
-    btn.disabled = false; btn.textContent = '🔍 Check All Movies';
-    document.getElementById('checkProgress').style.display = 'none';
-    return;
-  }
+  btn.disabled    = false;
+  btn.textContent = '🔍 Check All My Movies';
 
-  const total = movies.length;
-  document.getElementById('checkStatus').textContent = `0 / ${total} checked`;
-  document.getElementById('checkText').textContent   = 'Starting checks...';
+  if (!movies?.length) { showToast('No active movies found'); return; }
 
-  const checkResults = await withConcurrency(movies, async (m) => {
-    const result = await checkOneMovie(m);
-    return { movie: m, ...result };
-  }, 5, (done, tot, m) => {
-    const pct = Math.round((done / tot) * 100);
-    document.getElementById('checkBar').style.width  = pct + '%';
-    document.getElementById('checkText').textContent = `Checked: ${m.title} (${done}/${tot})`;
-    document.getElementById('checkStatus').textContent = `${done} / ${tot} checked`;
-  });
-
-  // ── Write results back to DB (embed_working + last_checked) ──
-  const now = new Date().toISOString();
-  const dbUpdates = checkResults
-    .filter(r => r.available !== null) // skip "proxy failed" = null
-    .map(r => getSB().from('movies').update({
-      embed_working: r.available === true,
-      last_checked:  now,
-    }).eq('id', r.movie.id));
-
-  await Promise.allSettled(dbUpdates);
-
-  // Update local allMovies cache
-  for (const r of checkResults) {
-    const m = allMovies.find(x => x.id === r.movie.id);
-    if (m && r.available !== null) {
-      m.embed_working = r.available === true;
-      m.last_checked  = now;
-    }
-  }
-
-  btn.disabled = false;
-  btn.textContent = '🔍 Check All Movies';
-  document.getElementById('checkProgress').style.display = 'none';
-
-  const unavailable  = checkResults.filter(r => r.available === false);
-  const needsReview  = checkResults.filter(r => r.available === null);
-  const ok           = checkResults.filter(r => r.available === true);
-
+  // Update sidebar badge with movies marked broken
+  const broken = movies.filter(m => m.embed_working === false);
   const unavCnt = document.getElementById('sbUnavCnt');
   if (unavCnt) {
-    const n = unavailable.length + needsReview.length;
-    unavCnt.textContent   = n;
-    unavCnt.style.display = n ? 'flex' : 'none';
+    unavCnt.textContent   = broken.length;
+    unavCnt.style.display = broken.length ? 'flex' : 'none';
   }
 
-  const res = document.getElementById('unavailableResults');
+  statEl.textContent = `${movies.length} movies · ${broken.length} marked broken`;
 
-  if (!unavailable.length && !needsReview.length) {
-    res.innerHTML = `
-      <div style="text-align:center;padding:30px;color:var(--green);font-size:.92rem">
-        ✅ All ${total} movies checked — no issues found!
-        <div style="font-size:.76rem;color:var(--muted);margin-top:6px">${ok.length} available · 0 unavailable</div>
-      </div>`;
+  // Build the visual list
+  resEl.innerHTML = `
+    <div style="font-size:.8rem;color:rgba(255,255,255,.5);margin-bottom:14px;
+      background:rgba(100,181,246,.08);border:1px solid rgba(100,181,246,.15);
+      border-radius:6px;padding:10px 14px;line-height:1.6">
+      💡 <strong style="color:#64b5f6">New approach:</strong>
+      Proxy se check karna blocked ho gaya tha (vidsrc proxy requests block karta hai).
+      Ab <strong>▶ Test</strong> se video seedha open hoga — dekhlo chalti hai ya nahi, phir mark karo.
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+      <div style="background:rgba(70,211,105,.08);border:1px solid rgba(70,211,105,.2);border-radius:6px;padding:6px 12px;font-size:.78rem">
+        📊 Total: <strong style="color:#fff">${movies.length}</strong>
+      </div>
+      <div style="background:rgba(70,211,105,.08);border:1px solid rgba(70,211,105,.2);border-radius:6px;padding:6px 12px;font-size:.78rem">
+        ✅ Working: <strong style="color:var(--green)">${movies.filter(m=>m.embed_working!==false).length}</strong>
+      </div>
+      ${broken.length ? `
+      <div style="background:rgba(229,9,20,.08);border:1px solid rgba(229,9,20,.25);border-radius:6px;padding:6px 12px;font-size:.78rem">
+        ❌ Broken: <strong style="color:#ff6b6b">${broken.length}</strong>
+      </div>` : ''}
+    </div>
+    <div id="movieCheckList">
+      ${movies.map(m => movieCheckRowHTML(m)).join('')}
+    </div>`;
+}
+
+function movieCheckRowHTML(m) {
+  const url     = getPlayUrl(m);
+  const isBroken = m.embed_working === false;
+  const srcBadge = embedSourceBadge(m);
+  const checked  = m.last_checked
+    ? `checked ${new Date(m.last_checked).toLocaleDateString('en-IN')}`
+    : 'never checked';
+
+  return `
+    <div id="mcRow_${m.id}" style="display:flex;align-items:center;gap:12px;
+      background:${isBroken?'rgba(229,9,20,.06)':'rgba(255,255,255,.03)'};
+      border:1px solid ${isBroken?'rgba(229,9,20,.25)':'rgba(255,255,255,.06)'};
+      border-radius:8px;padding:10px 12px;margin-bottom:6px;flex-wrap:wrap;transition:border-color .2s">
+      <img src="${m.poster_url||''}" style="width:36px;height:52px;object-fit:cover;border-radius:4px;
+        background:#222;flex-shrink:0" onerror="this.style.display='none'">
+      <div style="flex:1;min-width:120px">
+        <div style="font-size:.86rem;font-weight:700;color:#fff">${m.title}</div>
+        <div style="font-size:.7rem;color:var(--muted);margin-top:2px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <span>${m.year||''}</span>
+          ${srcBadge}
+          <span style="color:rgba(255,255,255,.25)">${checked}</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+        ${isBroken ? `
+          <input type="url" id="mcFix_${m.id}" placeholder="Custom embed URL..."
+            style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;
+            padding:6px 10px;font-size:.74rem;border-radius:5px;width:220px;font-family:'Barlow',sans-serif;outline:none">
+          <button class="btn-add" style="padding:6px 12px;font-size:.73rem"
+            onclick="mcSaveEmbed(${m.id})">💾 Save</button>
+        ` : ''}
+        <button class="tab-btn play" onclick="mcTest(${m.id})" title="Test video">▶</button>
+        <button onclick="mcMarkWorking(${m.id})" title="Mark working"
+          style="background:rgba(70,211,105,.1);border:1px solid rgba(70,211,105,.25);color:#46d369;
+          width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:.8rem" title="Mark ✅">✓</button>
+        <button onclick="mcMarkBroken(${m.id})" title="Mark broken"
+          style="background:rgba(229,9,20,.08);border:1px solid rgba(229,9,20,.2);color:#ff6b6b;
+          width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:.9rem">✗</button>
+      </div>
+    </div>`;
+}
+
+function mcTest(movieId) {
+  const m   = allMovies.find(x => x.id === movieId);
+  if (!m)   return;
+  const url = getPlayUrl(m);
+  if (!url) { showToast('⚠️ No embed URL'); return; }
+  openVisualTest(movieId, url, m.title,
+    () => mcMarkWorking(movieId),
+    () => mcMarkBroken(movieId)
+  );
+}
+
+async function mcMarkWorking(movieId) {
+  const now = new Date().toISOString();
+  await getSB().from('movies').update({ embed_working: true, last_checked: now }).eq('id', movieId);
+  const m = allMovies.find(x => x.id === movieId);
+  if (m) { m.embed_working = true; m.last_checked = now; }
+  const row = document.getElementById('mcRow_' + movieId);
+  if (row) {
+    row.style.borderColor = 'rgba(70,211,105,.3)';
+    row.style.background  = 'rgba(70,211,105,.04)';
+    const brokenInput = document.getElementById('mcFix_' + movieId);
+    if (brokenInput) brokenInput.closest('div').remove?.();
+    showToast('✅ Marked as working');
+  }
+}
+
+async function mcMarkBroken(movieId) {
+  const now = new Date().toISOString();
+  await getSB().from('movies').update({ embed_working: false, last_checked: now }).eq('id', movieId);
+  const m = allMovies.find(x => x.id === movieId);
+  if (m) { m.embed_working = false; m.last_checked = now; }
+  const row = document.getElementById('mcRow_' + movieId);
+  if (row) {
+    row.style.borderColor = 'rgba(229,9,20,.3)';
+    row.style.background  = 'rgba(229,9,20,.05)';
+    showToast('❌ Marked as broken — fix karo');
+  }
+  // Refresh row to show fix input
+  if (row && m) row.outerHTML = movieCheckRowHTML({ ...m, embed_working: false, last_checked: now });
+}
+
+async function mcSaveEmbed(movieId) {
+  const input = document.getElementById('mcFix_' + movieId);
+  const url   = input?.value.trim();
+  if (!url || !validateEmbedUrl(url)) { showToast('❌ Valid URL daalo'); return; }
+  const source  = detectEmbedSource(url);
+  const updates = { embed_url: url, embed_source: source, manual_embed: true,
+    auto_embed: false, embed_working: true, last_checked: new Date().toISOString() };
+  const { error } = await getSB().from('movies').update(updates).eq('id', movieId);
+  if (error) { showToast('❌ ' + error.message); return; }
+  const m = allMovies.find(x => x.id === movieId);
+  if (m) Object.assign(m, updates);
+  const row = document.getElementById('mcRow_' + movieId);
+  if (row && m) row.outerHTML = movieCheckRowHTML({ ...m, ...updates });
+  showToast(`✅ ${source} embed saved!`);
+}
+
+// ─────────────────────────────────────────
+//  TMDB DISCOVERY — visual approach
+// ─────────────────────────────────────────
+async function discoverTMDB() {
+  const endpoint = document.getElementById('tmdbDiscType').value;
+  const lang     = document.getElementById('tmdbDiscLang').value;
+  const statusEl = document.getElementById('discStatus');
+  const resEl    = document.getElementById('discResults');
+
+  statusEl.textContent = '⏳ Fetching from TMDB...';
+  resEl.innerHTML      = '';
+
+  const key   = XVERSE.TMDB_KEY;
+  const pages = [1, 2];
+  let   items = [];
+
+  for (const page of pages) {
+    try {
+      const url = `https://api.themoviedb.org/3/${endpoint}?api_key=${key}&language=en-US&page=${page}${lang?'&with_original_language='+lang:''}`;
+      const r   = await fetch(url);
+      const d   = await r.json();
+      items     = [...items, ...(d.results || [])];
+    } catch { /* skip */ }
+  }
+
+  if (!items.length) { statusEl.textContent = '❌ TMDB fetch failed'; return; }
+
+  const dbIds = new Set(allMovies.map(m => m.tmdb_id).filter(Boolean));
+  const isTV  = endpoint.includes('/tv/');
+  const fresh = items.filter(m => !dbIds.has(m.id));
+
+  statusEl.textContent = `${fresh.length} new titles found — ▶ test karo, jo kaam kare add karo`;
+
+  if (!fresh.length) {
+    resEl.innerHTML = `<div style="padding:16px;text-align:center;color:var(--muted);font-size:.84rem">
+      Sab movies already tumhare DB mein hain!</div>`;
     return;
   }
 
-  let html = `
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
-      <div style="background:rgba(70,211,105,.08);border:1px solid rgba(70,211,105,.2);border-radius:6px;padding:8px 14px;font-size:.8rem">
-        ✅ <strong style="color:var(--green)">${ok.length}</strong> Available
-      </div>
-      <div style="background:rgba(229,9,20,.08);border:1px solid rgba(229,9,20,.2);border-radius:6px;padding:8px 14px;font-size:.8rem">
-        ❌ <strong style="color:#ff6b6b">${unavailable.length}</strong> Unavailable
-      </div>
-      ${needsReview.length ? `
-      <div style="background:rgba(245,197,24,.08);border:1px solid rgba(245,197,24,.2);border-radius:6px;padding:8px 14px;font-size:.8rem">
-        ⚠️ <strong style="color:#f5c518">${needsReview.length}</strong> Manual check needed
-      </div>` : ''}
+  resEl.innerHTML = `
+    <div style="font-size:.78rem;color:rgba(255,255,255,.4);margin-bottom:12px;
+      background:rgba(100,181,246,.06);border:1px solid rgba(100,181,246,.12);
+      border-radius:6px;padding:8px 12px">
+      💡 ▶ Test dabao — vidsrc pe open hoga. Agar chalti hai tho <strong style="color:#64b5f6">＋ Add</strong> karo.
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px">
+      ${fresh.slice(0, 20).map(m => {
+        const title  = m.title || m.name || 'Unknown';
+        const year   = (m.release_date || m.first_air_date || '').slice(0, 4);
+        const poster = m.poster_path ? `https://image.tmdb.org/t/p/w200${m.poster_path}` : '';
+        const type   = isTV ? 'tv' : 'movie';
+        const testUrl= `https://vidsrc.to/embed/${type}/${m.id}`;
+        const ms     = JSON.stringify({ tmdb_id: m.id, type }).replace(/"/g, '&quot;');
+        return `
+          <div style="background:var(--card);border:1px solid rgba(255,255,255,.07);border-radius:8px;
+            overflow:hidden;transition:border-color .2s" id="disc_${m.id}">
+            <div style="position:relative">
+              ${poster
+                ? `<img src="${poster}" style="width:100%;aspect-ratio:2/3;object-fit:cover;display:block"
+                    onerror="this.style.display='none'">`
+                : `<div style="width:100%;aspect-ratio:2/3;background:#1c1c1c;display:flex;align-items:center;justify-content:center;font-size:2rem">🎬</div>`}
+            </div>
+            <div style="padding:8px">
+              <div style="font-size:.78rem;font-weight:700;color:#fff;margin-bottom:2px;
+                white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${title}">${title}</div>
+              <div style="font-size:.67rem;color:var(--muted);margin-bottom:7px">${year} · ${type==='tv'?'TV':'Movie'}</div>
+              <div style="display:flex;gap:5px">
+                <button style="flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);
+                  color:#fff;padding:5px 0;border-radius:5px;cursor:pointer;font-size:.72rem"
+                  onclick="discTest(${m.id},'${type}','${testUrl}','${title.replace(/'/g,'').slice(0,30)}')">▶ Test</button>
+                <button style="flex:1;background:var(--red);border:none;color:#fff;padding:5px 0;
+                  border-radius:5px;cursor:pointer;font-size:.72rem;font-weight:700"
+                  onclick="quickAddFromTMDB(${m.id},'${type}','${title.replace(/'/g,'').slice(0,30)}')">＋ Add</button>
+              </div>
+            </div>
+          </div>`;
+      }).join('')}
     </div>`;
-
-  if (unavailable.length) {
-    html += `<div style="font-size:.84rem;font-weight:700;color:#ff6b6b;margin-bottom:10px">❌ Unavailable on vidsrc — custom embed lagao:</div>`;
-    html += unavailable.map(r => unavailRowHTML(r, 'red')).join('');
-  }
-  if (needsReview.length) {
-    html += `<div style="font-size:.84rem;font-weight:700;color:#f5c518;margin:16px 0 10px">⚠️ Manual Review Needed (proxy failed):</div>`;
-    html += needsReview.map(r => unavailRowHTML(r, 'yellow')).join('');
-  }
-
-  res.innerHTML = html;
 }
 
+function discTest(tmdbId, type, testUrl, title) {
+  openVisualTest(null, testUrl, title,
+    () => { showToast(`✅ Kaam kar rahi hai — ＋ Add karo`); },
+    () => { showToast(`❌ Nahi chal rahi — skip karo`); }
+  );
+}
+
+async function quickAddFromTMDB(tmdbId, type, title) {
+  nav('add', document.querySelectorAll('.sbtn')[0]);
+  await new Promise(r => setTimeout(r, 300));
+  const typeEl = document.getElementById('aType');
+  const tmdbEl = document.getElementById('aTmdb');
+  if (typeEl) typeEl.value = type;
+  if (tmdbEl) { tmdbEl.value = tmdbId; await autoFillManual(); }
+  showToast(`✅ "${title}" form fill ho gaya — check karo aur add karo`);
+}
 function unavailRowHTML(r, color) {
   const m = r.movie;
   const borderColor = color === 'red'
@@ -1770,142 +1900,6 @@ async function exportCSV() {
   showToast(`📊 CSV exported — ${items.length} titles`);
 }
 
-// ─────────────────────────────────────────
-//  TMDB DISCOVERY — check TMDB movies on vidsrc
-//  Checks movies that are NOT yet in your DB
-// ─────────────────────────────────────────
-async function discoverTMDB() {
-  const endpoint = document.getElementById('tmdbDiscType').value;
-  const lang     = document.getElementById('tmdbDiscLang').value;
-  const statusEl = document.getElementById('discStatus');
-  const progEl   = document.getElementById('discProgress');
-  const barEl    = document.getElementById('discBar');
-  const textEl   = document.getElementById('discText');
-  const resEl    = document.getElementById('discResults');
-
-  statusEl.textContent = 'Fetching from TMDB...';
-  progEl.style.display = 'block';
-  barEl.style.width    = '0%';
-  resEl.innerHTML      = '';
-
-  // Fetch 2 pages from TMDB (40 results)
-  const key    = XVERSE.TMDB_KEY;
-  const pages  = [1, 2];
-  let   items  = [];
-
-  for (const page of pages) {
-    const url = `https://api.themoviedb.org/3/${endpoint}?api_key=${key}&language=en-US&page=${page}${lang?'&with_original_language='+lang:''}`;
-    try {
-      const r = await fetch(url);
-      const d = await r.json();
-      items   = [...items, ...(d.results || [])];
-    } catch { /* skip */ }
-  }
-
-  if (!items.length) {
-    statusEl.textContent = '❌ TMDB fetch failed';
-    progEl.style.display = 'none';
-    return;
-  }
-
-  // Filter out movies already in DB
-  const dbIds  = new Set(allMovies.map(m => m.tmdb_id).filter(Boolean));
-  const isTV   = endpoint.includes('/tv/');
-  const fresh  = items.filter(m => !dbIds.has(m.id));
-
-  statusEl.textContent = `${fresh.length} new titles found — checking vidsrc...`;
-
-  // Check each on vidsrc using corsproxy
-  const total   = Math.min(fresh.length, 20); // max 20 checks
-  const toCheck = fresh.slice(0, total);
-
-  const results = await withConcurrency(toCheck, async (m, i) => {
-    const type  = isTV ? 'tv' : 'movie';
-    const fakeM = { tmdb_id: m.id, type, embed_url: null, auto_embed: true, manual_embed: false };
-    const res   = await checkOneMovie(fakeM);
-    return { tmdb: m, type, ...res };
-  }, 5, (done, tot, m) => {
-    const pct = Math.round((done / tot) * 100);
-    barEl.style.width    = pct + '%';
-    textEl.textContent   = `Checking: ${m.title||m.name} (${done}/${tot})`;
-    statusEl.textContent = `${done} / ${tot} checked`;
-  });
-
-  progEl.style.display = 'none';
-
-  const available   = results.filter(r => r.available === true);
-  const unavailable = results.filter(r => r.available === false);
-  const unknown     = results.filter(r => r.available === null);
-
-  statusEl.textContent =
-    `✅ ${available.length} available · ❌ ${unavailable.length} unavailable · ⚠️ ${unknown.length} unknown`;
-
-  if (!available.length && !unavailable.length) {
-    resEl.innerHTML = `<div class="ep-loading">No results to show. Try a different category.</div>`;
-    return;
-  }
-
-  // Show available movies with quick-add button
-  let html = '';
-  if (available.length) {
-    html += `<div style="font-size:.84rem;font-weight:700;color:var(--green);margin-bottom:10px">
-      ✅ Available on vidsrc — Quick Add karo:
-    </div>`;
-    html += available.map(r => {
-      const m     = r.tmdb;
-      const title = m.title || m.name || 'Unknown';
-      const year  = (m.release_date || m.first_air_date || '').slice(0, 4);
-      const poster= m.poster_path ? `https://image.tmdb.org/t/p/w92${m.poster_path}` : '';
-      const ms    = JSON.stringify({ tmdb_id: m.id, type: r.type }).replace(/"/g, '&quot;');
-      return `
-        <div style="display:flex;align-items:center;gap:12px;background:rgba(70,211,105,.05);
-          border:1px solid rgba(70,211,105,.2);border-radius:8px;padding:10px 12px;margin-bottom:6px;flex-wrap:wrap">
-          ${poster ? `<img src="${poster}" style="width:36px;height:52px;object-fit:cover;border-radius:4px;background:#222;flex-shrink:0">` : ''}
-          <div style="flex:1;min-width:100px">
-            <div style="font-size:.88rem;font-weight:700;color:#fff">${title}</div>
-            <div style="font-size:.72rem;color:var(--muted)">${year} · ${r.type==='tv'?'TV Show':'Movie'} · TMDB: ${m.id}</div>
-          </div>
-          <div style="display:flex;gap:6px">
-            <button class="btn-add" style="padding:6px 14px;font-size:.74rem"
-              onclick="quickAddFromTMDB(${m.id},'${r.type}','${title.replace(/'/g,'').slice(0,40)}')">
-              ＋ Add
-            </button>
-            <button class="tab-btn play"
-              onclick="window.open('https://vidsrc.to/embed/${r.type}/${m.id}','_blank')" title="Preview">▶</button>
-          </div>
-        </div>`;
-    }).join('');
-  }
-
-  if (unavailable.length) {
-    html += `<div style="font-size:.84rem;font-weight:700;color:#ff6b6b;margin:12px 0 8px">
-      ❌ Not on vidsrc (${unavailable.length}):
-    </div>`;
-    html += `<div style="display:flex;flex-wrap:wrap;gap:6px">` +
-      unavailable.map(r => {
-        const title = r.tmdb.title || r.tmdb.name || 'Unknown';
-        return `<span style="background:rgba(229,9,20,.08);border:1px solid rgba(229,9,20,.18);
-          border-radius:4px;padding:3px 8px;font-size:.72rem;color:#ff6b6b">${title}</span>`;
-      }).join('') + `</div>`;
-  }
-
-  resEl.innerHTML = html;
-}
-
-async function quickAddFromTMDB(tmdbId, type, title) {
-  // Pre-fill the add form and switch to it
-  nav('add', document.querySelectorAll('.sbtn')[0]);
-  await new Promise(r => setTimeout(r, 300)); // wait for panel to show
-
-  const typeEl = document.getElementById('aType');
-  const tmdbEl = document.getElementById('aTmdb');
-  if (typeEl) typeEl.value = type;
-  if (tmdbEl) {
-    tmdbEl.value = tmdbId;
-    await autoFillManual(); // auto-fill TMDB data
-  }
-  showToast(`✅ "${title}" form fill ho gaya — check karo aur add karo`);
-}
 async function loadTable(type) {
   const elId   = type === 'movies' ? 'moviesTable' : 'tvTable';
   const el     = document.getElementById(elId);
