@@ -60,7 +60,7 @@ const Auth = {
       .from('profiles')
       .select('*')
       .eq('id', uid)
-      .single();
+      .maybeSingle(); // FIX: .single() throws 406 when no row exists (new users)
     return data;
   },
 
@@ -156,7 +156,7 @@ const DB = {
       .select('id')
       .eq('user_id', uid)
       .eq('movie_id', movieId)
-      .single();
+      .maybeSingle(); // FIX: .single() throws 406 when movie not in list
     return !!data;
   },
 
@@ -201,6 +201,9 @@ const DB = {
       starts_at:  new Date().toISOString(),
     });
   },
+
+  // FIX: function signature was missing — caused SyntaxError breaking the ENTIRE app
+  async upsertContinueWatching(uid, movieId, progressSec, durationSec, extraData = {}) {
     const completed = durationSec > 0 && (progressSec / durationSec) > 0.9;
     return getSB().from('continue_watching').upsert({
       user_id:      uid,
