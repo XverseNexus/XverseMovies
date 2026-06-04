@@ -128,7 +128,8 @@ self.addEventListener('fetch', e => {
     caches.match(e.request).then(cached => {
       if (cached) return cached;
       return fetch(e.request).then(res => {
-        if (res.ok) {
+        // Only cache http/https — chrome-extension:// causes TypeError
+        if (res.ok && e.request.url.startsWith('http')) {
           const clone = res.clone();
           caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
         }
@@ -141,7 +142,8 @@ self.addEventListener('fetch', e => {
 async function networkFirstWithTimeout(req, timeout) {
   const cached  = await caches.match(req);
   const network = fetch(req).then(res => {
-    if (res.ok) caches.open(CACHE_NAME).then(c => c.put(req, res.clone()));
+    if (res.ok && req.url.startsWith('http'))
+      caches.open(CACHE_NAME).then(c => c.put(req, res.clone()));
     return res;
   });
   try {
