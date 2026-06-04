@@ -14,115 +14,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="xverse-config.js"></script>
 
-<!-- ═══════════════════════════════════════════════════════
-     XVERSE AD SHIELD — Silent Built-in Ad Blocker
-     Blocks: popups, ad scripts, overlay divs, ad network requests
-     User sees nothing — ads are silently dropped
-     ═══════════════════════════════════════════════════════ -->
-<script>
-(function XverseAdShield() {
-  'use strict';
-
-  // ── Known ad/tracker hostnames ──────────────────────────
-  const AD_HOSTS = [
-    'doubleclick.net','googlesyndication.com','adnxs.com',
-    'amazon-adsystem.com','llvpn.com','me.lol','popcash.net',
-    'popads.net','trafficjunky.com','exoclick.com','hilltopads.net',
-    'propellerads.com','adsterra.com','monetag.com','plugrush.com',
-    'juicyads.com','mgid.com','taboola.com','outbrain.com',
-    'zedo.com','rubiconproject.com','openx.net','pubmatic.com',
-    'casalemedia.com','appnexus.com','advertising.com','yieldmanager.com',
-    'adform.net','criteo.com','smartadserver.com','spotxchange.com',
-    'adsrvr.org','turn.com','bluekai.com','demdex.net','everesttech.net',
-    'scorecardresearch.com','quantserve.com','addthis.com',
-  ];
-
-  function isAdUrl(url) {
-    if (!url || typeof url !== 'string') return false;
-    try {
-      const hostname = new URL(url).hostname.toLowerCase();
-      return AD_HOSTS.some(h =>
-        hostname === h || hostname.endsWith('.' + h)
-      );
-    } catch { return false; }
-  }
-
-  // ── 1. Block fetch() to ad domains ─────────────────────
-  const _fetch = window.fetch;
-  window.fetch = function(input, init) {
-    const url = typeof input === 'string' ? input : (input?.url ?? '');
-    if (isAdUrl(url)) return Promise.resolve(new Response('', {status:200}));
-    return _fetch.apply(this, arguments);
-  };
-
-  // ── 2. Block XMLHttpRequest to ad domains ───────────────
-  const _xhrOpen = XMLHttpRequest.prototype.open;
-  XMLHttpRequest.prototype.open = function(method, url) {
-    if (isAdUrl(url)) {
-      // Silent fail — redirect to blank
-      return _xhrOpen.call(this, method, 'about:blank');
-    }
-    return _xhrOpen.apply(this, arguments);
-  };
-
-  // ── 3. Block <script src> pointing to ad domains ────────
-  const _setSrc = Object.getOwnPropertyDescriptor(HTMLScriptElement.prototype, 'src');
-  if (_setSrc?.set) {
-    Object.defineProperty(HTMLScriptElement.prototype, 'src', {
-      set(val) { if (!isAdUrl(val)) _setSrc.set.call(this, val); },
-      get() { return _setSrc.get.call(this); },
-      configurable: true,
-    });
-  }
-
-  // ── 4. MutationObserver — remove injected ad elements ───
-  new MutationObserver(muts => {
-    for (const { addedNodes } of muts) {
-      for (const node of addedNodes) {
-        if (node.nodeType !== 1) continue;
-
-        // Block ad scripts
-        if (node.tagName === 'SCRIPT' && isAdUrl(node.src)) {
-          node.remove(); continue;
-        }
-
-        // Block injected iframes (not our main player iframe)
-        if (node.tagName === 'IFRAME' && node.id !== 'stFrame') {
-          if (isAdUrl(node.src)) { node.remove(); continue; }
-          // Block suspiciously-positioned overlay iframes
-          const z = parseInt(node.style?.zIndex) || 0;
-          if (z > 9999) { node.remove(); continue; }
-        }
-
-        // Block full-screen overlay ad divs
-        if (node.tagName === 'DIV' || node.tagName === 'A') {
-          const z = parseInt(node.style?.zIndex) || 0;
-          const pos = node.style?.position;
-          if (z > 2147000000 || (z > 99999 && (pos==='fixed'||pos==='absolute')
-              && node.style?.width === '100%')) {
-            node.remove(); continue;
-          }
-        }
-      }
-    }
-  }).observe(document.documentElement, { childList: true, subtree: true });
-
-  // ── 5. Block navigation hijack (iframe trying to move parent) ─
-  // The iframe sandbox already handles this, but double-protect
-  window.addEventListener('message', e => {
-    const d = e.data;
-    if (typeof d === 'string') {
-      const lower = d.toLowerCase();
-      if (lower.includes('redirect') || lower.includes('navigate') ||
-          lower.includes('location.href')) {
-        e.stopImmediatePropagation();
-      }
-    }
-  }, true);
-
-})();
-</script>
-
 <style>
 *,*::before,*::after{
   margin:0;
@@ -544,8 +435,7 @@ html,body{
   id="stFrame"
   allowfullscreen
   allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-  referrerpolicy="no-referrer"
-  sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
+  referrerpolicy="no-referrer-when-downgrade"
   style="border:none;"
 ></iframe>
 
