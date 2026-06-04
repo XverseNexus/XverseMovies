@@ -8,6 +8,7 @@
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#E50914">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="XverseMovies">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -383,7 +384,7 @@ function renderHero(m) {
     </div>
     <div class="hero-overview">${m.overview || ''}</div>
     <div class="hero-btns">
-      <button class="btn-play" onclick="playMovie(${JSON.stringify(m).replace(/"/g,'&quot;')})">▶ Play</button>
+      <button class="btn-play" onclick="${m.type==='tv'?`openModal(${JSON.stringify(m).replace(/"/g,'&quot;')})`:`playMovie(${JSON.stringify(m).replace(/"/g,'&quot;')})`}">▶ Play</button>
       <button class="btn-info" onclick="openModal(${JSON.stringify(m).replace(/"/g,'&quot;')})">ⓘ More Info</button>
       <button class="btn-mylist-hero" id="heroMyListBtn" onclick="toggleMyList(${JSON.stringify(m).replace(/"/g,'&quot;')})" title="${inList?'Remove from':'Add to'} My List">${inList?'✓':'+'}</button>
     </div>`;
@@ -551,7 +552,7 @@ function cardHTML(m) {
       <span class="card-type ${m.type||'movie'}">${m.type==='tv'?'TV':'MOVIE'}</span>
       <span class="card-rating">★ ${m.rating||m.vote_average||''}</span>
       <div class="card-overlay">
-        <button class="card-play" onclick="event.stopPropagation();playMovie(${ms})">▶</button>
+        <button class="card-play" onclick="event.stopPropagation();${m.type==='tv'?'openModal':'playMovie'}(${ms})">▶</button>
         <button class="card-add" onclick="event.stopPropagation();toggleMyList(${ms})">${inList?'✓':'+'}</button>
       </div>
     </div>
