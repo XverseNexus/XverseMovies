@@ -3,7 +3,7 @@
 //  Handles: offline support, app shell caching, background sync
 // ═══════════════════════════════════════════════════════════
 
-const CACHE_NAME    = 'xverse-v4';
+const CACHE_NAME    = 'xverse-v3';
 const SHELL_TIMEOUT = 3000; // ms before falling back to cache
 
 // App shell — these files are cached on install
@@ -29,19 +29,6 @@ const NETWORK_ONLY = [
   'dailymotion.com',
   'corsproxy.io',
   'allorigins.win',
-];
-
-// ── AD BLOCKLIST — requests to these domains return empty 200 ──
-const AD_BLOCK = [
-  'doubleclick.net', 'googlesyndication.com', 'adnxs.com',
-  'amazon-adsystem.com', 'llvpn.com', 'me.lol', 'popcash.net',
-  'popads.net', 'trafficjunky.com', 'exoclick.com', 'hilltopads.net',
-  'propellerads.com', 'adsterra.com', 'monetag.com', 'plugrush.com',
-  'juicyads.com', 'mgid.com', 'taboola.com', 'outbrain.com',
-  'zedo.com', 'rubiconproject.com', 'openx.net', 'pubmatic.com',
-  'casalemedia.com', 'appnexus.com', 'advertising.com',
-  'adsrvr.org', 'criteo.com', 'smartadserver.com', 'spotxchange.com',
-  'scorecardresearch.com', 'quantserve.com', 'demdex.net',
 ];
 
 // ─────────────────────────────────────────
@@ -75,15 +62,6 @@ self.addEventListener('activate', event => {
 // ─────────────────────────────────────────
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
-
-  // 0. Block ad domains — return empty 200 silently
-  if (AD_BLOCK.some(d => url.hostname === d || url.hostname.endsWith('.' + d))) {
-    event.respondWith(new Response('', {
-      status: 200,
-      headers: { 'Content-Type': 'text/plain' }
-    }));
-    return;
-  }
 
   // 1. Network-only for API / video domains
   if (NETWORK_ONLY.some(d => url.hostname.includes(d))) {
