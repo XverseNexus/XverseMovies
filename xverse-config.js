@@ -461,27 +461,126 @@ async function requireAuth(redirectTo = 'index.html') {
 async function initNavAvatar(avatarElId = 'navAvatar') {
   const el = document.getElementById(avatarElId);
   if (!el) return;
+
   const profile = Session.getProfile();
   const user    = await Auth.getUser();
   if (!user) return;
 
-  // Show avatar image or initial
+  const name  = profile?.name || user.email?.split('@')[0] || 'User';
+  const email = user.email || '';
+
+  // Set avatar image or initial
   if (profile?.avatar_url || user.user_metadata?.avatar_url) {
     const img = document.createElement('img');
-    img.src = profile?.avatar_url || user.user_metadata?.avatar_url;
+    img.src   = profile?.avatar_url || user.user_metadata?.avatar_url;
     img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:inherit';
-    img.onerror = () => { img.remove(); el.textContent = (profile?.name || user.email || 'U')[0].toUpperCase(); };
+    img.onerror = () => { img.remove(); el.textContent = name[0].toUpperCase(); };
     el.innerHTML = '';
     el.appendChild(img);
   } else {
-    el.textContent = (profile?.name || user.email || 'U')[0].toUpperCase();
+    el.textContent = name[0].toUpperCase();
   }
 
-  el.onclick = () => {
-    const choice = confirm('XverseMovies Account\n\nOK → ⚙️ Settings\nCancel → 🚪 Sign Out');
-    if (choice) window.location.href = 'XverseMovies_Settings.html';
-    else if (confirm('Sign out karna chahte ho?')) {
-      Auth.signOut().then(() => window.location.href = 'index.html');
+  // ── Netflix-style dropdown ──────────────────────────────
+  const menuId = avatarElId + '_menu';
+
+  function closeMenu() {
+    const m = document.getElementById(menuId);
+    if (m) m.remove();
+    document.removeEventListener('click', outsideClick);
+  }
+
+  function outsideClick(e) {
+    const m = document.getElementById(menuId);
+    if (m && !m.contains(e.target) && e.target !== el) closeMenu();
+  }
+
+  el.onclick = (e) => {
+    e.stopPropagation();
+    // Toggle
+    if (document.getElementById(menuId)) { closeMenu(); return; }
+
+    const rect   = el.getBoundingClientRect();
+    const menu   = document.createElement('div');
+    menu.id      = menuId;
+    menu.style.cssText = `
+      position:fixed;
+      top:${rect.bottom + 8}px;
+      right:${window.innerWidth - rect.right}px;
+      background:#1a1a1a;
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:8px;
+      min-width:210px;
+      box-shadow:0 8px 32px rgba(0,0,0,.6);
+      z-index:9999;
+      overflow:hidden;
+      animation:menuFadeIn .15s ease;
+    `;
+
+    // Inject animation keyframes once
+    if (!document.getElementById('xvMenuStyle')) {
+      const s = document.createElement('style');
+      s.id = 'xvMenuStyle';
+      s.textContent = `
+        @keyframes menuFadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+        .xvm-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:.84rem;
+          color:rgba(255,255,255,.8);cursor:pointer;font-family:'Barlow',sans-serif;transition:background .15s;border:none;
+          background:none;width:100%;text-align:left}
+        .xvm-item:hover{background:rgba(255,255,255,.07);color:#fff}
+        .xvm-item.danger{color:#ff6b6b}
+        .xvm-item.danger:hover{background:rgba(229,9,20,.1);color:#ff4444}
+        .xvm-sep{height:1px;background:rgba(255,255,255,.08);margin:4px 0}
+        .xvm-header{padding:12px 16px 10px;border-bottom:1px solid rgba(255,255,255,.08)}
+        .xvm-name{font-size:.88rem;font-weight:700;color:#fff}
+        .xvm-email{font-size:.7rem;color:rgba(255,255,255,.38);margin-top:2px;word-break:break-all}
+      `;
+      document.head.appendChild(s);
     }
+
+    // Check if admin
+    Auth.getProfile(user.id).then(p => {
+      const isAdmin = p?.is_admin || p?.role === 'admin' || p?.role === 'moderator';
+      if (isAdmin) {
+        const adminBtn = menu.querySelector('#xvm-admin-btn');
+        if (adminBtn) adminBtn.style.display = 'flex';
+      }
+    });
+
+    menu.innerHTML = `
+      <div class="xvm-header">
+        <div class="xvm-name">${name}</div>
+        <div class="xvm-email">${email}</div>
+      </div>
+      <button class="xvm-item" onclick="window.location.href='XverseMovies_Settings.html'">
+        ⚙️ &nbsp;Account Settings
+      </button>
+      <button class="xvm-item" onclick="xvSwitchProfile()">
+        👥 &nbsp;Switch Profile
+      </button>
+      <button class="xvm-item" id="xvm-admin-btn" style="display:none"
+        onclick="window.location.href='XverseMovies_Admin.html'">
+        🛡️ &nbsp;Admin Panel
+      </button>
+      <div class="xvm-sep"></div>
+      <button class="xvm-item danger" onclick="xvSignOut()">
+        🚪 &nbsp;Sign Out
+      </button>
+    `;
+
+    document.body.appendChild(menu);
+    setTimeout(() => document.addEventListener('click', outsideClick), 0);
   };
+}
+
+// Switch profile — clear saved profile and go to profile picker
+function xvSwitchProfile() {
+  Session.setProfile(null);
+  window.location.href = 'index.html';
+}
+
+// Sign out — no browser confirm(), clean redirect
+async function xvSignOut() {
+  await Auth.signOut();
+  Session.setProfile(null);
+  window.location.href = 'index.html';
 }
