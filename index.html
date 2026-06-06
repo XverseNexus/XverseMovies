@@ -217,7 +217,17 @@ let signupData   = {};
 async function handleSession(session) {
   const uid     = session.user.id;
   const profile = await Auth.getProfile(uid);
+
   if (profile) {
+    // ── Skip "Who's Watching" if profile already selected ──────────
+    // User already picked a profile this session → go straight to Home
+    const savedProfile = Session.getProfile();
+    if (savedProfile && savedProfile.id) {
+      hideLoader();
+      window.location.href = 'XverseMovies_Home.html';
+      return;
+    }
+    // No saved profile → show profile picker
     await renderProfileSelect(session.user, profile);
   } else {
     signupData = { isGoogle:true, name: session.user.user_metadata?.full_name || session.user.email, email: session.user.email, uid };
