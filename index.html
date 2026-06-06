@@ -230,9 +230,10 @@ async function handleSession(session) {
   }
 
   if (profile) {
-    // Skip "Who's Watching" if profile was already selected
+    // Skip "Who's Watching" if user already selected a profile
+    // Note: don't check savedProfile.id — fake profiles (no DB viewer) have no id
     const savedProfile = Session.getProfile();
-    if (savedProfile && savedProfile.id) {
+    if (savedProfile) {
       hideLoader();
       window.location.href = 'XverseMovies_Home.html';
       return;
@@ -362,12 +363,21 @@ async function renderProfileSelect(user, profile) {
   const colors  = ['#E50914','#2196F3','#4CAF50','#FF9800','#9C27B0'];
   const grid    = document.getElementById('profGrid');
   grid.innerHTML = '';
-  const list = viewers.length ? viewers : [{ name:(profile?.name||user.email||'User').split(' ')[0], avatar_url:user.user_metadata?.avatar_url||null }];
-  list.forEach((vp,i) => {
+  // If no viewer profiles in DB, create a temporary one from auth user data
+  // Assign user.id as fallback id so Session.setProfile stores a truthy id
+  const list = viewers.length
+    ? viewers
+    : [{ id: user.id, name: (profile?.name || user.email || 'User').split(' ')[0], avatar_url: user.user_metadata?.avatar_url || null }];
+
+  list.forEach((vp, i) => {
     const div = document.createElement('div');
-    div.className='prof-item';
-    div.innerHTML=`<div class="prof-av" style="background:${colors[i%colors.length]}">${vp.avatar_url?`<img src="${vp.avatar_url}" onerror="this.remove()">`:''}  <span style="z-index:1">${(vp.name||'U')[0].toUpperCase()}</span></div><div class="prof-name">${vp.name}${vp.is_kids?' 👶':''}</div>`;
-    div.onclick=()=>{ Session.setProfile({id:vp.id,name:vp.name,avatar_url:vp.avatar_url,is_kids:vp.is_kids}); window.location.href='XverseMovies_Home.html'; };
+    div.className = 'prof-item';
+    div.innerHTML = `<div class="prof-av" style="background:${colors[i % colors.length]}">${vp.avatar_url ? `<img src="${vp.avatar_url}" onerror="this.remove()">` : ''}<span style="z-index:1">${(vp.name || 'U')[0].toUpperCase()}</span></div><div class="prof-name">${vp.name}${vp.is_kids ? ' 👶' : ''}</div>`;
+    div.onclick = () => {
+      // Always store a profile with a truthy value so the skip-check works on next visit
+      Session.setProfile({ id: vp.id || user.id, name: vp.name, avatar_url: vp.avatar_url, is_kids: vp.is_kids || false });
+      window.location.href = 'XverseMovies_Home.html';
+    };
     grid.appendChild(div);
   });
   const add=document.createElement('div'); add.className='prof-item';
