@@ -189,6 +189,7 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
     <button class="sbtn" onclick="nav('unavailable',this)"><span class="sbico">🔍</span> Check Unavailable <span class="sbcnt" id="sbUnavCnt" style="display:none">0</span></button>
     <button class="sbtn" onclick="nav('bulk',this)"><span class="sbico">📥</span> Bulk Import</button>
     <button class="sbtn" onclick="nav('export',this)"><span class="sbico">💾</span> Export Data</button>
+    <button class="sbtn" id="sbModBtn" onclick="nav('moderators',this)" style="display:none"><span class="sbico">🛡️</span> Moderators</button>
   </aside>
 
   <main class="main">
@@ -454,6 +455,32 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
       </div>
     </div>
 
+    <!-- MODERATORS — full admin only -->
+    <div class="panel" id="panel-moderators">
+      <div class="ptit">Moderators</div>
+      <div class="psub">Admin panel access manage karo — invite aur remove moderators</div>
+
+      <div class="fc" style="margin-bottom:16px">
+        <div class="fc-title"><div class="fc-ico">➕</div> Invite Moderator</div>
+        <div style="font-size:.83rem;color:rgba(255,255,255,.55);margin-bottom:14px;line-height:1.6">
+          Email se kisi ko moderator access do. Unhe pehle se XverseMovies account hona chahiye.
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <input type="email" id="modEmail" class="fi" placeholder="Enter email address..."
+            style="flex:2;min-width:200px" onkeydown="if(event.key==='Enter')inviteModerator()">
+          <button class="btn-add" onclick="inviteModerator()" style="flex-shrink:0">🛡️ Invite as Moderator</button>
+        </div>
+        <div id="modMsg" style="font-size:.78rem;margin-top:8px;display:none"></div>
+      </div>
+
+      <div class="fc">
+        <div class="fc-title"><div class="fc-ico">👥</div> Current Moderators</div>
+        <div id="modList" style="margin-top:8px">
+          <div style="font-size:.8rem;color:var(--muted)">Loading...</div>
+        </div>
+      </div>
+    </div>
+
     <!-- UNAVAILABLE CHECKER -->
     <div class="panel" id="panel-unavailable">
       <div class="ptit">Check Unavailable</div>
@@ -547,14 +574,36 @@ const GENRES = ['Action','Comedy','Drama','Horror','Sci-Fi','Romance','Thriller'
 // ─────────────────────────────────────────
 //  INIT
 // ─────────────────────────────────────────
+// ─────────────────────────────────────────
+//  INIT — Admin/Moderator access only
+// ─────────────────────────────────────────
 window.addEventListener('load', async () => {
-  // Simple admin check — in production use Supabase RLS + admin role
   const sb = getSB();
   const { data: { session } } = await sb.auth.getSession();
-  if (!session) { window.location.href = 'XverseMovies_Login.html'; return; }
+  if (!session) { window.location.href = 'index.html'; return; }
+
+  // ── STRICT ACCESS CONTROL ─────────────────────────────────
+  const profile = await Auth.getProfile(session.user.id);
+  const allowed = profile?.is_admin === true
+                || profile?.role === 'admin'
+                || profile?.role === 'moderator';
+
+  if (!allowed) {
+    document.body.style.cssText = 'margin:0;background:#0a0a0a;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:Barlow,sans-serif;flex-direction:column;gap:14px';
+    document.body.innerHTML = `
+      <div style="font-size:3rem">🔒</div>
+      <div style="font-family:'Bebas Neue',cursive;font-size:2rem;color:#E50914;letter-spacing:2px">Access Denied</div>
+      <div style="color:rgba(255,255,255,.5);font-size:.88rem">Tumhare paas admin access nahi hai.</div>
+      <a href="XverseMovies_Home.html" style="margin-top:8px;background:#E50914;color:#fff;padding:9px 24px;border-radius:5px;text-decoration:none;font-weight:700;font-size:.88rem">← Back to Home</a>`;
+    return;
+  }
+
+  // Store current user role for UI decisions
+  window._isFullAdmin = profile?.is_admin === true || profile?.role === 'admin';
 
   buildGenreTags();
   await loadDashboard();
+  initModeratorAccess(); // show Moderators sidebar button for full admins
 });
 
 // ─────────────────────────────────────────
@@ -566,11 +615,12 @@ function nav(name, btn) {
   const p = document.getElementById('panel-' + name);
   if (p) p.classList.add('on');
   if (btn) btn.classList.add('on');
-  if (name === 'movies')   loadTable('movies');
-  if (name === 'tv')       loadTable('tv');
-  if (name === 'featured') loadFeatured();
-  if (name === 'dashboard') loadDashboard();
-  if (name === 'export')   loadExportCount();
+  if (name === 'movies')      loadTable('movies');
+  if (name === 'tv')          loadTable('tv');
+  if (name === 'featured')    loadFeatured();
+  if (name === 'dashboard')   loadDashboard();
+  if (name === 'export')      loadExportCount();
+  if (name === 'moderators')  loadModerators();
   if (name === 'unavailable') { document.getElementById('unavailableResults').innerHTML=''; document.getElementById('checkStatus').textContent=''; document.getElementById('checkProgress').style.display='none'; }
 }
 
@@ -1412,6 +1462,54 @@ async function fixEmbedUrl(movieId) {
   const row = document.getElementById('unavRow_' + movieId);
   if (row) { row.classList.add('fixed'); input.style.borderColor = '#46d369'; }
   showToast(`✅ ${source} embed saved!`);
+}
+
+// ─────────────────────────────────────────
+//  MODERATOR MANAGEMENT
+// ─────────────────────────────────────────
+function initModeratorAccess() {
+  if (window._isFullAdmin) {
+    const btn = document.getElementById('sbModBtn');
+    if (btn) btn.style.display = 'flex';
+  }
+}
+
+async function inviteModerator() {
+  const email = document.getElementById('modEmail').value.trim().toLowerCase();
+  const msgEl = document.getElementById('modMsg');
+  msgEl.style.display = 'block';
+  if (!email || !/\S+@\S+/.test(email)) {
+    msgEl.style.color='#ff6b6b'; msgEl.textContent='❌ Valid email daalo'; return;
+  }
+  const { data } = await getSB().from('profiles').select('id,name,email,role,is_admin').eq('email',email).maybeSingle();
+  if (!data) { msgEl.style.color='#ff6b6b'; msgEl.textContent='❌ Koi account nahi mila. Pehle unhe sign up karwao.'; return; }
+  if (data.is_admin) { msgEl.style.color='#f5c518'; msgEl.textContent='⚠️ Ye pehle se full admin hai.'; return; }
+  if (data.role==='moderator') { msgEl.style.color='#f5c518'; msgEl.textContent='⚠️ Ye pehle se moderator hai.'; return; }
+  const { error } = await getSB().from('profiles').update({ role:'moderator' }).eq('id',data.id);
+  if (error) { msgEl.style.color='#ff6b6b'; msgEl.textContent='❌ '+error.message; return; }
+  msgEl.style.color='#46d369'; msgEl.textContent=`✅ ${data.name||email} ko moderator access de diya!`;
+  document.getElementById('modEmail').value = '';
+  loadModerators();
+}
+
+async function loadModerators() {
+  const el = document.getElementById('modList'); if (!el) return;
+  const { data } = await getSB().from('profiles').select('id,name,email,role,is_admin,created_at').or('role.eq.moderator,is_admin.eq.true').order('created_at');
+  if (!data?.length) { el.innerHTML=`<div style="font-size:.8rem;color:var(--muted);padding:12px 0">Koi moderator nahi hai abhi.</div>`; return; }
+  el.innerHTML = data.map(u=>`
+    <div style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:8px;flex-wrap:wrap">
+      <div style="width:36px;height:36px;border-radius:6px;background:${u.is_admin?'#E50914':'#2196F3'};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;flex-shrink:0">${(u.name||u.email||'?')[0].toUpperCase()}</div>
+      <div style="flex:1;min-width:100px"><div style="font-size:.86rem;font-weight:700;color:#fff">${u.name||'Unknown'}</div><div style="font-size:.7rem;color:var(--muted)">${u.email||''}</div></div>
+      <span style="background:${u.is_admin?'rgba(229,9,20,.12)':'rgba(33,150,243,.1)'};border:1px solid ${u.is_admin?'rgba(229,9,20,.3)':'rgba(33,150,243,.25)'};color:${u.is_admin?'#E50914':'#64b5f6'};font-size:.65rem;font-weight:700;padding:2px 9px;border-radius:20px">${u.is_admin?'👑 ADMIN':'🛡️ MODERATOR'}</span>
+      ${!u.is_admin?`<button onclick="removeModerator('${u.id}','${(u.name||u.email).replace(/'/g,'')}')" style="background:rgba(229,9,20,.08);border:1px solid rgba(229,9,20,.2);color:#ff6b6b;padding:5px 12px;border-radius:5px;cursor:pointer;font-size:.74rem;font-family:'Barlow',sans-serif">Remove</button>`:''}
+    </div>`).join('');
+}
+
+async function removeModerator(uid, name) {
+  const { error } = await getSB().from('profiles').update({ role:'user' }).eq('id',uid);
+  if (error) { showToast('❌ '+error.message); return; }
+  showToast(`✅ ${name} ka moderator access remove ho gaya`);
+  loadModerators();
 }
 
 //  TABLE
