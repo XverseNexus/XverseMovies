@@ -16,6 +16,21 @@
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{--red:#E50914;--bg:#141414;--bg2:#0a0a0a;--card:#1c1c1c;--card2:#222;--text:#e5e5e5;--muted:#808080;--border:rgba(255,255,255,.09);--green:#46d369}
 html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;overflow-x:hidden}
+
+/* ── CONFIRMATION MODAL (replaces browser confirm()) ── */
+.xv-confirm-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);animation:cfFi .18s ease}
+@keyframes cfFi{from{opacity:0}to{opacity:1}}
+.xv-confirm-box{background:#1e1e1e;border:1px solid rgba(255,255,255,.12);border-radius:10px;width:min(92vw,380px);overflow:hidden;animation:cfUp .2s ease}
+@keyframes cfUp{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+.xv-confirm-icon{font-size:2.2rem;text-align:center;padding:24px 20px 0}
+.xv-confirm-title{font-family:'Bebas Neue',cursive;font-size:1.5rem;color:#fff;text-align:center;padding:8px 24px 0;letter-spacing:1px}
+.xv-confirm-msg{font-size:.84rem;color:rgba(255,255,255,.6);text-align:center;padding:8px 24px 20px;line-height:1.55}
+.xv-confirm-acts{display:flex;border-top:1px solid rgba(255,255,255,.08)}
+.xv-confirm-acts button{flex:1;padding:14px;font-size:.88rem;font-weight:700;font-family:'Barlow',sans-serif;cursor:pointer;border:none;transition:background .18s}
+.xv-confirm-acts .btn-cancel{background:transparent;color:rgba(255,255,255,.55);border-right:1px solid rgba(255,255,255,.08)}
+.xv-confirm-acts .btn-cancel:hover{background:rgba(255,255,255,.06);color:#fff}
+.xv-confirm-acts .btn-confirm{background:transparent;color:var(--red)}
+.xv-confirm-acts .btn-confirm:hover{background:rgba(229,9,20,.12)}
 nav{position:fixed;top:0;left:0;right:0;z-index:200;height:60px;display:flex;align-items:center;padding:0 4%;background:rgba(8,8,8,.97);border-bottom:1px solid var(--border);backdrop-filter:blur(10px)}
 .logo{font-family:'Bebas Neue',cursive;font-size:1.8rem;color:var(--red);letter-spacing:2px;text-decoration:none;flex-shrink:0;margin-right:20px}
 .logo span{color:#fff}
@@ -506,7 +521,15 @@ async function addProfile() {
 }
 
 async function deleteProfile(id, name) {
-  if (!confirm(`Delete "${name}" profile?`)) return;
+  const ok = await xvConfirm({
+    icon: '👤',
+    title: 'Delete Profile',
+    message: `"${name}" profile delete karna chahte ho? Ye undo nahi hoga.`,
+    confirmText: 'Delete',
+    cancelText: 'Cancel',
+    danger: true,
+  });
+  if (!ok) return;
   await DB.deleteViewerProfile(id);
   viewerProfs = viewerProfs.filter(p=>p.id!==id);
   buildViewerProfs();
@@ -534,8 +557,16 @@ function upgradePlan(plan) {
   else showToast('⚙️ Cashfree payment link setup karo — xverse-config.js mein');
 }
 
-function cancelMembership() {
-  if (!confirm('Membership cancel karna hai? Plan free ho jayega.')) return;
+async function cancelMembership() {
+  const ok = await xvConfirm({
+    icon: '💳',
+    title: 'Cancel Membership',
+    message: 'Membership cancel karna hai? Tumhara plan free ho jayega.',
+    confirmText: 'Cancel Plan',
+    cancelText: 'Keep Plan',
+    danger: true,
+  });
+  if (!ok) return;
   Auth.updatePlan(currentUser.id, 'free').then(() => { showToast('Membership cancelled'); buildPlanGrid(); });
 }
 
@@ -612,17 +643,67 @@ function updateUnreadBadge() {
 function buildNotifPanel() { renderNotifs('all'); }
 
 // ─────────────────────────────────────────
+//  STYLED CONFIRMATION MODAL
+//  Replaces browser confirm() everywhere
+// ─────────────────────────────────────────
+function xvConfirm({ icon = '⚠️', title, message, confirmText = 'Confirm', cancelText = 'Cancel', danger = true }) {
+  return new Promise(resolve => {
+    const bg  = document.createElement('div');
+    bg.className = 'xv-confirm-bg';
+    bg.innerHTML = `
+      <div class="xv-confirm-box">
+        <div class="xv-confirm-icon">${icon}</div>
+        <div class="xv-confirm-title">${title}</div>
+        <div class="xv-confirm-msg">${message}</div>
+        <div class="xv-confirm-acts">
+          <button class="btn-cancel" id="xvCfNo">${cancelText}</button>
+          <button class="btn-confirm" id="xvCfYes" style="${danger?'color:var(--red)':'color:var(--green)'}">${confirmText}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(bg);
+    const cleanup = (val) => { bg.remove(); resolve(val); };
+    document.getElementById('xvCfYes').onclick = () => cleanup(true);
+    document.getElementById('xvCfNo').onclick  = () => cleanup(false);
+    bg.onclick = (e) => { if (e.target === bg) cleanup(false); };
+  });
+}
+
+// ─────────────────────────────────────────
 //  SIGN OUT
 // ─────────────────────────────────────────
 async function doSignOut() {
-  if (!confirm('Sign out karna chahte ho?')) return;
+  const ok = await xvConfirm({
+    icon: '🚪',
+    title: 'Sign Out',
+    message: 'XverseMovies se sign out karna chahte ho?',
+    confirmText: 'Sign Out',
+    cancelText: 'Cancel',
+  });
+  if (!ok) return;
   await Auth.signOut();
+  Session.setProfile(null);
   window.location.href = 'index.html';
 }
 
 async function deleteAccount() {
-  if (!confirm('⚠️ Account permanently delete karna hai?')) return;
-  if (!confirm('Sach mein? Ye undo nahi hoga.')) return;
+  const ok1 = await xvConfirm({
+    icon: '⚠️',
+    title: 'Delete Account',
+    message: 'Ye action permanently tumhara account delete kar dega. Ye undo nahi hoga.',
+    confirmText: 'Delete Account',
+    cancelText: 'Cancel',
+    danger: true,
+  });
+  if (!ok1) return;
+  const ok2 = await xvConfirm({
+    icon: '🗑️',
+    title: 'Are You Sure?',
+    message: 'Sach mein delete karna hai? Tumhara sab data, My List, aur progress hamesha ke liye chali jayegi.',
+    confirmText: 'Yes, Delete',
+    cancelText: 'No, Keep It',
+    danger: true,
+  });
+  if (!ok2) return;
   showToast('Account deletion request bhej diya. Support se confirm hoga.');
 }
 
