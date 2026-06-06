@@ -1478,36 +1478,76 @@ async function inviteModerator() {
   const email = document.getElementById('modEmail').value.trim().toLowerCase();
   const msgEl = document.getElementById('modMsg');
   msgEl.style.display = 'block';
+
   if (!email || !/\S+@\S+/.test(email)) {
-    msgEl.style.color='#ff6b6b'; msgEl.textContent='❌ Valid email daalo'; return;
+    msgEl.style.color = '#ff6b6b'; msgEl.textContent = '❌ Valid email daalo'; return;
   }
-  const { data } = await getSB().from('profiles').select('id,name,email,role,is_admin').eq('email',email).maybeSingle();
-  if (!data) { msgEl.style.color='#ff6b6b'; msgEl.textContent='❌ Koi account nahi mila. Pehle unhe sign up karwao.'; return; }
-  if (data.is_admin) { msgEl.style.color='#f5c518'; msgEl.textContent='⚠️ Ye pehle se full admin hai.'; return; }
-  if (data.role==='moderator') { msgEl.style.color='#f5c518'; msgEl.textContent='⚠️ Ye pehle se moderator hai.'; return; }
-  const { error } = await getSB().from('profiles').update({ role:'moderator' }).eq('id',data.id);
-  if (error) { msgEl.style.color='#ff6b6b'; msgEl.textContent='❌ '+error.message; return; }
-  msgEl.style.color='#46d369'; msgEl.textContent=`✅ ${data.name||email} ko moderator access de diya!`;
+
+  // Use RPC function — bypasses RLS (direct UPDATE fails due to profiles_update_own policy)
+  const { data, error } = await getSB().rpc('set_user_moderator', { target_email: email });
+
+  if (error) {
+    msgEl.style.color = '#ff6b6b';
+    msgEl.textContent = '❌ ' + error.message;
+    return;
+  }
+
+  if (!data?.success) {
+    msgEl.style.color = '#f5c518';
+    msgEl.textContent = '⚠️ ' + (data?.error || 'Unknown error');
+    return;
+  }
+
+  msgEl.style.color = '#46d369';
+  msgEl.textContent = `✅ ${data.name || email} ko moderator access de diya!`;
   document.getElementById('modEmail').value = '';
   loadModerators();
 }
 
 async function loadModerators() {
   const el = document.getElementById('modList'); if (!el) return;
-  const { data } = await getSB().from('profiles').select('id,name,email,role,is_admin,created_at').or('role.eq.moderator,is_admin.eq.true').order('created_at');
-  if (!data?.length) { el.innerHTML=`<div style="font-size:.8rem;color:var(--muted);padding:12px 0">Koi moderator nahi hai abhi.</div>`; return; }
-  el.innerHTML = data.map(u=>`
-    <div style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:8px;flex-wrap:wrap">
-      <div style="width:36px;height:36px;border-radius:6px;background:${u.is_admin?'#E50914':'#2196F3'};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;flex-shrink:0">${(u.name||u.email||'?')[0].toUpperCase()}</div>
-      <div style="flex:1;min-width:100px"><div style="font-size:.86rem;font-weight:700;color:#fff">${u.name||'Unknown'}</div><div style="font-size:.7rem;color:var(--muted)">${u.email||''}</div></div>
-      <span style="background:${u.is_admin?'rgba(229,9,20,.12)':'rgba(33,150,243,.1)'};border:1px solid ${u.is_admin?'rgba(229,9,20,.3)':'rgba(33,150,243,.25)'};color:${u.is_admin?'#E50914':'#64b5f6'};font-size:.65rem;font-weight:700;padding:2px 9px;border-radius:20px">${u.is_admin?'👑 ADMIN':'🛡️ MODERATOR'}</span>
-      ${!u.is_admin?`<button onclick="removeModerator('${u.id}','${(u.name||u.email).replace(/'/g,'')}')" style="background:rgba(229,9,20,.08);border:1px solid rgba(229,9,20,.2);color:#ff6b6b;padding:5px 12px;border-radius:5px;cursor:pointer;font-size:.74rem;font-family:'Barlow',sans-serif">Remove</button>`:''}
+  const { data } = await getSB()
+    .from('profiles')
+    .select('id,name,email,role,is_admin,created_at')
+    .or('role.eq.moderator,is_admin.eq.true')
+    .order('created_at');
+  if (!data?.length) {
+    el.innerHTML = `<div style="font-size:.8rem;color:var(--muted);padding:12px 0">Koi moderator nahi hai abhi.</div>`;
+    return;
+  }
+  el.innerHTML = data.map(u => `
+    <div style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--border);
+      border-radius:8px;padding:10px 14px;margin-bottom:8px;flex-wrap:wrap">
+      <div style="width:36px;height:36px;border-radius:6px;background:${u.is_admin?'#E50914':'#2196F3'};
+        display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;flex-shrink:0">
+        ${(u.name||u.email||'?')[0].toUpperCase()}
+      </div>
+      <div style="flex:1;min-width:100px">
+        <div style="font-size:.86rem;font-weight:700;color:#fff">${u.name||'Unknown'}</div>
+        <div style="font-size:.7rem;color:var(--muted)">${u.email||''}</div>
+      </div>
+      <span style="background:${u.is_admin?'rgba(229,9,20,.12)':'rgba(33,150,243,.1)'};
+        border:1px solid ${u.is_admin?'rgba(229,9,20,.3)':'rgba(33,150,243,.25)'};
+        color:${u.is_admin?'#E50914':'#64b5f6'};font-size:.65rem;font-weight:700;
+        padding:2px 9px;border-radius:20px">
+        ${u.is_admin ? '👑 ADMIN' : '🛡️ MODERATOR'}
+      </span>
+      ${!u.is_admin ? `
+        <button onclick="removeModerator('${u.id}','${(u.name||u.email).replace(/'/g,'')}')"
+          style="background:rgba(229,9,20,.08);border:1px solid rgba(229,9,20,.2);color:#ff6b6b;
+          padding:5px 12px;border-radius:5px;cursor:pointer;font-size:.74rem;font-family:'Barlow',sans-serif">
+          Remove
+        </button>` : ''}
     </div>`).join('');
 }
 
 async function removeModerator(uid, name) {
-  const { error } = await getSB().from('profiles').update({ role:'user' }).eq('id',uid);
-  if (error) { showToast('❌ '+error.message); return; }
+  // Use RPC — bypasses RLS
+  const { data, error } = await getSB().rpc('remove_user_moderator', { target_uid: uid });
+  if (error || !data?.success) {
+    showToast('❌ ' + (error?.message || data?.error || 'Failed'));
+    return;
+  }
   showToast(`✅ ${name} ka moderator access remove ho gaya`);
   loadModerators();
 }
