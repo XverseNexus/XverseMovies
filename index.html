@@ -199,6 +199,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 <script>
 let selectedPlan = 'free';
 let signupData   = {};
+let _inSignupFlow = false; // prevents handleSession from interfering during signup
 
 // ── INIT ──────────────────────────────────────────
 (async () => {
@@ -210,28 +211,39 @@ let signupData   = {};
   }
 
   getSB().auth.onAuthStateChange(async (event, session) => {
+    // Don't interfere while suStep3 is actively creating the account
+    if (_inSignupFlow) return;
     if (event === 'SIGNED_IN' && session) await handleSession(session);
   });
 })();
 
 async function handleSession(session) {
-  const uid     = session.user.id;
-  const profile = await Auth.getProfile(uid);
+  const uid = session.user.id;
+
+  // Profile might not exist yet right after signup (DB trigger is async)
+  // Retry up to 4 times with 600ms gap before giving up
+  let profile = null;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    profile = await Auth.getProfile(uid);
+    if (profile) break;
+    await new Promise(r => setTimeout(r, 600));
+  }
 
   if (profile) {
-    // ── Skip "Who's Watching" if profile already selected ──────────
-    // User already picked a profile this session → go straight to Home
+    // Skip "Who's Watching" if profile was already selected
     const savedProfile = Session.getProfile();
     if (savedProfile && savedProfile.id) {
       hideLoader();
       window.location.href = 'XverseMovies_Home.html';
       return;
     }
-    // No saved profile → show profile picker
     await renderProfileSelect(session.user, profile);
   } else {
-    signupData = { isGoogle:true, name: session.user.user_metadata?.full_name || session.user.email, email: session.user.email, uid };
-    hideLoader(); showPage('signup'); jumpStep(2);
+    // Only show signup if we're not already mid-signup
+    if (!_inSignupFlow) {
+      signupData = { isGoogle:true, name: session.user.user_metadata?.full_name || session.user.email, email: session.user.email, uid };
+      hideLoader(); showPage('signup'); jumpStep(2);
+    }
   }
 }
 
@@ -296,21 +308,51 @@ function suStep2() {
 }
 
 async function suStep3() {
-  const btn=document.getElementById('su3Btn');
-  btn.textContent='Creating account...'; btn.disabled=true;
+  _inSignupFlow = true; // Block onAuthStateChange from interfering
+  const btn = document.getElementById('su3Btn');
+  btn.textContent = 'Creating account...'; btn.disabled = true;
+
   let uid = signupData.uid;
+
   if (!uid && signupData.pass) {
     const { data, error } = await Auth.signUp(signupData.email, signupData.pass, signupData.name);
-    if (error) { showMsg('su2Msg',errText(error.message)); btn.textContent='Start Watching →'; btn.disabled=false; jumpStep(2); return; }
+    if (error) {
+      _inSignupFlow = false;
+      showMsg('su2Msg', errText(error.message));
+      btn.textContent = 'Start Watching →'; btn.disabled = false;
+      jumpStep(2); return;
+    }
     uid = data.user?.id;
-    if (!data.session) { showPage('login'); showMsg('loginMsg','✅ Account created! Email confirm karo phir sign in karo.',true); return; }
+    if (!data.session) {
+      _inSignupFlow = false;
+      showPage('login');
+      showMsg('loginMsg', '✅ Account created! Email confirm karo phir sign in karo.', true);
+      return;
+    }
   }
-  if (!uid) { btn.textContent='Start Watching →'; btn.disabled=false; return; }
+
+  if (!uid) { _inSignupFlow = false; btn.textContent = 'Start Watching →'; btn.disabled = false; return; }
+
   await Auth.updatePlan(uid, selectedPlan);
-  if (selectedPlan!=='free' && XVERSE.PAYMENT[selectedPlan]) window.open(XVERSE.PAYMENT[selectedPlan]+'?uid='+uid,'_blank');
-  const { data:{user} } = await getSB().auth.getUser();
-  const profile = await Auth.getProfile(uid);
-  await renderProfileSelect(user, profile||{name:signupData.name,plan:selectedPlan});
+  if (selectedPlan !== 'free' && XVERSE.PAYMENT[selectedPlan])
+    window.open(XVERSE.PAYMENT[selectedPlan] + '?uid=' + uid, '_blank');
+
+  // Wait briefly for DB trigger to create profile row
+  await new Promise(r => setTimeout(r, 800));
+
+  const { data: { user } } = await getSB().auth.getUser();
+
+  // Retry profile fetch — trigger might still be running
+  let profile = null;
+  for (let i = 0; i < 4; i++) {
+    profile = await Auth.getProfile(uid);
+    if (profile) break;
+    await new Promise(r => setTimeout(r, 600));
+  }
+
+  _inSignupFlow = false; // Unlock AFTER we have the profile
+
+  await renderProfileSelect(user, profile || { name: signupData.name, plan: selectedPlan });
 }
 
 // ── PROFILE SELECT ────────────────────────────────
