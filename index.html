@@ -230,10 +230,10 @@ async function handleSession(session) {
   }
 
   if (profile) {
-    // Skip "Who's Watching" if user already selected a profile
-    // Note: don't check savedProfile.id — fake profiles (no DB viewer) have no id
+    // Skip Who's Watching only if THIS user's profile is already saved.
+    // userId check ensures a different user signing in still sees the picker.
     const savedProfile = Session.getProfile();
-    if (savedProfile) {
+    if (savedProfile && savedProfile.userId === uid) {
       hideLoader();
       window.location.href = 'XverseMovies_Home.html';
       return;
@@ -374,8 +374,8 @@ async function renderProfileSelect(user, profile) {
     div.className = 'prof-item';
     div.innerHTML = `<div class="prof-av" style="background:${colors[i % colors.length]}">${vp.avatar_url ? `<img src="${vp.avatar_url}" onerror="this.remove()">` : ''}<span style="z-index:1">${(vp.name || 'U')[0].toUpperCase()}</span></div><div class="prof-name">${vp.name}${vp.is_kids ? ' 👶' : ''}</div>`;
     div.onclick = () => {
-      // Always store a profile with a truthy value so the skip-check works on next visit
-      Session.setProfile({ id: vp.id || user.id, name: vp.name, avatar_url: vp.avatar_url, is_kids: vp.is_kids || false });
+      // Store userId so handleSession can verify this profile belongs to current user
+      Session.setProfile({ userId: user.id, id: vp.id || user.id, name: vp.name, avatar_url: vp.avatar_url, is_kids: vp.is_kids || false });
       window.location.href = 'XverseMovies_Home.html';
     };
     grid.appendChild(div);
