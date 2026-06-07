@@ -1,3 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XverseMovies — Sign In</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#E50914">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="XverseMovies">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="xverse-config.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--red:#E50914;--bg:#000;--muted:#8c8c8c}
+html,body{height:100%;font-family:'Barlow',sans-serif;background:var(--bg);color:#e5e5e5;overflow-x:hidden}
+.bg-wrap{position:fixed;inset:0;z-index:0}
+.bg-img{width:100%;height:100%;object-fit:cover;opacity:.28;filter:brightness(.4)}
+.bg-grad{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.75) 0%,rgba(0,0,0,.25) 40%,rgba(0,0,0,.85) 80%,rgba(0,0,0,.98) 100%)}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 4%;height:72px}
+.logo{font-family:'Bebas Neue',cursive;font-size:2.4rem;color:var(--red);letter-spacing:2px;cursor:pointer;user-select:none}
+.logo span{color:#fff}
+.page{position:relative;z-index:10;min-height:100vh;display:none;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px 40px}
+.page.active{display:flex;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.land-title{font-family:'Bebas Neue',cursive;font-size:clamp(2.5rem,6vw,5rem);color:#fff;letter-spacing:3px;line-height:1;margin-bottom:14px;text-align:center}
+.land-sub{font-size:clamp(.95rem,2vw,1.35rem);color:#ddd;font-weight:300;margin-bottom:32px;text-align:center}
+.land-form{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.land-email{background:rgba(0,0,0,.6);border:1.5px solid rgba(255,255,255,.35);color:#fff;padding:14px 18px;font-size:1rem;border-radius:4px;width:320px;font-family:'Barlow',sans-serif;outline:none;transition:border .2s}
+.land-email:focus{border-color:rgba(255,255,255,.7)}
+.land-email::placeholder{color:#888}
+.btn-red{background:var(--red);color:#fff;border:none;padding:14px 26px;font-size:1rem;font-weight:700;border-radius:4px;cursor:pointer;font-family:'Barlow',sans-serif;transition:background .2s;white-space:nowrap}
+.btn-red:hover{background:#f40612}
+.btn-red:disabled{opacity:.6;cursor:not-allowed}
+.or-row{display:flex;align-items:center;gap:12px;margin:26px 0 12px;width:min(90vw,440px)}
+.or-row::before,.or-row::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.18)}
+.or-row span{color:var(--muted);font-size:.85rem}
+.btn-google-big{background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.28);color:#fff;padding:13px 44px;font-size:.95rem;font-weight:600;border-radius:4px;cursor:pointer;font-family:'Barlow',sans-serif;transition:background .2s;display:flex;align-items:center;gap:12px}
+.btn-google-big:hover{background:rgba(255,255,255,.17)}
+.box{background:rgba(0,0,0,.84);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:46px 54px 54px;width:min(90vw,450px);backdrop-filter:blur(12px)}
+.box-title{font-family:'Bebas Neue',cursive;font-size:2.1rem;color:#fff;letter-spacing:1px;margin-bottom:26px}
+.field{margin-bottom:15px;position:relative}
+.field input{width:100%;background:#2d2d2d;border:1.5px solid rgba(255,255,255,.1);color:#fff;padding:18px 14px 6px;font-size:.92rem;border-radius:4px;font-family:'Barlow',sans-serif;outline:none;transition:border .2s}
+.field input:focus{border-color:rgba(255,255,255,.4);background:#333}
+.field label{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#888;font-size:.88rem;pointer-events:none;transition:all .18s}
+.field input:focus~label,.field input:not(:placeholder-shown)~label{top:8px;transform:none;font-size:.66rem;color:#aaa}
+.field input::placeholder{color:transparent}
+.msg{font-size:.8rem;padding:9px 13px;border-radius:4px;margin-bottom:12px;display:none}
+.msg.show{display:block}
+.msg.err{background:rgba(229,9,20,.12);border:1px solid rgba(229,9,20,.35);color:#ff7070}
+.msg.ok{background:rgba(70,211,105,.1);border:1px solid rgba(70,211,105,.3);color:#46d369}
+.opts-row{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
+.remember{display:flex;align-items:center;gap:7px;font-size:.8rem;color:var(--muted);cursor:pointer}
+.remember input{accent-color:var(--red)}
+.link-btn{font-size:.8rem;color:var(--muted);background:none;border:none;cursor:pointer;font-family:'Barlow',sans-serif;transition:color .2s;padding:0}
+.link-btn:hover{color:#fff}
+.divider{text-align:center;color:var(--muted);font-size:.8rem;margin:16px 0;position:relative}
+.divider::before{content:'';position:absolute;left:0;top:50%;right:0;height:1px;background:rgba(255,255,255,.1)}
+.divider span{background:rgba(0,0,0,.84);padding:0 12px;position:relative}
+.btn-google{width:100%;background:transparent;border:1.5px solid rgba(255,255,255,.18);color:#fff;padding:12px;font-size:.88rem;font-weight:500;border-radius:4px;cursor:pointer;font-family:'Barlow',sans-serif;display:flex;align-items:center;justify-content:center;gap:10px;transition:background .2s}
+.btn-google:hover{background:rgba(255,255,255,.07)}
+.box-footer{margin-top:20px;font-size:.82rem;color:var(--muted)}
+.box-footer a{color:#fff;text-decoration:none;font-weight:600;cursor:pointer}
+.step-bar{display:flex;gap:5px;margin-bottom:26px}
+.sdot{height:4px;border-radius:2px;background:rgba(255,255,255,.18);flex:1;transition:background .3s}
+.sdot.active{background:var(--red)}
+.sdot.done{background:#46d369}
+.plan-list{display:flex;flex-direction:column;gap:7px;margin-bottom:14px}
+.plan-opt{border:1.5px solid rgba(255,255,255,.13);border-radius:6px;padding:11px 13px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:11px;position:relative;user-select:none}
+.plan-opt:hover{border-color:rgba(255,255,255,.38)}
+.plan-opt.sel{border-color:var(--red);background:rgba(229,9,20,.06)}
+.plan-opt.popular::after{content:'POPULAR';position:absolute;top:-1px;right:11px;background:var(--red);color:#fff;font-size:.52rem;font-weight:800;padding:2px 7px;border-radius:0 0 4px 4px;letter-spacing:.8px}
+.radio{width:17px;height:17px;border-radius:50%;border:2px solid rgba(255,255,255,.32);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.plan-opt.sel .radio{border-color:var(--red)}
+.rdot{width:8px;height:8px;border-radius:50%;background:var(--red);display:none}
+.plan-opt.sel .rdot{display:block}
+.pinfo{flex:1}
+.pname{font-size:.9rem;font-weight:700;color:#fff}
+.pdesc{font-size:.68rem;color:var(--muted);margin-top:2px}
+.pprice{font-size:.9rem;font-weight:700;color:#fff}
+.prof-grid{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;margin-bottom:32px}
+.prof-item{display:flex;flex-direction:column;align-items:center;gap:9px;cursor:pointer}
+.prof-av{width:88px;height:88px;border-radius:6px;overflow:hidden;border:3px solid transparent;transition:all .22s;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',cursive;font-size:2.4rem;color:#fff;position:relative}
+.prof-item:hover .prof-av{transform:scale(1.07);border-color:#fff}
+.prof-av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.prof-name{font-size:.9rem;color:var(--muted);transition:color .2s}
+.prof-item:hover .prof-name{color:#fff}
+#initLoader{position:fixed;inset:0;background:#141414;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px}
+.ld-logo{font-family:'Bebas Neue',cursive;font-size:2.8rem;color:var(--red);letter-spacing:3px}
+.ld-logo span{color:#fff}
+.ld-bar{width:200px;height:3px;background:#333;border-radius:2px;overflow:hidden}
+.ld-fill{height:100%;background:var(--red);border-radius:2px;animation:ldA 1.6s ease forwards}
+@keyframes ldA{from{width:0}to{width:100%}}
+.g-ico{width:17px;height:17px;flex-shrink:0}
+@media(max-width:520px){.box{padding:30px 20px 38px}.land-email{width:100%}.land-form{flex-direction:column;align-items:center}}
+</style>
+</head>
+<body>
+
+<div id="initLoader">
+  <div class="ld-logo">Xverse<span>Movies</span></div>
+  <div class="ld-bar"><div class="ld-fill"></div></div>
+</div>
+
+<div class="bg-wrap">
+  <img class="bg-img" src="https://image.tmdb.org/t/p/original/628Dep6AxEtDxjZoGP78TsOxYbY.jpg" alt="">
+  <div class="bg-grad"></div>
+</div>
+
+<nav><span class="logo" onclick="showPage('landing')">Xverse<span>Movies</span></span></nav>
+
+<!-- LANDING -->
+<div class="page" id="page-landing">
+  <h1 class="land-title">Movies, Shows & More<br>Without Limits</h1>
+  <p class="land-sub">Watch anywhere. Cancel anytime.</p>
+  <div class="land-form">
+    <input class="land-email" id="landEmail" type="email" placeholder="Your email address" onkeydown="if(event.key==='Enter')handleGetStarted()">
+    <button class="btn-red" onclick="handleGetStarted()">Get Started ›</button>
+  </div>
+  <div style="margin-top:14px;font-size:.84rem;color:var(--muted)">Already a member? <span style="color:#fff;cursor:pointer;font-weight:600" onclick="showPage('login')">Sign In</span></div>
+  <div class="or-row"><span>OR</span></div>
+  <button class="btn-google-big" onclick="googleSignIn()">
+    <svg class="g-ico" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+    Continue with Google
+  </button>
+</div>
+
+<!-- LOGIN -->
+<div class="page" id="page-login">
+  <div class="box">
+    <h2 class="box-title">Sign In</h2>
+    <div class="msg err" id="loginMsg"></div>
+    <div class="field"><input type="email" id="liEmail" placeholder="e" autocomplete="email"><label>Email address</label></div>
+    <div class="field"><input type="password" id="liPass" placeholder="p" autocomplete="current-password" onkeydown="if(event.key==='Enter')emailLogin()"><label>Password</label></div>
+    <button class="btn-red" style="width:100%;margin-top:4px" id="loginBtn" onclick="emailLogin()">Sign In</button>
+    <div class="opts-row">
+      <label class="remember"><input type="checkbox" checked> Remember me</label>
+      <button class="link-btn" onclick="forgotPass()">Forgot password?</button>
+    </div>
+    <div class="divider"><span>OR</span></div>
+    <button class="btn-google" onclick="googleSignIn()">
+      <svg class="g-ico" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Sign in with Google
+    </button>
+    <p class="box-footer">New to XverseMovies? <a onclick="showPage('signup')">Sign up now</a></p>
+  </div>
+</div>
+
+<!-- SIGNUP -->
+<div class="page" id="page-signup">
+  <div class="box">
+    <div class="step-bar"><div class="sdot active" id="sd1"></div><div class="sdot" id="sd2"></div><div class="sdot" id="sd3"></div></div>
+    <div id="su1">
+      <h2 class="box-title">Create Account</h2>
+      <p style="font-size:.78rem;color:var(--muted);margin-bottom:18px">Step 1 of 3 — Your details</p>
+      <div class="field"><input type="text" id="suName" placeholder="n" autocomplete="name" onkeydown="if(event.key==='Enter')document.getElementById('suEmail').focus()"><label>Full Name</label></div>
+      <div class="field"><input type="email" id="suEmail" placeholder="e" autocomplete="email" onkeydown="if(event.key==='Enter')document.getElementById('suPass').focus()"><label>Email address</label></div>
+      <div class="field"><input type="password" id="suPass" placeholder="p" onkeydown="if(event.key==='Enter')suStep1()"><label>Password (min 6 chars)</label></div>
+      <div class="msg err" id="su1Msg"></div>
+      <button class="btn-red" style="width:100%;margin-top:4px" onclick="suStep1()">Continue</button>
+      <div class="divider"><span>OR</span></div>
+      <button class="btn-google" onclick="googleSignIn()">
+        <svg class="g-ico" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Continue with Google
+      </button>
+      <p class="box-footer" style="margin-top:16px">Already have account? <a onclick="showPage('login')">Sign in</a></p>
+    </div>
+    <div id="su2" style="display:none">
+      <h2 class="box-title">Choose Your Plan</h2>
+      <p style="font-size:.78rem;color:var(--muted);margin-bottom:14px">Step 2 of 3 — All plans include unlimited movies</p>
+      <div class="plan-list">
+        <div class="plan-opt sel" id="po-free" onclick="selPlan('free')"><div class="radio"><div class="rdot"></div></div><div class="pinfo"><div class="pname">Basic</div><div class="pdesc">480p · Mobile only · 1 screen</div></div><div class="pprice" style="color:#46d369">Free</div></div>
+        <div class="plan-opt" id="po-hd" onclick="selPlan('hd')"><div class="radio"><div class="rdot"></div></div><div class="pinfo"><div class="pname">HD</div><div class="pdesc">720p · 2 screens · Downloads</div></div><div class="pprice">₹29<span style="font-size:.6rem;color:var(--muted);font-weight:400">/mo</span></div></div>
+        <div class="plan-opt popular" id="po-fhd" onclick="selPlan('fhd')"><div class="radio"><div class="rdot"></div></div><div class="pinfo"><div class="pname">Full HD</div><div class="pdesc">1080p · 2 screens · Downloads</div></div><div class="pprice">₹49<span style="font-size:.6rem;color:var(--muted);font-weight:400">/mo</span></div></div>
+        <div class="plan-opt" id="po-uhd" onclick="selPlan('uhd')"><div class="radio"><div class="rdot"></div></div><div class="pinfo"><div class="pname">4K Ultra HD</div><div class="pdesc">4K+HDR · 4 screens · All devices</div></div><div class="pprice">₹99<span style="font-size:.6rem;color:var(--muted);font-weight:400">/mo</span></div></div>
+      </div>
+      <div class="msg err" id="su2Msg"></div>
+      <button class="btn-red" style="width:100%" onclick="suStep2()">Continue</button>
+    </div>
+    <div id="su3" style="display:none">
+      <h2 class="box-title">Almost Done!</h2>
+      <p style="font-size:.78rem;color:var(--muted);margin-bottom:18px">Step 3 of 3 — Confirm & Start</p>
+      <div id="su3Summary" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:6px;padding:13px 15px;margin-bottom:16px;font-size:.82rem;color:rgba(255,255,255,.72);line-height:2"></div>
+      <button class="btn-red" style="width:100%" id="su3Btn" onclick="suStep3()">Start Watching →</button>
+      <p style="font-size:.68rem;color:var(--muted);margin-top:10px;text-align:center;line-height:1.6">Paid plans ke liye secure Cashfree payment page khulegî.</p>
+    </div>
+  </div>
+</div>
+
+<!-- PROFILE SELECT -->
+<div class="page" id="page-profiles">
+  <div style="font-family:'Bebas Neue',cursive;font-size:2.5rem;color:#fff;letter-spacing:2px;text-align:center;margin-bottom:32px">Who's Watching?</div>
+  <div class="prof-grid" id="profGrid"></div>
+  <button onclick="window.location.href='XverseMovies_Settings.html'" style="background:transparent;border:1.5px solid rgba(255,255,255,.38);color:#e5e5e5;padding:9px 34px;font-size:.86rem;font-weight:600;border-radius:4px;cursor:pointer;font-family:'Barlow',sans-serif;transition:border-color .2s" onmouseover="this.style.borderColor='#fff'" onmouseout="this.style.borderColor='rgba(255,255,255,.38)'">Manage Profiles</button>
+</div>
+
+<script>
+let selectedPlan = 'free';
+let signupData   = {};
+let _inSignupFlow = false; // prevents handleSession from interfering during signup
+
+// ── INIT ──────────────────────────────────────────
+(async () => {
+  const { data: { session } } = await getSB().auth.getSession();
+  if (session) {
+    await handleSession(session);
+  } else {
+    hideLoader(); showPage('landing');
+  }
+
+  getSB().auth.onAuthStateChange(async (event, session) => {
+    // Don't interfere while suStep3 is actively creating the account
+    if (_inSignupFlow) return;
+    if (event === 'SIGNED_IN' && session) await handleSession(session);
+  });
+})();
+
+async function handleSession(session) {
+  const uid = session.user.id;
+
+  // Profile might not exist yet right after signup (DB trigger is async)
+  // Retry up to 4 times with 600ms gap before giving up
+  let profile = null;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    profile = await Auth.getProfile(uid);
+    if (profile) break;
+    await new Promise(r => setTimeout(r, 600));
+  }
+
+  if (profile) {
+    // Skip Who's Watching only if THIS user's profile is already saved.
+    // userId check ensures a different user signing in still sees the picker.
+    const savedProfile = Session.getProfile();
+    if (savedProfile && savedProfile.userId === uid) {
+      hideLoader();
+      window.location.href = 'XverseMovies_Home.html';
+      return;
+    }
+    await renderProfileSelect(session.user, profile);
+  } else {
+    // Only show signup if we're not already mid-signup
+    if (!_inSignupFlow) {
+      signupData = { isGoogle:true, name: session.user.user_metadata?.full_name || session.user.email, email: session.user.email, uid };
+      hideLoader(); showPage('signup'); jumpStep(2);
+    }
+  }
+}
+
+// ── NAV ──────────────────────────────────────────
+function showPage(n) { document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.getElementById('page-'+n).classList.add('active'); }
+function hideLoader() { document.getElementById('initLoader').style.display='none'; }
+
+// ── LANDING ───────────────────────────────────────
+function handleGetStarted() {
+  const e = document.getElementById('landEmail').value.trim();
+  // Pre-fill both signup and login email fields
+  if (e) {
+    const suEl = document.getElementById('suEmail');
+    const liEl = document.getElementById('liEmail');
+    if (suEl) suEl.value = e;
+    if (liEl) liEl.value = e;
+  }
+  showPage('signup');
+}
+
+// ── GOOGLE ────────────────────────────────────────
+async function googleSignIn() {
+  const { error } = await Auth.googleSignIn();
+  if (error) showMsg('loginMsg', error.message);
+}
+
+// ── EMAIL LOGIN ───────────────────────────────────
+async function emailLogin() {
+  const email = document.getElementById('liEmail').value.trim();
+  const pass  = document.getElementById('liPass').value;
+  if (!email || !pass) { showMsg('loginMsg','Email aur password daalo'); return; }
+  const btn = document.getElementById('loginBtn');
+  btn.textContent='Signing in...'; btn.disabled=true;
+  const { error } = await Auth.signIn(email, pass);
+  if (error) { showMsg('loginMsg', errText(error.message)); btn.textContent='Sign In'; btn.disabled=false; }
+}
+
+// ── FORGOT ────────────────────────────────────────
+async function forgotPass() {
+  const email = document.getElementById('liEmail').value.trim();
+  if (!email) { showMsg('loginMsg','Pehle email daalo'); return; }
+  const { error } = await Auth.resetPassword(email);
+  if (error) showMsg('loginMsg', error.message);
+  else showMsg('loginMsg','✅ Reset email bhej diya!', true);
+}
+
+// ── SIGNUP ────────────────────────────────────────
+function suStep1() {
+  const name=document.getElementById('suName').value.trim(), email=document.getElementById('suEmail').value.trim(), pass=document.getElementById('suPass').value;
+  if (!name) { showMsg('su1Msg','Naam daalo'); return; }
+  if (!/\S+@\S+\.\S+/.test(email)) { showMsg('su1Msg','Valid email daalo'); return; }
+  if (pass.length<6) { showMsg('su1Msg','Password min 6 chars'); return; }
+  signupData={name,email,pass}; jumpStep(2);
+}
+
+function selPlan(p) { selectedPlan=p; document.querySelectorAll('.plan-opt').forEach(e=>e.classList.remove('sel')); document.getElementById('po-'+p).classList.add('sel'); }
+
+function suStep2() {
+  const p=XVERSE.PLANS[selectedPlan];
+  document.getElementById('su3Summary').innerHTML=`<div>👤 <b>${signupData.name||'Google User'}</b></div><div>📧 ${signupData.email||'Google Account'}</div><div>💎 Plan: <b style="color:${selectedPlan==='free'?'#46d369':'#E50914'}">${p.name} — ${p.price}</b></div><div>📺 ${p.quality} · ${p.screens} screen${p.screens>1?'s':''}</div>${selectedPlan!=='free'?'<div style="color:#46d369;font-size:.72rem;margin-top:2px">💳 Payment page khulegî after registration</div>':''}`;
+  jumpStep(3);
+}
+
+async function suStep3() {
+  _inSignupFlow = true; // Block onAuthStateChange from interfering
+  const btn = document.getElementById('su3Btn');
+  btn.textContent = 'Creating account...'; btn.disabled = true;
+
+  let uid = signupData.uid;
+
+  if (!uid && signupData.pass) {
+    const { data, error } = await Auth.signUp(signupData.email, signupData.pass, signupData.name);
+    if (error) {
+      _inSignupFlow = false;
+      showMsg('su2Msg', errText(error.message));
+      btn.textContent = 'Start Watching →'; btn.disabled = false;
+      jumpStep(2); return;
+    }
+    uid = data.user?.id;
+    if (!data.session) {
+      _inSignupFlow = false;
+      showPage('login');
+      showMsg('loginMsg', '✅ Account created! Email confirm karo phir sign in karo.', true);
+      return;
+    }
+  }
+
+  if (!uid) { _inSignupFlow = false; btn.textContent = 'Start Watching →'; btn.disabled = false; return; }
+
+  await Auth.updatePlan(uid, selectedPlan);
+  if (selectedPlan !== 'free' && XVERSE.PAYMENT[selectedPlan])
+    window.open(XVERSE.PAYMENT[selectedPlan] + '?uid=' + uid, '_blank');
+
+  // Wait briefly for DB trigger to create profile row
+  await new Promise(r => setTimeout(r, 800));
+
+  const { data: { user } } = await getSB().auth.getUser();
+
+  // Retry profile fetch — trigger might still be running
+  let profile = null;
+  for (let i = 0; i < 4; i++) {
+    profile = await Auth.getProfile(uid);
+    if (profile) break;
+    await new Promise(r => setTimeout(r, 600));
+  }
+
+  _inSignupFlow = false; // Unlock AFTER we have the profile
+
+  await renderProfileSelect(user, profile || { name: signupData.name, plan: selectedPlan });
+}
+
+// ── PROFILE SELECT ────────────────────────────────
+async function renderProfileSelect(user, profile) {
+  hideLoader();
+  const viewers = await Auth.getViewerProfiles(user.id);
+  const colors  = ['#E50914','#2196F3','#4CAF50','#FF9800','#9C27B0'];
+  const grid    = document.getElementById('profGrid');
+  grid.innerHTML = '';
+  // If no viewer profiles in DB, create a temporary one from auth user data
+  // Assign user.id as fallback id so Session.setProfile stores a truthy id
+  const list = viewers.length
+    ? viewers
+    : [{ id: user.id, name: (profile?.name || user.email || 'User').split(' ')[0], avatar_url: user.user_metadata?.avatar_url || null }];
+
+  list.forEach((vp, i) => {
+    const div = document.createElement('div');
+    div.className = 'prof-item';
+    div.innerHTML = `<div class="prof-av" style="background:${colors[i % colors.length]}">${vp.avatar_url ? `<img src="${vp.avatar_url}" onerror="this.remove()">` : ''}<span style="z-index:1">${(vp.name || 'U')[0].toUpperCase()}</span></div><div class="prof-name">${vp.name}${vp.is_kids ? ' 👶' : ''}</div>`;
+    div.onclick = () => {
+      // Store userId so handleSession can verify this profile belongs to current user
+      Session.setProfile({ userId: user.id, id: vp.id || user.id, name: vp.name, avatar_url: vp.avatar_url, is_kids: vp.is_kids || false });
+      window.location.href = 'XverseMovies_Home.html';
+    };
+    grid.appendChild(div);
+  });
+  const add=document.createElement('div'); add.className='prof-item';
+  add.innerHTML=`<div class="prof-av" style="background:rgba(255,255,255,.06);border:2px dashed rgba(255,255,255,.2)"><span style="font-size:2.2rem;color:rgba(255,255,255,.28)">+</span></div><div class="prof-name">Add Profile</div>`;
+  add.onclick=()=>window.location.href='XverseMovies_Settings.html';
+  grid.appendChild(add);
+  showPage('profiles');
+}
+
 // ── HELPERS ───────────────────────────────────────
 function jumpStep(n) {
   ['su1','su2','su3'].forEach((id,i)=>document.getElementById(id).style.display=i+1===n?'block':'none');
