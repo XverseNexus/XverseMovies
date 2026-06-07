@@ -681,7 +681,8 @@ async function doSignOut() {
   });
   if (!ok) return;
   await Auth.signOut();
-  Session.setProfile(null);
+  // Don't clear saved profile — same user skips Who's Watching on next sign-in.
+  // Use "Switch Profile" from the home menu to explicitly change profiles.
   window.location.href = 'index.html';
 }
 
