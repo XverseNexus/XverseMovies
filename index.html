@@ -230,8 +230,23 @@ async function handleSession(session) {
   }
 
   if (profile) {
+    // ✅ NEW: Agar exactly ek viewer profile hai to auto-select karo (Who's Watching skip)
+    const viewers = await Auth.getViewerProfiles(uid);
+    if (viewers.length === 1) {
+      const single = viewers[0];
+      Session.setProfile({
+        userId: uid,
+        id: single.id,
+        name: single.name,
+        avatar_url: single.avatar_url,
+        is_kids: single.is_kids || false
+      });
+      hideLoader();
+      window.location.href = 'XverseMovies_Home.html';
+      return;
+    }
+
     // Skip Who's Watching only if THIS user's profile is already saved.
-    // userId check ensures a different user signing in still sees the picker.
     const savedProfile = Session.getProfile();
     if (savedProfile && savedProfile.userId === uid) {
       hideLoader();
