@@ -369,74 +369,6 @@ html,body{
 #syncDot.show{
   opacity:1;
 }
-
-/* ─── MOBILE PERSISTENT BACK BUTTON ──────────────────── */
-#mobBackBtn{
-  display:none;
-  position:absolute;
-  top:14px;
-  left:14px;
-  z-index:15;
-  width:40px;height:40px;
-  border-radius:50%;
-  background:rgba(0,0,0,.65);
-  border:1px solid rgba(255,255,255,.22);
-  color:#fff;
-  font-size:1.1rem;
-  cursor:pointer;
-  align-items:center;justify-content:center;
-  backdrop-filter:blur(6px);
-  -webkit-tap-highlight-color:transparent;
-  transition:background .2s;
-}
-#mobBackBtn:active{ background:rgba(229,9,20,.5); }
-
-/* Mobile fullscreen nudge hint */
-#mobFSHint{
-  display:none;
-  position:absolute;
-  bottom:20px;
-  left:50%;
-  transform:translateX(-50%);
-  z-index:20;
-  background:rgba(0,0,0,.78);
-  border:1px solid rgba(255,255,255,.14);
-  color:rgba(255,255,255,.85);
-  padding:8px 18px;
-  border-radius:20px;
-  font-size:.74rem;
-  white-space:nowrap;
-  pointer-events:none;
-  animation:fsHintFade 1s ease 4s forwards;
-}
-@keyframes fsHintFade{ to{ opacity:0; } }
-
-/* Touch tap-zone for UI toggle on mobile */
-#touchZone{
-  display:none;
-  position:absolute;
-  inset:0;
-  z-index:5;
-  background:transparent;
-  -webkit-tap-highlight-color:transparent;
-}
-
-/* ─── MOBILE RESPONSIVE ───────────────────────────────── */
-@media(max-width:640px){
-  #mobBackBtn{ display:flex; }
-  #mobFSHint{ display:block; }
-  #touchZone{ display:block; }
-
-  /* Compact top bar — hide the redundant back-btn since we have #mobBackBtn */
-  #topBar .back-btn{ display:none; }
-  #topBar{ padding:10px 14px; }
-  .top-title{ font-size:.88rem; }
-
-  /* Compact bottom bar — hide metadata row, keep controls only */
-  .movie-meta{ display:none !important; }
-  #bottomBar{ padding:10px 14px 16px; }
-  .ctrl-row{ justify-content:space-between; }
-}
 </style>
 </head>
 
@@ -502,7 +434,7 @@ html,body{
 <iframe
   id="stFrame"
   allowfullscreen
-  allow="autoplay; fullscreen; encrypted-media; picture-in-picture; clipboard-write; accelerometer; gyroscope; web-share"
+  allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
   referrerpolicy="no-referrer-when-downgrade"
   style="border:none;"
 ></iframe>
@@ -511,15 +443,6 @@ html,body{
   <div id="syncDot">
     ✓ Progress synced
   </div>
-
-  <!-- PERSISTENT MOBILE BACK BUTTON (always visible) -->
-  <button id="mobBackBtn" onclick="goBack()">←</button>
-
-  <!-- MOBILE FULLSCREEN HINT -->
-  <div id="mobFSHint">⛶ Tap fullscreen for best experience</div>
-
-  <!-- TOUCH ZONE — handles single/double tap on mobile -->
-  <div id="touchZone"></div>
 
   <!-- UI ZONE -->
   <div id="uiZone"></div>
@@ -742,56 +665,37 @@ function loadVideo(m){
 
 /* UI */
 
-const _isMob = () => window.innerWidth <= 640 || ('ontouchstart' in window && window.innerWidth <= 900);
-
 function showUI(){
-  document.getElementById('playerWrap').classList.add('ui-on');
+
+  document.getElementById('playerWrap')
+  .classList.add('ui-on');
+
   clearTimeout(uiTimer);
+
   uiTimer = setTimeout(()=>{
-    document.getElementById('playerWrap').classList.remove('ui-on');
-  }, _isMob() ? 3000 : 4000);
+
+    document.getElementById('playerWrap')
+    .classList.remove('ui-on');
+
+  },4000);
+
 }
 
-// Desktop — mouse move / click shows UI
-document.addEventListener('mousemove', showUI);
-
-// Mobile — tap the touchZone to toggle UI; double-tap = fullscreen
-let _lastTap = 0;
-document.getElementById('touchZone').addEventListener('click', (e) => {
-  const now = Date.now();
-  const wrap = document.getElementById('playerWrap');
-  if (now - _lastTap < 320) {
-    // Double tap → fullscreen
-    reqFS();
-  } else {
-    // Single tap → toggle
-    if (wrap.classList.contains('ui-on')) {
-      clearTimeout(uiTimer);
-      wrap.classList.remove('ui-on');
-    } else {
-      showUI();
-    }
-  }
-  _lastTap = now;
-});
-
-// Desktop click anywhere (not on buttons) also shows UI
-document.getElementById('playerWrap').addEventListener('click', (e) => {
-  if (!_isMob() && !e.target.closest('button,.ml-btn')) showUI();
-});
+document.addEventListener('mousemove',showUI);
+document.addEventListener('click',showUI);
 
 /* FULLSCREEN */
 
 function reqFS(){
-  const frame = document.getElementById('stFrame');
-  const wrap  = document.getElementById('playerWrap');
-  if (document.fullscreenElement) {
+
+  const el = document.getElementById('playerWrap');
+
+  if(document.fullscreenElement){
     document.exitFullscreen();
-  } else {
-    // Try iframe fullscreen first (gives inner player full control on mobile)
-    (frame.requestFullscreen ? frame.requestFullscreen() : Promise.reject())
-      .catch(() => wrap.requestFullscreen().catch(() => {}));
+  }else{
+    el.requestFullscreen().catch(()=>{});
   }
+
 }
 
 /* MY LIST */
