@@ -186,6 +186,15 @@ nav.solid{background:rgba(8,8,8,.97);backdrop-filter:blur(10px);border-bottom:1p
 
 /* ── RESPONSIVE ── */
 @media(max-width:640px){.nav-links{display:none}.card{width:120px}.cw-card{width:175px}.t10-num{font-size:5.5rem}.t10-poster{width:80px;height:116px}.ep-thumb{width:80px;height:46px}.modal{width:100%}}
+
+/* ── MOBILE BOTTOM NAV ── */
+.xv-mob-nav{position:fixed;bottom:0;left:0;right:0;height:58px;background:rgba(8,8,8,.97);border-top:1px solid rgba(255,255,255,.08);z-index:998;display:none;align-items:center;justify-content:space-around;padding:0 4px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);-webkit-tap-highlight-color:transparent}
+.xv-mob-nav a,.xv-mob-nav button{display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;padding:7px 2px 5px;color:rgba(255,255,255,.42);text-decoration:none;font-size:.56rem;font-weight:600;font-family:'Barlow',sans-serif;background:none;border:none;cursor:pointer;transition:color .2s;letter-spacing:.2px;-webkit-tap-highlight-color:transparent;min-width:0;overflow:hidden}
+.xv-mob-nav a.xv-active,.xv-mob-nav button.xv-active{color:#fff}
+.xv-mob-nav a.xv-active svg{stroke:#E50914}
+.xv-mob-nav a.xv-active-fill svg{fill:#E50914;stroke:none}
+.xv-mob-nav a svg,.xv-mob-nav button svg{width:22px;height:22px;flex-shrink:0;transition:all .2s;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+@media(max-width:640px){.xv-mob-nav{display:flex!important}body{padding-bottom:58px!important}}
 </style>
 </head>
 <body>
@@ -291,8 +300,10 @@ let myListIds      = new Set();
 
   currentProfile = Session.getProfile();
   await initNavAvatar('navAvatar');
-  initBellHandler('navBell', currentUser.id);
-  injectMobNavCSS();
+
+  // Guard new functions — safe even if old xverse-config.js is cached
+  if (typeof initBellHandler === 'function') initBellHandler('navBell', currentUser.id);
+  // injectMobNavCSS is no longer needed — CSS is now inline in <style>
 
   // Auto-open search if ?search=1
   if (new URLSearchParams(location.search).get('search') === '1') {

@@ -190,6 +190,15 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;ali
 .bpg{display:none}
 .bpg.active{display:block}
 @media(max-width:640px){.nav-links{display:none}.cgrid{grid-template-columns:repeat(auto-fill,minmax(115px,1fr));gap:7px}.t10n{font-size:5rem}.t10p{width:76px;height:112px}}
+
+/* ── MOBILE BOTTOM NAV ── */
+.xv-mob-nav{position:fixed;bottom:0;left:0;right:0;height:58px;background:rgba(8,8,8,.97);border-top:1px solid rgba(255,255,255,.08);z-index:998;display:none;align-items:center;justify-content:space-around;padding:0 4px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);-webkit-tap-highlight-color:transparent}
+.xv-mob-nav a,.xv-mob-nav button{display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;padding:7px 2px 5px;color:rgba(255,255,255,.42);text-decoration:none;font-size:.56rem;font-weight:600;font-family:'Barlow',sans-serif;background:none;border:none;cursor:pointer;transition:color .2s;letter-spacing:.2px;-webkit-tap-highlight-color:transparent;min-width:0;overflow:hidden}
+.xv-mob-nav a.xv-active{color:#fff}
+.xv-mob-nav a.xv-active svg{stroke:#E50914}
+.xv-mob-nav a.xv-active-fill svg{fill:#E50914;stroke:none}
+.xv-mob-nav a svg,.xv-mob-nav button svg{width:22px;height:22px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+@media(max-width:640px){.xv-mob-nav{display:flex!important}body{padding-bottom:58px!important}}
 </style>
 </head>
 <body>
@@ -272,7 +281,7 @@ const LANGS=[{code:'hi',name:'Hindi',icon:'🇮🇳',count:1800,bg:'#5c1a1a'},{c
 (async()=>{
   currentUser = await requireAuth(); if(!currentUser) return;
   await initNavAvatar('navAvatar');
-  injectMobNavCSS();
+  if (typeof injectMobNavCSS === 'function') injectMobNavCSS();
   const hash = location.hash.replace('#','') || 'tv';
   switchPage(hash);
 })();
