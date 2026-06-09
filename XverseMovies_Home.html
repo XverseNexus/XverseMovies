@@ -203,7 +203,7 @@ nav.solid{background:rgba(8,8,8,.97);backdrop-filter:blur(10px);border-bottom:1p
   </ul>
   <div class="nav-right">
     <button class="nav-icon-btn" onclick="toggleSearch()" title="Search">🔍</button>
-    <button class="nav-icon-btn" onclick="openNotifs()" title="Notifications">
+    <button class="nav-icon-btn" id="navBell" title="Notifications">
       🔔<span class="notif-dot" id="notifDot"></span>
     </button>
     <div class="nav-avatar" id="navAvatar">U</div>
@@ -291,6 +291,13 @@ let myListIds      = new Set();
 
   currentProfile = Session.getProfile();
   await initNavAvatar('navAvatar');
+  initBellHandler('navBell', currentUser.id);
+  injectMobNavCSS();
+
+  // Auto-open search if ?search=1
+  if (new URLSearchParams(location.search).get('search') === '1') {
+    setTimeout(() => toggleSearch(), 800);
+  }
 
   // Load everything in parallel
   const [
@@ -634,13 +641,14 @@ async function playMovie(m, season, episode) {
 async function toggleMyList(m) {
   if (!currentUser) return;
   const key = String(m.id || m.tmdb_id);
+  const hasDBId = !!(m.id && typeof m.id === 'number');   // true only for DB-stored movies
+
   if (myListIds.has(key)) {
-    if (m.id && !m.tmdb_id) await DB.removeFromMyList(currentUser.id, m.id);
+    if (hasDBId) await DB.removeFromMyList(currentUser.id, m.id);
     myListIds.delete(key);
     showToast('Removed from My List');
   } else {
-    // If TMDB movie not in DB, we just use localStorage as fallback
-    if (m.id && !m.tmdb_id) {
+    if (hasDBId) {
       await DB.addToMyList(currentUser.id, m.id);
     }
     myListIds.add(key);
@@ -883,11 +891,11 @@ const all = [
 }
 
 // ─────────────────────────────────────────
-//  NOTIFICATIONS (quick panel)
+//  NOTIFICATIONS (handled by initBellHandler in xverse-config.js)
 // ─────────────────────────────────────────
-async function openNotifs() {
-  window.location.href = 'XverseMovies_Settings.html#notifications';
-}
+// initBellHandler('navBell', userId) is called in init above.
+// Kept as stub for any legacy calls
+function openNotifs() { document.getElementById('navBell')?.click(); }
 
 // ─────────────────────────────────────────
 //  NAV SCROLL
@@ -902,6 +910,30 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { closeModal(); if (document.getElementById('searchWrap').classList.contains('show')) toggleSearch(); }
 });
 </script>
+<!-- MOBILE BOTTOM NAV (Netflix-style) -->
+<nav class="xv-mob-nav">
+  <a class="xv-active xv-active-fill" href="XverseMovies_Home.html">
+    <svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z" fill="currentColor" stroke="none"/></svg>
+    Home
+  </a>
+  <button onclick="toggleSearch()">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    Search
+  </button>
+  <a href="XverseMovies_Browse.html">
+    <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+    Browse
+  </a>
+  <a href="XverseMovies_MyList.html">
+    <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="3" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="3" cy="18" r="1" fill="currentColor" stroke="none"/></svg>
+    My List
+  </a>
+  <a href="XverseMovies_Settings.html">
+    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    My XVerse
+  </a>
+</nav>
+
 <script>if("serviceWorker"in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){});});}</script>
 </body>
 </html>
