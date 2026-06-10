@@ -279,7 +279,7 @@ const LANGS=[{code:'hi',name:'Hindi',icon:'🇮🇳',count:1800,bg:'#5c1a1a'},{c
 (async()=>{
   currentUser = await requireAuth(); if(!currentUser) return;
   await initNavAvatar('navAvatar');
-  XvNotif.init(currentUser.id);
+  if (typeof XvNotif !== 'undefined') XvNotif.init(currentUser.id);
   const hash = location.hash.replace('#','') || 'tv';
   switchPage(hash);
 })();

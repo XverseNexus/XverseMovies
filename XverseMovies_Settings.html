@@ -363,6 +363,27 @@ const PLAN_DATA  = [
 ];
 
 // ─────────────────────────────────────────
+//  INSTANT PANEL SWITCH FROM HASH
+//  Runs synchronously so the correct panel is visible IMMEDIATELY —
+//  no 2-3s flash of Account Info while async data loads.
+// ─────────────────────────────────────────
+(function() {
+  const raw = (location.hash || '').replace('#', '');
+  if (!raw) return;
+  const alias = { notifications:'notifs', 'account-info':'account', billing:'plan', security:'security' };
+  const id    = alias[raw] || raw;
+  const target = document.getElementById('panel-' + id);
+  if (!target) return;
+  document.querySelectorAll('.panel').forEach(p  => p.classList.remove('active'));
+  target.classList.add('active');
+  document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+  const sb = document.getElementById('sb-' + id);
+  if (sb) sb.classList.add('active');
+  // Normalise hash to canonical id (e.g. #notifications → #notifs in URL)
+  if (id !== raw) history.replaceState(null, '', '#' + id);
+}());
+
+// ─────────────────────────────────────────
 //  INIT
 // ─────────────────────────────────────────
 (async () => {
@@ -442,8 +463,9 @@ function buildMobNav() {
     {id:'playback',l:'Playback'},{id:'language',l:'Language'},{id:'plan',l:'Plan'},
     {id:'activity',l:'Activity'},{id:'security',l:'Security'},
   ];
+  const cur = (location.hash || '').replace('#','') || 'account';
   document.getElementById('mobNav').innerHTML = panels.map(p =>
-    `<button class="mob-btn${p.id==='account'?' on':''}" data-panel="${p.id}" onclick="showPanel('${p.id}')">${p.l}</button>`
+    `<button class="mob-btn${p.id===cur?' on':''}" data-panel="${p.id}" onclick="showPanel('${p.id}')">${p.l}</button>`
   ).join('');
 }
 

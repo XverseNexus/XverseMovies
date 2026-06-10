@@ -273,7 +273,7 @@ let undoTimer    = null;
   currentUser = await requireAuth();
   if (!currentUser) return;
   await initNavAvatar('navAvatar');
-  XvNotif.init(currentUser.id);
+  if (typeof XvNotif !== 'undefined') XvNotif.init(currentUser.id);
   await loadMyList();
 })();
 

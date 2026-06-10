@@ -293,7 +293,9 @@ let myListIds      = new Set();
   await initNavAvatar('navAvatar');
 
   // Init notification panel (loads notifs + updates bell badge)
-  XvNotif.init(currentUser.id);
+  // Guard: if old service-worker cache serves an older xverse-config.js
+  // that doesn't have XvNotif yet, skip gracefully instead of crashing.
+  if (typeof XvNotif !== 'undefined') XvNotif.init(currentUser.id);
 
   // Load everything in parallel
   const [
