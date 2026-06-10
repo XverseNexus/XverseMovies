@@ -28,6 +28,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;ali
 .nav-avatar{width:30px;height:30px;border-radius:4px;background:linear-gradient(135deg,var(--red),#831010);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.78rem;cursor:pointer;color:#fff;overflow:hidden;border:2px solid transparent;transition:border-color .2s}
 .nav-avatar:hover{border-color:rgba(255,255,255,.5)}
 .nav-avatar img{width:100%;height:100%;object-fit:cover}
+.nav-bell{background:none;border:none;color:rgba(255,255,255,.72);cursor:pointer;width:34px;height:34px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.95rem;transition:all .2s;position:relative;flex-shrink:0}
+.nav-bell:hover{background:rgba(255,255,255,.09);color:#fff}
 main{padding:88px 4% 60px}
 /* TABS */
 .tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:28px}
@@ -156,6 +158,9 @@ main{padding:88px 4% 60px}
     <li><button class="nav-link active">My List</button></li>
   </ul>
   <div class="nav-right">
+    <button class="nav-bell" onclick="XvNotif.toggle()" title="Notifications">
+      🔔<span class="_xvNP-dot" style="position:absolute;top:5px;right:5px;width:7px;height:7px;background:#E50914;border-radius:50%;border:2px solid #080808;display:none;pointer-events:none"></span>
+    </button>
     <div class="nav-avatar" id="navAvatar">U</div>
   </div>
 </nav>
@@ -268,6 +273,7 @@ let undoTimer    = null;
   currentUser = await requireAuth();
   if (!currentUser) return;
   await initNavAvatar('navAvatar');
+  XvNotif.init(currentUser.id);
   await loadMyList();
 })();
 

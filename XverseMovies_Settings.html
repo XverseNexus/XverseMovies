@@ -380,9 +380,12 @@ const PLAN_DATA  = [
   buildMobNav();
   loadActivity();
 
-  // Hash-based panel
+  // Hash-based panel — #notifications (old link) and #notifs both work
   const hash = location.hash.replace('#','');
-  if (hash) showPanel(hash);
+  if (hash) {
+    const alias = { 'notifications': 'notifs', 'account-info': 'account', 'billing': 'plan', 'security': 'security' };
+    showPanel(alias[hash] || hash);
+  }
 })();
 
 // ─────────────────────────────────────────

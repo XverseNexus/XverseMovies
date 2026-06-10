@@ -203,8 +203,8 @@ nav.solid{background:rgba(8,8,8,.97);backdrop-filter:blur(10px);border-bottom:1p
   </ul>
   <div class="nav-right">
     <button class="nav-icon-btn" onclick="toggleSearch()" title="Search">🔍</button>
-    <button class="nav-icon-btn" onclick="openNotifs()" title="Notifications">
-      🔔<span class="notif-dot" id="notifDot"></span>
+    <button class="nav-icon-btn" onclick="XvNotif.toggle()" title="Notifications" style="position:relative">
+      🔔<span class="notif-dot _xvNP-dot" id="notifDot" style="display:none"></span>
     </button>
     <div class="nav-avatar" id="navAvatar">U</div>
   </div>
@@ -292,6 +292,9 @@ let myListIds      = new Set();
   currentProfile = Session.getProfile();
   await initNavAvatar('navAvatar');
 
+  // Init notification panel (loads notifs + updates bell badge)
+  XvNotif.init(currentUser.id);
+
   // Load everything in parallel
   const [
   featured,
@@ -319,11 +322,6 @@ let myListIds      = new Set();
 
   // Build my list ID set for quick lookup
   myListIds = new Set(myListItems.map(m => String(m.id)));
-
-  // Check unread notifications
-  const notifs = await DB.getNotifications(currentUser.id);
-  const unread = notifs.filter(n => !n.is_read).length;
-  if (unread > 0) document.getElementById('notifDot').classList.add('show');
 
   // Hero: prefer admin-featured, fallback TMDB trending
   const heroSrc = featured.length ? featured : (trending?.results || []).slice(0,7).map(TMDB.normalize);
@@ -883,11 +881,9 @@ const all = [
 }
 
 // ─────────────────────────────────────────
-//  NOTIFICATIONS (quick panel)
+//  NOTIFICATIONS (slide-in panel — powered by XvNotif in xverse-config.js)
 // ─────────────────────────────────────────
-async function openNotifs() {
-  window.location.href = 'XverseMovies_Settings.html#notifications';
-}
+// XvNotif.toggle() is called directly from the bell button onclick.
 
 // ─────────────────────────────────────────
 //  NAV SCROLL
