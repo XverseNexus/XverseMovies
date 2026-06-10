@@ -845,3 +845,19 @@ const XvNotif = {
     });
   },
 };
+
+// ─────────────────────────────────────────────────────────
+//  SERVICE WORKER UPDATE HANDLER
+//  When a new service worker activates, reload the page so
+//  fresh files (including this config) are used immediately.
+//  Prevents "XvNotif is not defined" from stale SW cache.
+// ─────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  var _xvSwRefreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function() {
+    if (!_xvSwRefreshing) {
+      _xvSwRefreshing = true;
+      window.location.reload();
+    }
+  });
+}
