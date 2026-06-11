@@ -116,21 +116,41 @@ html,body{
 
 /* ── TAP ZONE (FIX #3 + #5) ───────────────────────────── */
 /* Transparent layer between iframe and overlay bars.
-   Intercepts taps to toggle the overlay UI.
-   z-index 5: above iframe(1) but below bars(10). */
-#tapZone{
+/* ── MENU TOGGLE — the ONLY way to show the overlay ────── */
+/* A small persistent button that is always visible.
+   Pressing it is the sole trigger for showing the overlay.
+   Hides when overlay is visible (topBar's back + ✕ take over).
+   z-index 20 keeps it above everything at all times.           */
+#menuToggle{
   position:absolute;
-  inset:0;
-  z-index:5;
-  background:transparent;
+  top:max(14px, env(safe-area-inset-top));
+  left:max(14px, env(safe-area-inset-left));
+  z-index:20;
+  width:44px;
+  height:44px;
+  background:rgba(0,0,0,.55);
+  border:1px solid rgba(255,255,255,.18);
+  color:rgba(255,255,255,.82);
+  border-radius:8px;
   cursor:pointer;
-  /* Only active when UI is hidden — pointer-events toggled by JS */
-  pointer-events:none;
+  font-size:1.15rem;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:opacity .25s ease, background .15s ease;
+  -webkit-tap-highlight-color:transparent;
 }
 
-/* When UI is hidden, tapZone catches taps to bring UI back */
-#playerWrap:not(.ui-on) #tapZone{
-  pointer-events:auto;
+#menuToggle:hover{
+  background:rgba(255,255,255,.14);
+  color:#fff;
+}
+
+/* Fade out when overlay becomes visible —
+   topBar's ← back button occupies the same corner. */
+#playerWrap.ui-on #menuToggle{
+  opacity:0;
+  pointer-events:none;
 }
 
 /* ── TOP BAR ────────────────────────────────────────────── */
@@ -498,10 +518,9 @@ html,body{
   <!-- Mobile desktop-mode notice (fades out after 3s) -->
   <div id="mobileNotice">🖥 Desktop player mode — full controls visible</div>
 
-  <!-- FIX #3 + #5: tap zone intercepts taps when overlay is hidden
-       so user can bring UI back without tapping an overlay button.
-       pointer-events toggled by CSS (:not(.ui-on) rule above). -->
-  <div id="tapZone" onclick="showUI()"></div>
+  <!-- ≡ MENU TOGGLE — always visible, the only trigger for the overlay.
+       Positioned top-left. Fades when overlay opens (topBar takes over). -->
+  <button id="menuToggle" onclick="openMenu()" aria-label="Show controls" title="Show controls">≡</button>
 
   <!-- TOP BAR -->
   <div id="topBar">
@@ -512,8 +531,8 @@ html,body{
     </div>
     <span id="desktopBadge" title="Desktop mode active — all player controls visible">🖥 Desktop</span>
     <button class="top-btn" onclick="reqFS()" aria-label="Fullscreen">⛶</button>
-    <!-- Dismiss overlay → user can immediately use VidSrc controls (quality, CC, etc.) -->
-    <button class="top-btn" onclick="hideUI()" aria-label="Hide controls" title="Hide — tap anywhere to bring back">✕</button>
+    <!-- ✕ hides overlay. Embedded player regains full control instantly. -->
+    <button class="top-btn" onclick="closeMenu()" aria-label="Hide controls" title="Hide controls">✕</button>
   </div>
 
   <!-- BOTTOM BAR -->
@@ -528,7 +547,7 @@ html,body{
     <div class="ctrl-row">
       <button class="ctrl-btn" onclick="goBack()" aria-label="Home">🏠</button>
       <div class="ctrl-spacer"></div>
-      <span class="ctrl-hint">Tap ✕ to hide • tap screen to show</span>
+      <span class="ctrl-hint">≡ to show controls · ✕ to hide</span>
       <button class="ctrl-btn" onclick="reqFS()" aria-label="Fullscreen">⛶</button>
     </div>
   </div>
@@ -746,60 +765,44 @@ function loadVideo(m) {
 
   setTimeout(() => {
     document.getElementById('loadScreen').style.display = 'none';
-    showUI();
+    openMenu(); // Show controls once on load so user discovers the ≡ button
   }, 2500);
 }
 
 /* ─────────────────────────────────────────────────────────
-   UI SHOW / HIDE
+   OVERLAY INTERACTION — EXPLICIT CONTROL ARCHITECTURE
+
+   The overlay has exactly TWO triggers:
+     openMenu()  ← called by the ≡ button (and on initial load)
+     closeMenu() ← called by the ✕ button
+
+   No document.addEventListener('mousemove', ...)
+   No document.addEventListener('click', ...)
+   No document.addEventListener('touchstart', ...)
+   No tapZone layer.
+
+   The embedded player (VidSrc) receives ALL pointer events by
+   default. The overlay only interrupts the player during the
+   5-second window after the user deliberately presses ≡.
+   Pressing ✕ returns full control to the embedded player
+   immediately and the overlay stays hidden until ≡ is pressed.
 ───────────────────────────────────────────────────────── */
-function showUI() {
+function openMenu() {
   document.getElementById('playerWrap').classList.add('ui-on');
   clearTimeout(uiTimer);
-  uiTimer = setTimeout(hideUI, 4000);
+  uiTimer = setTimeout(closeMenu, 5000);
 }
 
-function hideUI() {
+function closeMenu() {
+  clearTimeout(uiTimer);
   document.getElementById('playerWrap').classList.remove('ui-on');
 }
 
-// ─────────────────────────────────────────────────────────────
-//  UI INTERACTION — FINAL ARCHITECTURE
-//  
-//  THE BUG (now fixed):
-//  When user taps inside the VidSrc iframe, the click event
-//  still bubbles from the iframe element up to document.
-//  The old `document.addEventListener('click', showUI)` treated
-//  this as a deliberate "show overlay" tap → timer reset → overlay
-//  never auto-hid → VidSrc controls permanently blocked.
-//
-//  THE FIX:
-//  1. mousemove   → showUI (desktop only; NEVER fires on touch — safe)
-//  2. click       → showUI ONLY when click did NOT come from inside
-//                   the embedded player (e.target !== #stFrame)
-//  3. touchstart  → REMOVED. Unreliable cross-browser for iframe-
-//                   origin touch events. Caused double-triggering.
-//  4. touchmove   → REMOVED. Served no purpose once touchstart gone.
-//
-//  TAP-TO-REVEAL on mobile:
-//  When overlay is HIDDEN → #tapZone has pointer-events:auto (CSS rule
-//  above). First tap → tapZone.onclick=showUI() → overlay appears.
-//  Once overlay is VISIBLE → tapZone has pointer-events:none → ALL
-//  subsequent taps go freely to the iframe → VidSrc controls work.
-//  Overlay auto-hides after 4 s via the timer in showUI().
-// ─────────────────────────────────────────────────────────────
+// Internal aliases — keeps the rest of the codebase unchanged
+function showUI() { openMenu(); }
+function hideUI()  { closeMenu(); }
 
-// 1. Desktop: mouse movement anywhere shows the overlay
-document.addEventListener('mousemove', showUI);
-
-// 2. Click/tap — but IGNORE clicks that came from inside the iframe.
-//    When the user taps inside the VidSrc player, the parent document
-//    receives a click where e.target === the iframe element itself.
-//    Filtering this out means VidSrc taps never reset the overlay timer.
-document.addEventListener('click', function(e) {
-  if (e.target === document.getElementById('stFrame')) return;
-  showUI();
-});
+// ── NO global listeners that steal events from the iframe ──
 
 /* ─────────────────────────────────────────────────────────
    FULLSCREEN  (FIX #4)
@@ -941,11 +944,15 @@ async function syncProgress() {
 
 /* ─────────────────────────────────────────────────────────
    KEYBOARD SHORTCUTS (desktop)
+   M / m   → open overlay menu   (explicit, matches new architecture)
+   F / f   → fullscreen toggle
+   Escape  → go back
+   No showUI() on every keypress — that violated the explicit-only rule.
 ───────────────────────────────────────────────────────── */
 document.addEventListener('keydown', e => {
-  showUI();
-  if (e.key === 'Escape') goBack();
+  if (e.key === 'Escape')            goBack();
   if (e.key === 'f' || e.key === 'F') reqFS();
+  if (e.key === 'm' || e.key === 'M') openMenu();
 });
 
 /* ─────────────────────────────────────────────────────────
