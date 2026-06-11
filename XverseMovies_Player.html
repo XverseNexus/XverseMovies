@@ -512,6 +512,8 @@ html,body{
     </div>
     <span id="desktopBadge" title="Desktop mode active — all player controls visible">🖥 Desktop</span>
     <button class="top-btn" onclick="reqFS()" aria-label="Fullscreen">⛶</button>
+    <!-- Dismiss overlay → user can immediately use VidSrc controls (quality, CC, etc.) -->
+    <button class="top-btn" onclick="hideUI()" aria-label="Hide controls" title="Hide — tap anywhere to bring back">✕</button>
   </div>
 
   <!-- BOTTOM BAR -->
@@ -526,7 +528,7 @@ html,body{
     <div class="ctrl-row">
       <button class="ctrl-btn" onclick="goBack()" aria-label="Home">🏠</button>
       <div class="ctrl-spacer"></div>
-      <span class="ctrl-hint">Tap screen for controls</span>
+      <span class="ctrl-hint">Tap ✕ to hide • tap screen to show</span>
       <button class="ctrl-btn" onclick="reqFS()" aria-label="Fullscreen">⛶</button>
     </div>
   </div>
@@ -750,9 +752,6 @@ function loadVideo(m) {
 
 /* ─────────────────────────────────────────────────────────
    UI SHOW / HIDE
-   FIX #3: touchstart replaces mousemove (which never fires
-   on touch devices). passive:true lets the touch event reach
-   the iframe so the embedded player still handles it.
 ───────────────────────────────────────────────────────── */
 function showUI() {
   document.getElementById('playerWrap').classList.add('ui-on');
@@ -764,23 +763,43 @@ function hideUI() {
   document.getElementById('playerWrap').classList.remove('ui-on');
 }
 
-// Desktop: mouse movement
+// ─────────────────────────────────────────────────────────────
+//  UI INTERACTION — FINAL ARCHITECTURE
+//  
+//  THE BUG (now fixed):
+//  When user taps inside the VidSrc iframe, the click event
+//  still bubbles from the iframe element up to document.
+//  The old `document.addEventListener('click', showUI)` treated
+//  this as a deliberate "show overlay" tap → timer reset → overlay
+//  never auto-hid → VidSrc controls permanently blocked.
+//
+//  THE FIX:
+//  1. mousemove   → showUI (desktop only; NEVER fires on touch — safe)
+//  2. click       → showUI ONLY when click did NOT come from inside
+//                   the embedded player (e.target !== #stFrame)
+//  3. touchstart  → REMOVED. Unreliable cross-browser for iframe-
+//                   origin touch events. Caused double-triggering.
+//  4. touchmove   → REMOVED. Served no purpose once touchstart gone.
+//
+//  TAP-TO-REVEAL on mobile:
+//  When overlay is HIDDEN → #tapZone has pointer-events:auto (CSS rule
+//  above). First tap → tapZone.onclick=showUI() → overlay appears.
+//  Once overlay is VISIBLE → tapZone has pointer-events:none → ALL
+//  subsequent taps go freely to the iframe → VidSrc controls work.
+//  Overlay auto-hides after 4 s via the timer in showUI().
+// ─────────────────────────────────────────────────────────────
+
+// 1. Desktop: mouse movement anywhere shows the overlay
 document.addEventListener('mousemove', showUI);
 
-// Mobile + Desktop: click / tap
-document.addEventListener('click', showUI);
-
-// FIX #3: touchstart fires reliably on ALL mobile browsers
-// passive:true = doesn't block scrolling / touch in iframe
-document.addEventListener('touchstart', showUI, { passive: true });
-
-// Keep UI alive while user is actively touching the overlay buttons
-document.addEventListener('touchmove', function() {
-  if (document.getElementById('playerWrap').classList.contains('ui-on')) {
-    clearTimeout(uiTimer);
-    uiTimer = setTimeout(hideUI, 4000);
-  }
-}, { passive: true });
+// 2. Click/tap — but IGNORE clicks that came from inside the iframe.
+//    When the user taps inside the VidSrc player, the parent document
+//    receives a click where e.target === the iframe element itself.
+//    Filtering this out means VidSrc taps never reset the overlay timer.
+document.addEventListener('click', function(e) {
+  if (e.target === document.getElementById('stFrame')) return;
+  showUI();
+});
 
 /* ─────────────────────────────────────────────────────────
    FULLSCREEN  (FIX #4)
