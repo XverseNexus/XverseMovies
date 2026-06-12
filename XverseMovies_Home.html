@@ -186,7 +186,17 @@ nav.solid{background:rgba(8,8,8,.97);backdrop-filter:blur(10px);border-bottom:1p
 .empty-row{padding:20px;text-align:center;font-size:.84rem;color:var(--muted)}
 
 /* ── RESPONSIVE ── */
-@media(max-width:640px){.nav-links{display:none}.card{width:120px}.cw-card{width:175px}.t10-num{font-size:5.5rem}.t10-poster{width:80px;height:116px}.ep-thumb{width:80px;height:46px}.modal{width:100%}}
+@media(max-width:640px){.nav-links{display:none}.card{width:120px}.cw-card{width:175px}.t10-num{font-size:5.5rem}.t10-poster{width:80px;height:116px}.ep-thumb{width:80px;height:46px}.modal{width:100%}main{padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))!important}}
+/* ── MOBILE BOTTOM NAV ────────────────────────────────── */
+.mob-nav{display:none}
+@media(max-width:640px){
+  .mob-nav{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:500;background:rgba(9,9,9,.97);border-top:1px solid rgba(255,255,255,.08);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding-bottom:env(safe-area-inset-bottom,0px)}
+  .mnav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px 4px 8px;text-decoration:none;color:rgba(255,255,255,.42);font-family:'Barlow',sans-serif;transition:color .18s;-webkit-tap-highlight-color:transparent;position:relative}
+  .mnav-item.active{color:#fff}
+  .mnav-item.active::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:20px;height:2px;background:#E50914;border-radius:0 0 3px 3px}
+  .mnav-ico{width:22px;height:22px;fill:currentColor;flex-shrink:0}
+  .mnav-lbl{font-size:.58rem;font-weight:600;letter-spacing:.2px}
+}
 </style>
 </head>
 <body>
@@ -590,8 +600,10 @@ async function playMovie(m, season, episode) {
   if (!currentUser) return;
 
   // Increment views / history for DB movies
-  if (m.id && !m.tmdb_id) DB.incrementViews(m.id).catch(()=>{});
-  if (m.id && !m.tmdb_id) await DB.addToHistory(currentUser.id, m.id);
+  // Fixed: was `m.id && !m.tmdb_id` which skipped all admin-added movies
+  // that have both a DB id AND a tmdb_id. Correct check is simply m.id.
+  if (m.id) DB.incrementViews(m.id).catch(() => {});
+  if (m.id) DB.addToHistory(currentUser.id, m.id).catch(() => {});
 
   // ── AUTO EMBED LOGIC ──────────────────────────────────────────
   // Priority: 1) DB embed_url  2) auto-build from tmdb_id via vidsrc
@@ -634,22 +646,30 @@ async function playMovie(m, season, episode) {
 // ─────────────────────────────────────────
 async function toggleMyList(m) {
   if (!currentUser) return;
+  // Key: prefer DB id, fall back to tmdb_id for pure-TMDB rows
   const key = String(m.id || m.tmdb_id);
+
   if (myListIds.has(key)) {
-    if (m.id && !m.tmdb_id) await DB.removeFromMyList(currentUser.id, m.id);
+    // ── REMOVE ──────────────────────────────────────────────
+    // BUG WAS HERE: old code had `if (m.id && !m.tmdb_id)` which is false
+    // for every admin-added movie that has both id AND tmdb_id → nothing
+    // was ever deleted from Supabase. Fixed: save to DB whenever m.id exists.
+    if (m.id) await DB.removeFromMyList(currentUser.id, m.id);
     myListIds.delete(key);
     showToast('Removed from My List');
+
   } else {
-    // If TMDB movie not in DB, we just use localStorage as fallback
-    if (m.id && !m.tmdb_id) {
-      await DB.addToMyList(currentUser.id, m.id);
-    }
+    // ── ADD ─────────────────────────────────────────────────
+    // Same bug fixed here too.
+    if (m.id) await DB.addToMyList(currentUser.id, m.id);
     myListIds.add(key);
     showToast('✅ Added to My List');
   }
-  // Update modal button if open
-  if (modalMovie && String(modalMovie.id||modalMovie.tmdb_id) === key) {
-    document.getElementById('modalAddBtn').textContent = myListIds.has(key) ? '✓ In My List' : '＋ My List';
+
+  // Update any open modal button
+  if (modalMovie && String(modalMovie.id || modalMovie.tmdb_id) === key) {
+    document.getElementById('modalAddBtn').textContent =
+      myListIds.has(key) ? '✓ In My List' : '＋ My List';
   }
 }
 
@@ -902,5 +922,31 @@ document.addEventListener('keydown', e => {
 });
 </script>
 <script>if("serviceWorker"in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){});});}</script>
+
+<!-- ═══ MOBILE BOTTOM NAV ═══════════════════════════════════
+     Visible only on ≤640px. Replaces the hidden desktop nav-links.
+     Active class on "Home" since we're on the Home page.          -->
+<nav class="mob-nav" aria-label="Mobile navigation">
+  <a class="mnav-item active" href="XverseMovies_Home.html" aria-label="Home">
+    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+    <span class="mnav-lbl">Home</span>
+  </a>
+  <a class="mnav-item" href="XverseMovies_Browse.html#tv" aria-label="TV Shows">
+    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
+    <span class="mnav-lbl">TV Shows</span>
+  </a>
+  <a class="mnav-item" href="XverseMovies_Browse.html#movies" aria-label="Movies">
+    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
+    <span class="mnav-lbl">Movies</span>
+  </a>
+  <a class="mnav-item" href="XverseMovies_Browse.html#new" aria-label="New and Popular">
+    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/></svg>
+    <span class="mnav-lbl">New</span>
+  </a>
+  <a class="mnav-item" href="XverseMovies_MyList.html" aria-label="My List">
+    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+    <span class="mnav-lbl">My List</span>
+  </a>
+</nav>
 </body>
 </html>
