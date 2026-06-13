@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>XverseMovies — Browse</title>
+<script>/* SW update → auto-reload */if('serviceWorker'in navigator){var _xvR=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!_xvR){_xvR=true;location.reload();}});}</script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="manifest" href="manifest.json">
@@ -29,6 +30,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;ali
 .nav-av{width:30px;height:30px;border-radius:4px;background:linear-gradient(135deg,var(--red),#831010);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.78rem;cursor:pointer;color:#fff;overflow:hidden;border:2px solid transparent;transition:border-color .2s;flex-shrink:0}
 .nav-av:hover{border-color:rgba(255,255,255,.5)}
 .nav-av img{width:100%;height:100%;object-fit:cover}
+.nav-bell{background:none;border:none;color:rgba(255,255,255,.72);cursor:pointer;width:34px;height:34px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.95rem;transition:all .2s;position:relative;flex-shrink:0}
+.nav-bell:hover{background:rgba(255,255,255,.09);color:#fff}
 #pageWrap{padding-top:66px}
 /* PAGE TABS */
 .pg-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);padding:0 4%;background:var(--bg);position:sticky;top:66px;z-index:100;overflow-x:auto;scrollbar-width:none}
@@ -189,7 +192,17 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;ali
 /* PAGE SECTIONS */
 .bpg{display:none}
 .bpg.active{display:block}
-@media(max-width:640px){.nav-links{display:none}.cgrid{grid-template-columns:repeat(auto-fill,minmax(115px,1fr));gap:7px}.t10n{font-size:5rem}.t10p{width:76px;height:112px}}
+@media(max-width:640px){.nav-links{display:none}.cgrid{grid-template-columns:repeat(auto-fill,minmax(115px,1fr));gap:7px}.t10n{font-size:5rem}.t10p{width:76px;height:112px}main,#mainContent{padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))!important}}
+/* ── MOBILE BOTTOM NAV ────────────────────────────────── */
+.mob-nav{display:none}
+@media(max-width:640px){
+  .mob-nav{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:500;background:rgba(9,9,9,.97);border-top:1px solid rgba(255,255,255,.08);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding-bottom:env(safe-area-inset-bottom,0px)}
+  .mnav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px 4px 8px;text-decoration:none;color:rgba(255,255,255,.42);font-family:'Barlow',sans-serif;transition:color .18s;-webkit-tap-highlight-color:transparent;position:relative}
+  .mnav-item.active{color:#fff}
+  .mnav-item.active::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:20px;height:2px;background:#E50914;border-radius:0 0 3px 3px}
+  .mnav-ico{width:22px;height:22px;fill:currentColor;flex-shrink:0}
+  .mnav-lbl{font-size:.58rem;font-weight:600;letter-spacing:.2px}
+}
 </style>
 </head>
 <body>
@@ -204,7 +217,12 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;ali
     <li><button class="nl" id="nlLang" onclick="switchPage('languages')">Browse Languages</button></li>
     <li><button class="nl" onclick="location.href='XverseMovies_MyList.html'">My List</button></li>
   </ul>
-  <div class="nav-right"><div class="nav-av" id="navAvatar">U</div></div>
+  <div class="nav-right">
+    <button class="nav-bell" onclick="XvNotif.toggle()" title="Notifications">
+      🔔<span class="_xvNP-dot" style="position:absolute;top:5px;right:5px;width:7px;height:7px;background:#E50914;border-radius:50%;border:2px solid #080808;display:none;pointer-events:none"></span>
+    </button>
+    <div class="nav-av" id="navAvatar">U</div>
+  </div>
 </nav>
 
 <div id="pageWrap">
@@ -272,6 +290,8 @@ const LANGS=[{code:'hi',name:'Hindi',icon:'🇮🇳',count:1800,bg:'#5c1a1a'},{c
 (async()=>{
   currentUser = await requireAuth(); if(!currentUser) return;
   await initNavAvatar('navAvatar');
+  if (typeof XvNotif !== 'undefined') XvNotif.init(currentUser.id);
+  await ML.init(currentUser.id);   // ← centralized My List state
   const hash = location.hash.replace('#','') || 'tv';
   switchPage(hash);
 })();
@@ -398,9 +418,11 @@ function buildPills(id,list,cb){
 }
 function cHTML(m,isList){
   const ms=JSON.stringify(m).replace(/"/g,'&quot;'), rat=m.rating||m.vote_average||'';
-  const playFn = m.type==='tv' ? 'openMod' : 'play'; // TV → modal first; movie → direct play
-  if(isList) return `<div class="card lc" onclick="openMod(${ms})"><div class="cth"><img class="ci" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555'"><div class="cov"><button class="cpl" onclick="event.stopPropagation();${playFn}(${ms})">▶</button></div></div><div class="cif"><div class="cn">${m.title}</div><div class="cm"><span>${m.year||''}</span>${rat?`<span>·</span><span style="color:var(--green)">★ ${rat}</span>`:''}</div></div><div class="lacts"><button class="lb" onclick="event.stopPropagation();${playFn}(${ms})">▶</button><button class="lb" onclick="event.stopPropagation();addML(${ms})">+</button></div></div>`;
-  return `<div class="card" onclick="openMod(${ms})"><div class="cth"><img class="ci" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555&size=400'"><span class="ctyp ${m.type||'movie'}">${m.type==='tv'?'TV':'MOVIE'}</span>${rat?`<span class="crat">★ ${rat}</span>`:''}<div class="cov"><button class="cpl" onclick="event.stopPropagation();${playFn}(${ms})">▶</button><button class="cad" onclick="event.stopPropagation();addML(${ms})">+</button></div></div><div class="cif"><div class="cn">${m.title}</div><div class="cm"><span>${m.year||''}</span></div></div></div>`;
+  const playFn = m.type==='tv' ? 'openMod' : 'play';
+  const inML = ML.has(m.id);  // ← real state from ML singleton (BUG B + E fix)
+  const mlLbl = inML ? '✓' : '+';
+  if(isList) return `<div class="card lc" onclick="openMod(${ms})"><div class="cth"><img class="ci" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555'"><div class="cov"><button class="cpl" onclick="event.stopPropagation();${playFn}(${ms})">▶</button></div></div><div class="cif"><div class="cn">${m.title}</div><div class="cm"><span>${m.year||''}</span>${rat?`<span>·</span><span style="color:var(--green)">★ ${rat}</span>`:''}</div></div><div class="lacts"><button class="lb" onclick="event.stopPropagation();${playFn}(${ms})">▶</button><button class="lb" onclick="event.stopPropagation();addML(${ms})">${mlLbl}</button></div></div>`;
+  return `<div class="card" onclick="openMod(${ms})"><div class="cth"><img class="ci" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555&size=400'"><span class="ctyp ${m.type||'movie'}">${m.type==='tv'?'TV':'MOVIE'}</span>${rat?`<span class="crat">★ ${rat}</span>`:''}<div class="cov"><button class="cpl" onclick="event.stopPropagation();${playFn}(${ms})">▶</button><button class="cad" onclick="event.stopPropagation();addML(${ms})">${mlLbl}</button></div></div><div class="cif"><div class="cn">${m.title}</div><div class="cm"><span>${m.year||''}</span></div></div></div>`;
 }
 function play(m, season, episode) {
   // Fix: empty string is not a valid embed URL
@@ -423,9 +445,18 @@ function play(m, season, episode) {
 }
 
 async function addML(m) {
-  if (!currentUser || !m.id) { showToast('⚠️ Login required'); return; }
-  await DB.addToMyList(currentUser.id, m.id);
-  showToast('✅ Added to My List');
+  const result = await ML.toggle(m);
+  if (result === null) return; // failed or not applicable
+  // Re-render the currently visible page section to update ✓/+ indicators
+  const activePg = document.querySelector('.bpg.active');
+  if (!activePg) return;
+  const pgId = activePg.id.replace('pg-', '');
+  if (pgId === 'tv')     renderTV();
+  else if (pgId === 'movies') renderMov();
+  else if (pgId === 'new') {
+    const activeTab = document.querySelector('.np-tab.active');
+    if (activeTab) renderNP(activeTab.dataset.tab || 'trending');
+  }
 }
 
 // ── EPISODE PICKER STATE ───────────────────
@@ -558,5 +589,47 @@ function skelG(n){ return `<div style="display:grid;grid-template-columns:repeat
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeMod(); });
 </script>
 <script>if("serviceWorker"in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){});});}</script>
+
+<!-- MOBILE BOTTOM NAV — active tab set dynamically from URL hash -->
+<nav class="mob-nav" aria-label="Mobile navigation">
+  <a class="mnav-item" href="XverseMovies_Home.html" id="mn-home">
+    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+    <span class="mnav-lbl">Home</span>
+  </a>
+  <a class="mnav-item" href="XverseMovies_Browse.html#tv" id="mn-tv">
+    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
+    <span class="mnav-lbl">TV Shows</span>
+  </a>
+  <a class="mnav-item" href="XverseMovies_Browse.html#movies" id="mn-movies">
+    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
+    <span class="mnav-lbl">Movies</span>
+  </a>
+  <a class="mnav-item" href="XverseMovies_Browse.html#new" id="mn-new">
+    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/></svg>
+    <span class="mnav-lbl">New</span>
+  </a>
+  <a class="mnav-item" href="XverseMovies_MyList.html" id="mn-mylist">
+    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+    <span class="mnav-lbl">My List</span>
+  </a>
+</nav>
+<script>
+// Highlight correct tab based on current hash
+(function(){
+  var h = (location.hash||'').replace('#','');
+  var map = {tv:'mn-tv', movies:'mn-movies', new:'mn-new'};
+  var id  = map[h] || 'mn-tv';
+  var el  = document.getElementById(id);
+  if (el) el.classList.add('active');
+  // Update on hash change (when user switches tab within Browse)
+  window.addEventListener('hashchange', function(){
+    document.querySelectorAll('.mnav-item').forEach(function(i){ i.classList.remove('active'); });
+    var newH = (location.hash||'').replace('#','');
+    var newId = map[newH] || 'mn-tv';
+    var newEl = document.getElementById(newId);
+    if (newEl) newEl.classList.add('active');
+  });
+}());
+</script>
 </body>
 </html>
