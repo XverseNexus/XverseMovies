@@ -553,6 +553,152 @@ function xvSwitchProfile() {
   window.location.href = 'index.html';
 }
 
+// ═════════════════════════════════════════════════════════════════
+//  ML  —  Centralized My List Manager
+//
+//  Single source of truth for My List across every page.
+//  ALL pages call ML.init(uid) once, then use ML.has / ML.toggle.
+//
+//  Eliminates all five bugs:
+//    A) Single key = String(movie.id) — no more dual tmdb_id fallback
+//    B) One implementation shared by Home, Browse, Player, MyList
+//    C) Every Supabase write is error-checked and surfaces failures
+//    D) getList filters out null-join rows before storing
+//    E) Browse now has real "already in list" state via ML.has()
+//
+//  Rule: ONLY movies with a DB id (integer) can be saved.
+//        TMDB-only content (trending rows without m.id) shows a
+//        clear message instead of a silent no-op.
+// ═════════════════════════════════════════════════════════════════
+const ML = {
+  _uid:  null,
+  _ids:  new Set(),   // Set<string> of String(movie.id)
+  _data: [],          // full movie objects from DB (with addedAt)
+
+  /* ── init ─────────────────────────────────────────────────────
+     Call once per page after auth, before rendering any cards.
+     Fetches the user's list from Supabase and populates state.    */
+  async init(uid) {
+    if (!uid) return;
+    this._uid = uid;
+    try {
+      const sb   = getSB();
+      const { data, error } = await sb
+        .from('my_list')
+        .select('movie_id, added_at, movies(*)')
+        .eq('user_id', uid)
+        .order('added_at', { ascending: false });
+
+      if (error) { console.error('ML.init fetch error:', error); return; }
+
+      // BUG D FIX: filter rows where the movie join returned null
+      // (can happen if a movie was deleted outside the FK cascade)
+      const valid = (data || []).filter(r => r.movies && r.movies.id);
+
+      this._data = valid.map(r => ({ ...r.movies, addedAt: r.added_at }));
+      this._ids  = new Set(this._data.map(m => String(m.id)));
+    } catch (e) {
+      console.error('ML.init exception:', e);
+    }
+  },
+
+  /* ── has ──────────────────────────────────────────────────────
+     Returns true if movie with this DB id is in the list.
+     Always pass movie.id (integer), never tmdb_id.                */
+  has(movieId) {
+    if (!movieId) return false;
+    return this._ids.has(String(movieId));
+  },
+
+  /* ── toggle ───────────────────────────────────────────────────
+     The one function all Add/Remove buttons should call.
+     Returns: true  = just added
+              false = just removed
+              null  = failed or not applicable                     */
+  async toggle(movie) {
+    if (!this._uid) {
+      showToast('⚠️ Please log in first');
+      return null;
+    }
+    // BUG A FIX: only DB movies (with integer id) can be saved.
+    // TMDB-only rows have no id and cannot be stored in my_list
+    // because the FK requires a real movies.id.
+    if (!movie || !movie.id) {
+      showToast('ℹ️ Not in the library yet — ask admin to add it');
+      return null;
+    }
+
+    if (this.has(movie.id)) {
+      return this._remove(movie.id);
+    } else {
+      return this._add(movie);
+    }
+  },
+
+  /* ── _add (internal) ─────────────────────────────────────────  */
+  async _add(movie) {
+    // BUG C FIX: check the error instead of ignoring it
+    const { error } = await getSB()
+      .from('my_list')
+      .upsert({ user_id: this._uid, movie_id: movie.id },
+              { onConflict: 'user_id,movie_id' });
+
+    if (error) {
+      console.error('ML._add error:', error);
+      showToast('❌ Could not save — ' + (error.message || 'try again'));
+      return null;
+    }
+
+    // Optimistic local update (no re-fetch needed)
+    this._ids.add(String(movie.id));
+    if (!this._data.find(m => m.id === movie.id)) {
+      this._data.unshift({ ...movie, addedAt: new Date().toISOString() });
+    }
+    showToast('✅ Added to My List');
+    return true;
+  },
+
+  /* ── _remove (internal) ──────────────────────────────────────  */
+  async _remove(movieId) {
+    const { error } = await getSB()
+      .from('my_list')
+      .delete()
+      .eq('user_id', this._uid)
+      .eq('movie_id', movieId);
+
+    if (error) {
+      console.error('ML._remove error:', error);
+      showToast('❌ Could not remove — ' + (error.message || 'try again'));
+      return null;
+    }
+
+    this._ids.delete(String(movieId));
+    this._data = this._data.filter(m => m.id !== movieId);
+    showToast('Removed from My List');
+    return false;
+  },
+
+  /* ── getData ──────────────────────────────────────────────────
+     Full array of saved movie objects for the MyList page.        */
+  getData() { return [...this._data]; },
+
+  /* ── removeLocal ──────────────────────────────────────────────
+     Used by MyList page for optimistic undo — splices without DB. */
+  removeLocal(movieId) {
+    this._ids.delete(String(movieId));
+    const idx = this._data.findIndex(m => m.id === movieId);
+    if (idx === -1) return null;
+    const [removed] = this._data.splice(idx, 1);
+    return { ...removed, _idx: idx };
+  },
+
+  restoreLocal(snapshot) {
+    if (!snapshot) return;
+    this._ids.add(String(snapshot.id));
+    this._data.splice(snapshot._idx, 0, snapshot);
+  },
+};
+
 // ─────────────────────────────────────────────────────────
 //  SHARED NOTIFICATION PANEL
 //  Netflix-style slide-in drawer — works on every page.

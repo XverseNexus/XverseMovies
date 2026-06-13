@@ -559,7 +559,7 @@ html,body{
 
 let currentUser = null;
 let movieData   = null;
-let isInML      = false;
+// isInML removed — use ML.has(movieData.id) instead
 let uiTimer     = null;
 let syncTimer   = null;
 let watchStart  = null;
@@ -680,7 +680,7 @@ window.addEventListener('orientationchange', function() {
   }
 
   if (movie.id) {
-    isInML = await DB.isInMyList(currentUser.id, movie.id);
+    await ML.init(currentUser.id);   // loads full list; ML.has() used by updateMLBtn
     updateMLBtn();
   }
 
@@ -861,20 +861,18 @@ function tryIframeFS(frame) {
    MY LIST
 ───────────────────────────────────────────────────────── */
 async function toggleML() {
-  if (!currentUser || !movieData?.id) return;
-  if (isInML) {
-    await DB.removeFromMyList(currentUser.id, movieData.id);
-    isInML = false;
-  } else {
-    await DB.addToMyList(currentUser.id, movieData.id);
-    isInML = true;
+  if (!currentUser || !movieData?.id) {
+    showToast('ℹ️ This title is not yet in the library');
+    return;
   }
-  updateMLBtn();
+  const result = await ML.toggle(movieData);
+  if (result !== null) updateMLBtn();
 }
 
 function updateMLBtn() {
-  const btn = document.getElementById('mlBtn');
-  if (isInML) {
+  const btn    = document.getElementById('mlBtn');
+  const inList = movieData?.id ? ML.has(movieData.id) : false;
+  if (inList) {
     btn.textContent = '✓ In My List';
     btn.classList.add('added');
   } else {

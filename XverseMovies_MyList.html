@@ -285,7 +285,9 @@ let undoTimer    = null;
   if (!currentUser) return;
   await initNavAvatar('navAvatar');
   if (typeof XvNotif !== 'undefined') XvNotif.init(currentUser.id);
-  await loadMyList();
+  await ML.init(currentUser.id);   // single centralized load
+  mlData = ML.getData();           // local reference for rendering
+  renderMyList();
 })();
 
 // ─────────────────────────────────────────
@@ -303,9 +305,14 @@ function switchTab(name, btn) {
 // ─────────────────────────────────────────
 //  MY LIST
 // ─────────────────────────────────────────
+// ─────────────────────────────────────────
+//  LOAD / RENDER
+//  mlData is a local rendering cache kept in sync with ML singleton.
+// ─────────────────────────────────────────
 async function loadMyList() {
   document.getElementById('mlGrid').innerHTML = skelCards(12);
-  mlData = await DB.getMyList(currentUser.id);
+  await ML.init(currentUser.id);
+  mlData = ML.getData();
   renderMyList();
 }
 
@@ -384,23 +391,34 @@ function mlCardHTML(m) {
 }
 
 async function removeML(movieId) {
-  const m = mlData.find(x => x.id === movieId);
-  if (!m) return;
-  lastRemoved = { ...m, index: mlData.indexOf(m) };
-  mlData = mlData.filter(x => x.id !== movieId);
-  await DB.removeFromMyList(currentUser.id, movieId);
+  // Optimistic: remove from local state immediately (instant UI)
+  lastRemoved = ML.removeLocal(movieId);
+  if (!lastRemoved) return;
+  mlData = ML.getData();
   renderMyList();
-  showUndo(`"${m.title}" removed from My List`);
+  showUndo(`"${lastRemoved.title}" removed from My List`);
+  // Persist: ML._remove handles Supabase error display
+  const ok = await ML._remove(movieId);
+  if (ok === null) {
+    // DB write failed — restore to local state
+    ML.restoreLocal(lastRemoved);
+    mlData = ML.getData();
+    renderMyList();
+    lastRemoved = null;
+  }
 }
 
 async function undoRemove() {
   if (!lastRemoved) return;
-  await DB.addToMyList(currentUser.id, lastRemoved.id);
-  mlData.splice(lastRemoved.index, 0, lastRemoved);
+  // Restore locally first (instant UI)
+  ML.restoreLocal(lastRemoved);
+  mlData = ML.getData();
   lastRemoved = null;
   renderMyList();
   hideUndo();
   showToast('↩️ Restored to My List');
+  // Persist to Supabase in background
+  await ML._add(mlData[0]).catch(() => {});
 }
 
 function filterML(f, btn) {

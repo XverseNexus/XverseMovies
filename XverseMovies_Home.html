@@ -291,7 +291,7 @@ let heroMovies     = [];
 let heroIdx        = 0;
 let heroTimer      = null;
 let modalMovie     = null;
-let myListIds      = new Set();
+// myListIds removed — use ML.has(id) / ML.toggle(movie) everywhere
 
 // ─────────────────────────────────────────
 //  INIT
@@ -309,10 +309,10 @@ let myListIds      = new Set();
   if (typeof XvNotif !== 'undefined') XvNotif.init(currentUser.id);
 
   // Load everything in parallel
+  // ML.init() handles My List — removed DB.getMyList from here to avoid double fetch
   const [
   featured,
   cwItems,
-  myListItems,
   adminMovies,
   trending,
   topRated,
@@ -323,8 +323,8 @@ let myListIds      = new Set();
 ] = await Promise.all([
   DB.getFeatured(),
   DB.getContinueWatching(currentUser.id),
-  DB.getMyList(currentUser.id),
-  DB.getAllMovies(), // 👈 ADD THIS
+  ML.init(currentUser.id),   // ← centralized ML init (replaces DB.getMyList + myListIds seed)
+  DB.getAllMovies(),
   TMDB.trending(),
   TMDB.topMovies(),
   TMDB.popularMov(),
@@ -333,9 +333,6 @@ let myListIds      = new Set();
   TMDB.popularTV(),
 ]);
 
-  // Build my list ID set for quick lookup
-  myListIds = new Set(myListItems.map(m => String(m.id)));
-
   // Hero: prefer admin-featured, fallback TMDB trending
   const heroSrc = featured.length ? featured : (trending?.results || []).slice(0,7).map(TMDB.normalize);
   buildHero(heroSrc);
@@ -343,7 +340,7 @@ let myListIds      = new Set();
   // Rows
   buildRows(
   cwItems,
-  myListItems,
+  ML.getData(),    // ← replaces myListItems
   adminMovies,
   trending,
   topRated,
@@ -382,7 +379,7 @@ function renderHero(m) {
   bg.style.backgroundImage = `url('${m.backdrop_url || m.poster_url}')`;
 
   const match = Math.round(65 + (parseFloat(m.rating||m.vote_average||7) * 3.5));
-  const inList = myListIds.has(String(m.id));
+  const inList = ML.has(m.id);
 
   document.getElementById('heroContent').innerHTML = `
     <div class="hero-badge">★ XVERSEMOVIES PICK</div>
@@ -397,7 +394,7 @@ function renderHero(m) {
     <div class="hero-btns">
       <button class="btn-play" onclick="${m.type==='tv'?`openModal(${JSON.stringify(m).replace(/"/g,'&quot;')})`:`playMovie(${JSON.stringify(m).replace(/"/g,'&quot;')})`}">▶ Play</button>
       <button class="btn-info" onclick="openModal(${JSON.stringify(m).replace(/"/g,'&quot;')})">ⓘ More Info</button>
-      <button class="btn-mylist-hero" id="heroMyListBtn" onclick="toggleMyList(${JSON.stringify(m).replace(/"/g,'&quot;')})" title="${inList?'Remove from':'Add to'} My List">${inList?'✓':'+'}</button>
+      <button class="btn-mylist-hero" id="heroMyListBtn" onclick="mlToggle(${JSON.stringify(m).replace(/"/g,'&quot;')})" title="${inList?'Remove from':'Add to'} My List">${inList?'✓':'+'}</button>
     </div>`;
 }
 
@@ -556,7 +553,7 @@ function buildCWRow(items) {
 
 function cardHTML(m) {
   const ms   = JSON.stringify(m).replace(/"/g,'&quot;');
-  const inList = myListIds.has(String(m.id || m.tmdb_id));
+  const inList = ML.has(m.id);
   return `<div class="card" onclick="openModal(${ms})">
     <div class="card-img-wrap">
       <img class="card-img" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555&size=400'">
@@ -564,7 +561,7 @@ function cardHTML(m) {
       <span class="card-rating">★ ${m.rating||m.vote_average||''}</span>
       <div class="card-overlay">
         <button class="card-play" onclick="event.stopPropagation();${m.type==='tv'?'openModal':'playMovie'}(${ms})">▶</button>
-        <button class="card-add" onclick="event.stopPropagation();toggleMyList(${ms})">${inList?'✓':'+'}</button>
+        <button class="card-add" onclick="event.stopPropagation();mlToggle(${ms})">${inList?'✓':'+'}</button>
       </div>
     </div>
     <div class="card-info">
@@ -642,34 +639,27 @@ async function playMovie(m, season, episode) {
 }
 
 // ─────────────────────────────────────────
-//  MY LIST
+//  MY LIST — delegates to ML singleton in xverse-config.js
 // ─────────────────────────────────────────
-async function toggleMyList(m) {
-  if (!currentUser) return;
-  // Key: prefer DB id, fall back to tmdb_id for pure-TMDB rows
-  const key = String(m.id || m.tmdb_id);
+async function mlToggle(m) {
+  const result = await ML.toggle(m);
+  if (result === null) return; // failed or not applicable — toast already shown
 
-  if (myListIds.has(key)) {
-    // ── REMOVE ──────────────────────────────────────────────
-    // BUG WAS HERE: old code had `if (m.id && !m.tmdb_id)` which is false
-    // for every admin-added movie that has both id AND tmdb_id → nothing
-    // was ever deleted from Supabase. Fixed: save to DB whenever m.id exists.
-    if (m.id) await DB.removeFromMyList(currentUser.id, m.id);
-    myListIds.delete(key);
-    showToast('Removed from My List');
+  // Update any card buttons already rendered on page
+  document.querySelectorAll('[data-ml-id="' + (m.id||'') + '"]').forEach(btn => {
+    btn.textContent = result ? '✓' : '+';
+  });
 
-  } else {
-    // ── ADD ─────────────────────────────────────────────────
-    // Same bug fixed here too.
-    if (m.id) await DB.addToMyList(currentUser.id, m.id);
-    myListIds.add(key);
-    showToast('✅ Added to My List');
+  // Update hero button if currently shown
+  const heroBtn = document.getElementById('heroMyListBtn');
+  if (heroBtn && heroBtn.dataset.mlId == m.id) {
+    heroBtn.textContent = result ? '✓' : '+';
   }
 
-  // Update any open modal button
-  if (modalMovie && String(modalMovie.id || modalMovie.tmdb_id) === key) {
-    document.getElementById('modalAddBtn').textContent =
-      myListIds.has(key) ? '✓ In My List' : '＋ My List';
+  // Update open modal button
+  if (modalMovie && modalMovie.id === m.id) {
+    const mb = document.getElementById('modalAddBtn');
+    if (mb) mb.textContent = result ? '✓ In My List' : '＋ My List';
   }
 }
 
@@ -707,13 +697,13 @@ function openModal(m) {
   document.getElementById('modalOv').textContent   = m.overview || '';
   document.getElementById('modalCast').innerHTML   = m.cast_text ? `<strong>Cast:</strong> ${m.cast_text}` : '';
 
-  const inList = myListIds.has(String(m.id||m.tmdb_id));
+  const inList = ML.has(m.id);
   document.getElementById('modalAddBtn').textContent = inList ? '✓ In My List' : '＋ My List';
 
   // Play button — for TV shows, Play plays S1E1 by default
   document.getElementById('modalPlayBtn').textContent  = isTV ? '▶ Play S1 E1' : '▶ Play';
   document.getElementById('modalPlayBtn').onclick = () => { closeModal(); playMovie(m, 1, 1); };
-  document.getElementById('modalAddBtn').onclick  = () => toggleMyList(m);
+  document.getElementById('modalAddBtn').onclick = () => mlToggle(m);
 
   // Show/hide episode picker
   const epWrap = document.getElementById('epWrap');
