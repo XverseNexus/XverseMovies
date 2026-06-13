@@ -303,35 +303,36 @@ let modalMovie     = null;
   currentProfile = Session.getProfile();
   await initNavAvatar('navAvatar');
 
-  // Init notification panel (loads notifs + updates bell badge)
-  // Guard: if old service-worker cache serves an older xverse-config.js
-  // that doesn't have XvNotif yet, skip gracefully instead of crashing.
+  // Init notification panel
   if (typeof XvNotif !== 'undefined') XvNotif.init(currentUser.id);
 
-  // Load everything in parallel
-  // ML.init() handles My List — removed DB.getMyList from here to avoid double fetch
+  // BUG 1 FIX: ML.init must run BEFORE Promise.all and NOT inside it.
+  // When it was inside Promise.all its return value (void/undefined) was
+  // assigned to adminMovies, shifting all remaining results by one slot.
+  await ML.init(currentUser.id);
+
+  // Load everything in parallel — 9 promises, 9 destructured vars
   const [
-  featured,
-  cwItems,
-  adminMovies,
-  trending,
-  topRated,
-  popular,
-  hindi,
-  south,
-  tv
-] = await Promise.all([
-  DB.getFeatured(),
-  DB.getContinueWatching(currentUser.id),
-  ML.init(currentUser.id),   // ← centralized ML init (replaces DB.getMyList + myListIds seed)
-  DB.getAllMovies(),
-  TMDB.trending(),
-  TMDB.topMovies(),
-  TMDB.popularMov(),
-  TMDB.hindiMovies(),
-  TMDB.southMovies(),
-  TMDB.popularTV(),
-]);
+    featured,
+    cwItems,
+    adminMovies,
+    trending,
+    topRated,
+    popular,
+    hindi,
+    south,
+    tv
+  ] = await Promise.all([
+    DB.getFeatured(),
+    DB.getContinueWatching(currentUser.id),
+    DB.getAllMovies(),
+    TMDB.trending(),
+    TMDB.topMovies(),
+    TMDB.popularMov(),
+    TMDB.hindiMovies(),
+    TMDB.southMovies(),
+    TMDB.popularTV(),
+  ]);
 
   // Hero: prefer admin-featured, fallback TMDB trending
   const heroSrc = featured.length ? featured : (trending?.results || []).slice(0,7).map(TMDB.normalize);

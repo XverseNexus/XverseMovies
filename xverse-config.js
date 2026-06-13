@@ -697,6 +697,11 @@ const ML = {
     this._ids.add(String(snapshot.id));
     this._data.splice(snapshot._idx, 0, snapshot);
   },
+
+  /* ── Public remove / add (for pages to call directly) ────────
+     Wraps _add/_remove so pages never call pseudo-private methods. */
+  async remove(movieId) { return this._remove(movieId); },
+  async add(movie)      { return this._add(movie); },
 };
 
 // ─────────────────────────────────────────────────────────

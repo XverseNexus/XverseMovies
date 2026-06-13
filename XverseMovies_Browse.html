@@ -390,7 +390,7 @@ function renderNP(tab){
     return;
   }
   const items=tab==='new'?[...npItems].reverse():npItems;
-  c.innerHTML=`<div class="npl">${items.slice(0,25).map((m,i)=>{const ms=JSON.stringify(m).replace(/"/g,'&quot;');return`<div class="npc" onclick="openMod(${ms})"><div class="nprk">${i+1}</div><img class="npth" src="${m.poster_url||''}" alt="${m.title}" onerror="this.style.display='none'"><div class="npif"><div class="nptl">${m.title}</div><div class="npmt"><span>${m.year||''}</span><span style="color:var(--green)">★ ${m.rating||''}</span>${i<4?'<span class="npnew">NEW</span>':i<10?'<span class="nphot">🔥</span>':''}</div></div><div class="npact"><button class="npb" onclick="event.stopPropagation();play(${ms})">▶</button><button class="npb" onclick="event.stopPropagation();addML(${ms})">+</button></div></div>`}).join('')}</div>`;
+  c.innerHTML=`<div class="npl">${items.slice(0,25).map((m,i)=>{const ms=JSON.stringify(m).replace(/"/g,'&quot;');const inML=ML.has(m.id);return`<div class="npc" onclick="openMod(${ms})"><div class="nprk">${i+1}</div><img class="npth" src="${m.poster_url||''}" alt="${m.title}" onerror="this.style.display='none'"><div class="npif"><div class="nptl">${m.title}</div><div class="npmt"><span>${m.year||''}</span><span style="color:var(--green)">★ ${m.rating||''}</span>${i<4?'<span class="npnew">NEW</span>':i<10?'<span class="nphot">🔥</span>':''}</div></div><div class="npact"><button class="npb" onclick="event.stopPropagation();play(${ms})">▶</button><button class="npb" onclick="event.stopPropagation();addML(${ms})">${inML?'✓':'+'}</button></div></div>`}).join('')}</div>`;
 }
 
 // ── LANGUAGES ─────────────────────────────

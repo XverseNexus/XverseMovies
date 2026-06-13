@@ -397,8 +397,8 @@ async function removeML(movieId) {
   mlData = ML.getData();
   renderMyList();
   showUndo(`"${lastRemoved.title}" removed from My List`);
-  // Persist: ML._remove handles Supabase error display
-  const ok = await ML._remove(movieId);
+  // FIX 4: Use public ML.remove() instead of private ML._remove()
+  const ok = await ML.remove(movieId);
   if (ok === null) {
     // DB write failed — restore to local state
     ML.restoreLocal(lastRemoved);
@@ -410,15 +410,18 @@ async function removeML(movieId) {
 
 async function undoRemove() {
   if (!lastRemoved) return;
+  // Store reference before clearing lastRemoved
+  const snapshot = lastRemoved;
   // Restore locally first (instant UI)
-  ML.restoreLocal(lastRemoved);
+  ML.restoreLocal(snapshot);
   mlData = ML.getData();
   lastRemoved = null;
   renderMyList();
   hideUndo();
   showToast('↩️ Restored to My List');
-  // Persist to Supabase in background
-  await ML._add(mlData[0]).catch(() => {});
+  // FIX 3: Pass the actual restored movie object, not mlData[0]
+  // (mlData[0] was always the first item, not the restored one)
+  await ML.add(snapshot).catch(() => {});
 }
 
 function filterML(f, btn) {
