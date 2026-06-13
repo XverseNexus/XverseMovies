@@ -2,15 +2,22 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<!-- FIX #6: user-scalable=no stops pinch-zoom breaking layout; viewport-fit=cover fills notch area -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
 <title>XverseMovies — Player</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#E50914">
+<meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="XverseMovies">
+<meta name="mobile-web-app-capable" content="yes">
+
+<!-- SW update → auto-reload so fresh xverse-config.js loads (same fix as other pages) -->
+<script>if('serviceWorker'in navigator){var _xvR=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!_xvR){_xvR=true;location.reload();}});}</script>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="xverse-config.js"></script>
 
@@ -19,38 +26,54 @@
   margin:0;
   padding:0;
   box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent; /* remove tap flash on mobile */
 }
 
 html,body{
   width:100%;
   height:100%;
+  /* height:100dvh for mobile browsers with dynamic toolbar */
+  height:100dvh;
   background:#000;
   overflow:hidden;
   font-family:'Barlow',sans-serif;
   color:#fff;
+  /* Prevent iOS bounce scroll */
+  position:fixed;
+  overscroll-behavior:none;
 }
 
+/* ── PLAYER WRAPPER ─────────────────────────────────────── */
 #playerWrap{
   position:relative;
   width:100vw;
   height:100vh;
+  height:100dvh;
   background:#000;
+  /* IMPORTANT: overflow:hidden clips the scaled-up iframe to viewport bounds */
   overflow:hidden;
+  /* GPU compositing layer — improves transform performance on mobile */
+  will-change:transform;
 }
 
-/* PLAYER */
+/* ── IFRAME ─────────────────────────────────────────────── */
+/* FIX #2 (primary): JS will override width/height/transform on mobile.
+   These are the desktop defaults. */
 #stFrame{
   position:absolute;
-  inset:0;
+  top:0;
+  left:0;
   width:100%;
   height:100%;
   border:none;
   z-index:1;
   display:none;
   background:#000;
+  /* Smooth scale transitions on orientation change */
+  transition:none;
 }
 
-/* LOADING */
+/* ── LOADING ────────────────────────────────────────────── */
 #loadScreen{
   position:absolute;
   inset:0;
@@ -70,9 +93,7 @@ html,body{
   letter-spacing:2px;
 }
 
-.ld-logo span{
-  color:#fff;
-}
+.ld-logo span{ color:#fff; }
 
 .ld-bar{
   width:220px;
@@ -89,34 +110,67 @@ html,body{
   animation:loadAnim 2s ease forwards;
 }
 
-@keyframes loadAnim{
-  from{width:0}
-  to{width:100%}
+@keyframes loadAnim{ from{width:0} to{width:100%} }
+
+.ld-msg{ color:#666; font-size:.8rem; text-align:center; padding:0 20px; }
+
+/* ── TAP ZONE (FIX #3 + #5) ───────────────────────────── */
+/* Transparent layer between iframe and overlay bars.
+/* ── MENU TOGGLE — the ONLY way to show the overlay ────── */
+/* A small persistent button that is always visible.
+   Pressing it is the sole trigger for showing the overlay.
+   Hides when overlay is visible (topBar's back + ✕ take over).
+   z-index 20 keeps it above everything at all times.           */
+#menuToggle{
+  position:absolute;
+  top:max(14px, env(safe-area-inset-top));
+  left:max(14px, env(safe-area-inset-left));
+  z-index:20;
+  width:44px;
+  height:44px;
+  background:rgba(0,0,0,.55);
+  border:1px solid rgba(255,255,255,.18);
+  color:rgba(255,255,255,.82);
+  border-radius:8px;
+  cursor:pointer;
+  font-size:1.15rem;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:opacity .25s ease, background .15s ease;
+  -webkit-tap-highlight-color:transparent;
 }
 
-.ld-msg{
-  color:#666;
-  font-size:.8rem;
+#menuToggle:hover{
+  background:rgba(255,255,255,.14);
+  color:#fff;
 }
 
-/* TOP BAR */
+/* Fade out when overlay becomes visible —
+   topBar's ← back button occupies the same corner. */
+#playerWrap.ui-on #menuToggle{
+  opacity:0;
+  pointer-events:none;
+}
+
+/* ── TOP BAR ────────────────────────────────────────────── */
 #topBar{
   position:absolute;
   top:0;
   left:0;
   right:0;
   z-index:10;
-  padding:18px 20px;
+  /* env() provides notch/Dynamic Island safe area on iOS */
+  padding: max(18px, calc(14px + env(safe-area-inset-top))) 
+           max(20px, env(safe-area-inset-right))
+           14px
+           max(20px, env(safe-area-inset-left));
   display:flex;
   align-items:center;
   gap:14px;
-
-  background:linear-gradient(to bottom,
-  rgba(0,0,0,.88) 0%,
-  transparent 100%);
-
+  background:linear-gradient(to bottom, rgba(0,0,0,.88) 0%, transparent 100%);
   transform:translateY(-100%);
-  transition:transform .3s;
+  transition:transform .3s ease;
   pointer-events:none;
 }
 
@@ -125,22 +179,21 @@ html,body{
   pointer-events:auto;
 }
 
-/* BOTTOM BAR */
+/* ── BOTTOM BAR ─────────────────────────────────────────── */
 #bottomBar{
   position:absolute;
   bottom:0;
   left:0;
   right:0;
   z-index:10;
-
-  padding:14px 20px 22px;
-
-  background:linear-gradient(to top,
-  rgba(0,0,0,.92) 0%,
-  transparent 100%);
-
+  /* env() provides home-bar safe area on iPhone */
+  padding: 14px
+           max(20px, env(safe-area-inset-right))
+           max(22px, calc(16px + env(safe-area-inset-bottom)))
+           max(20px, env(safe-area-inset-left));
+  background:linear-gradient(to top, rgba(0,0,0,.92) 0%, transparent 100%);
   transform:translateY(100%);
-  transition:transform .3s;
+  transition:transform .3s ease;
   pointer-events:none;
 }
 
@@ -149,39 +202,52 @@ html,body{
   pointer-events:auto;
 }
 
-.back-btn,
-.top-btn,
-.ctrl-btn{
+/* ── BUTTONS ────────────────────────────────────────────── */
+.back-btn,.top-btn,.ctrl-btn{
   background:rgba(0,0,0,.5);
   border:1px solid rgba(255,255,255,.2);
   color:#fff;
   cursor:pointer;
   transition:.2s;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+  /* FIX: minimum 44px touch target on mobile (Apple HIG / Material guidelines) */
+  min-width:44px;
+  min-height:44px;
 }
 
-.back-btn:hover,
-.top-btn:hover,
-.ctrl-btn:hover{
+.back-btn:hover,.top-btn:hover,.ctrl-btn:hover{
   background:rgba(255,255,255,.15);
 }
 
 .back-btn{
-  width:38px;
-  height:38px;
+  width:44px;
+  height:44px;
   border-radius:50%;
-  font-size:1rem;
+  font-size:1.1rem;
 }
 
 .top-btn{
-  width:34px;
-  height:34px;
+  width:40px;
+  height:40px;
   border-radius:50%;
+  font-size:.95rem;
 }
 
 .ctrl-btn{
-  width:36px;
-  height:36px;
+  width:44px;
+  height:44px;
   border-radius:8px;
+  font-size:1rem;
+}
+
+/* Desktop: tighter buttons */
+@media(min-width:768px){
+  .back-btn{ width:38px; height:38px; min-width:unset; min-height:unset; font-size:1rem; }
+  .top-btn { width:34px; height:34px; min-width:unset; min-height:unset; }
+  .ctrl-btn{ width:36px; height:36px; min-width:unset; min-height:unset; }
 }
 
 .top-info{
@@ -205,8 +271,8 @@ html,body{
 .movie-meta{
   display:flex;
   align-items:center;
-  gap:12px;
-  margin-bottom:12px;
+  gap:8px;
+  margin-bottom:10px;
   flex-wrap:wrap;
 }
 
@@ -222,7 +288,7 @@ html,body{
 
 .meta-text{
   color:rgba(255,255,255,.55);
-  font-size:.76rem;
+  font-size:.74rem;
 }
 
 .ctrl-row{
@@ -231,19 +297,31 @@ html,body{
   gap:10px;
 }
 
-.ctrl-spacer{
-  flex:1;
+.ctrl-spacer{ flex:1; }
+
+.ctrl-hint{
+  font-size:.7rem;
+  color:#666;
+}
+
+@media(max-width:480px){
+  /* On small phones, hide the hint text to save space */
+  .ctrl-hint{ display:none; }
 }
 
 .ml-btn{
   background:rgba(0,0,0,.5);
   border:1px solid rgba(255,255,255,.2);
   color:#fff;
-  padding:7px 16px;
+  padding:9px 16px;
   border-radius:4px;
   cursor:pointer;
   font-size:.75rem;
+  font-family:'Barlow',sans-serif;
   transition:.2s;
+  min-height:44px;
+  display:flex;
+  align-items:center;
 }
 
 .ml-btn.added{
@@ -251,33 +329,37 @@ html,body{
   color:#46d369;
 }
 
-/* UI ZONE FIXED */
-#uiZone{
-  position:absolute;
-  inset:0;
-  z-index:0;
-  pointer-events:none;
+/* Desktop mode indicator badge */
+#desktopBadge{
+  background:rgba(70,130,255,.15);
+  border:1px solid rgba(70,130,255,.3);
+  color:rgba(70,130,255,.9);
+  font-size:.58rem;
+  font-weight:700;
+  padding:2px 7px;
+  border-radius:4px;
+  display:none;
+  white-space:nowrap;
+  letter-spacing:.3px;
 }
 
-/* PLAN GATE */
+#desktopBadge.show{ display:inline-flex; }
+
+/* ── PLAN GATE ──────────────────────────────────────────── */
 #planGate{
   position:absolute;
   inset:0;
   z-index:50;
   background:rgba(0,0,0,.94);
-
   display:none;
   flex-direction:column;
   align-items:center;
   justify-content:center;
-
-  padding:40px;
+  padding:40px max(20px, env(safe-area-inset-left));
   text-align:center;
 }
 
-#planGate.show{
-  display:flex;
-}
+#planGate.show{ display:flex; }
 
 .gate-title{
   font-family:'Bebas Neue',cursive;
@@ -310,295 +392,320 @@ html,body{
   transition:.2s;
 }
 
-.gate-plan:hover{
-  border-color:#fff;
-  background:rgba(255,255,255,.05);
-}
+.gate-plan:hover{ border-color:#fff; background:rgba(255,255,255,.05); }
+.gate-plan.popular{ border-color:#E50914; }
 
-.gate-plan.popular{
-  border-color:#E50914;
-}
-
-.gp-name{
-  font-size:.9rem;
-  font-weight:700;
-}
-
-.gp-price{
-  font-family:'Bebas Neue',cursive;
-  color:#E50914;
-  font-size:1.4rem;
-  margin-top:4px;
-}
-
-.gp-desc{
-  color:rgba(255,255,255,.45);
-  font-size:.7rem;
-}
+.gp-name{ font-size:.9rem; font-weight:700; }
+.gp-price{ font-family:'Bebas Neue',cursive; color:#E50914; font-size:1.4rem; margin-top:4px; }
+.gp-desc{ color:rgba(255,255,255,.45); font-size:.7rem; }
 
 .btn-back-gate{
   margin-top:18px;
-  padding:9px 20px;
+  padding:11px 24px;
   border-radius:4px;
   border:1px solid rgba(255,255,255,.2);
   background:transparent;
   color:#aaa;
   cursor:pointer;
+  font-family:'Barlow',sans-serif;
+  font-size:.85rem;
+  min-height:44px;
 }
 
+/* ── SYNC DOT ───────────────────────────────────────────── */
 #syncDot{
   position:absolute;
   top:16px;
   left:50%;
   transform:translateX(-50%);
   z-index:30;
-
   background:rgba(70,211,105,.15);
   border:1px solid rgba(70,211,105,.25);
   color:#46d369;
-
   padding:4px 10px;
   border-radius:20px;
-
   font-size:.65rem;
-
   opacity:0;
   transition:.3s;
+  white-space:nowrap;
+  pointer-events:none;
 }
 
-#syncDot.show{
+#syncDot.show{ opacity:1; }
+
+/* ── MOBILE DESKTOP-MODE NOTICE ─────────────────────────── */
+#mobileNotice{
+  position:absolute;
+  bottom:80px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:11;
+  background:rgba(0,0,0,.75);
+  border:1px solid rgba(255,255,255,.12);
+  color:rgba(255,255,255,.7);
+  padding:6px 14px;
+  border-radius:20px;
+  font-size:.68rem;
+  white-space:nowrap;
+  opacity:0;
+  transition:opacity .4s;
+  pointer-events:none;
+}
+
+#mobileNotice.show{
   opacity:1;
 }
 </style>
 </head>
 
 <body>
-
 <div id="playerWrap">
 
   <!-- LOADING -->
   <div id="loadScreen">
     <div class="ld-logo">Xverse<span>Movies</span></div>
-
-    <div class="ld-bar">
-      <div class="ld-fill"></div>
-    </div>
-
-    <div class="ld-msg" id="ldMsg">
-      Loading video...
-    </div>
+    <div class="ld-bar"><div class="ld-fill"></div></div>
+    <div class="ld-msg" id="ldMsg">Loading video...</div>
   </div>
 
   <!-- PLAN GATE -->
   <div id="planGate">
-
     <div style="font-size:3rem;">🔒</div>
-
-    <div class="gate-title">
-      Upgrade Your Plan
-    </div>
-
-    <div class="gate-sub" id="gateSub">
-      This content requires a higher plan.
-    </div>
-
+    <div class="gate-title">Upgrade Your Plan</div>
+    <div class="gate-sub" id="gateSub">This content requires a higher plan.</div>
     <div class="gate-plans">
-
       <div class="gate-plan" onclick="upgradePlan('hd')">
         <div class="gp-name">HD</div>
         <div class="gp-price">₹29</div>
         <div class="gp-desc">720p · 2 screens</div>
       </div>
-
       <div class="gate-plan popular" onclick="upgradePlan('fhd')">
         <div class="gp-name">Full HD ⭐</div>
         <div class="gp-price">₹49</div>
         <div class="gp-desc">1080p · 2 screens</div>
       </div>
-
       <div class="gate-plan" onclick="upgradePlan('uhd')">
         <div class="gp-name">4K Ultra HD</div>
         <div class="gp-price">₹99</div>
         <div class="gp-desc">4K · 4 screens</div>
       </div>
-
     </div>
-
-    <button class="btn-back-gate" onclick="goBack()">
-      ← Go Back
-    </button>
-
+    <button class="btn-back-gate" onclick="goBack()">← Go Back</button>
   </div>
 
-  <!-- IFRAME -->
-<iframe
-  id="stFrame"
-  allowfullscreen
-  allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-  referrerpolicy="no-referrer-when-downgrade"
-  style="border:none;"
-></iframe>
+  <!-- ═══════════════════════════════════════════════════════
+       IFRAME
+       FIX #1: webkit-allowfullscreen + mozallowfullscreen for iOS/Firefox
+       FIX #1: expanded allow attribute covers all APIs embedded players use
+       FIX #2: width/height/transform overridden by setIframeScale() on mobile
+       ═══════════════════════════════════════════════════════ -->
+  <iframe
+    id="stFrame"
+    allowfullscreen
+    webkit-allowfullscreen
+    mozallowfullscreen
+    allow="autoplay; fullscreen; encrypted-media; picture-in-picture; web-share;
+           accelerometer; gyroscope; magnetometer; screen-wake-lock;
+           display-capture; clipboard-write"
+    referrerpolicy="no-referrer-when-downgrade"
+    scrolling="no"
+    frameborder="0"
+  ></iframe>
 
   <!-- SYNC -->
-  <div id="syncDot">
-    ✓ Progress synced
-  </div>
+  <div id="syncDot">✓ Progress synced</div>
 
-  <!-- UI ZONE -->
-  <div id="uiZone"></div>
+  <!-- Mobile desktop-mode notice (fades out after 3s) -->
+  <div id="mobileNotice">🖥 Desktop player mode — full controls visible</div>
 
-  <!-- TOP -->
+  <!-- ≡ MENU TOGGLE — always visible, the only trigger for the overlay.
+       Positioned top-left. Fades when overlay opens (topBar takes over). -->
+  <button id="menuToggle" onclick="openMenu()" aria-label="Show controls" title="Show controls">≡</button>
+
+  <!-- TOP BAR -->
   <div id="topBar">
-
-    <button class="back-btn" onclick="goBack()">←</button>
-
+    <button class="back-btn" onclick="goBack()" aria-label="Go back">←</button>
     <div class="top-info">
       <div class="top-title" id="topTitle">Loading...</div>
       <div class="top-sub" id="topSub"></div>
     </div>
-
-    <button class="top-btn" onclick="reqFS()">⛶</button>
-
+    <span id="desktopBadge" title="Desktop mode active — all player controls visible">🖥 Desktop</span>
+    <button class="top-btn" onclick="reqFS()" aria-label="Fullscreen">⛶</button>
+    <!-- ✕ hides overlay. Embedded player regains full control instantly. -->
+    <button class="top-btn" onclick="closeMenu()" aria-label="Hide controls" title="Hide controls">✕</button>
   </div>
 
-  <!-- BOTTOM -->
+  <!-- BOTTOM BAR -->
   <div id="bottomBar">
-
     <div class="movie-meta">
-
       <span class="meta-badge" id="qualBadge">HD</span>
-
       <span class="meta-text" id="yearBadge"></span>
-
       <span class="meta-text" id="ageBadge"></span>
-
       <span class="meta-text" id="durBadge"></span>
-
-      <button class="ml-btn" id="mlBtn" onclick="toggleML()">
-        ＋ My List
-      </button>
-
+      <button class="ml-btn" id="mlBtn" onclick="toggleML()">＋ My List</button>
     </div>
-
     <div class="ctrl-row">
-
-      <button class="ctrl-btn" onclick="goBack()">🏠</button>
-
+      <button class="ctrl-btn" onclick="goBack()" aria-label="Home">🏠</button>
       <div class="ctrl-spacer"></div>
-
-      <span style="font-size:.72rem;color:#777;">
-        Video controls inside player
-      </span>
-
-      <button class="ctrl-btn" onclick="reqFS()">⛶</button>
-
+      <span class="ctrl-hint">≡ to show controls · ✕ to hide</span>
+      <button class="ctrl-btn" onclick="reqFS()" aria-label="Fullscreen">⛶</button>
     </div>
-
   </div>
 
 </div>
 
 <script>
+'use strict';
 
 let currentUser = null;
 let movieData   = null;
-let isInML      = false;
-
+// isInML removed — use ML.has(movieData.id) instead
 let uiTimer     = null;
 let syncTimer   = null;
 let watchStart  = null;
 
-const PLAN_ORDER = {
-  free:0,
-  hd:1,
-  fhd:2,
-  uhd:3
-};
+const PLAN_ORDER = { free:0, hd:1, fhd:2, uhd:3 };
 
-(async()=>{
+/* ─────────────────────────────────────────────────────────
+   FIX #2 — IFRAME SCALE TRICK (PRIMARY FIX)
 
+   Root cause: Embedded players (VidSrc, etc.) detect the
+   iframe's internal window.innerWidth to decide which UI
+   to render. On a 360px mobile screen, width < 768px →
+   simplified native controls, quality/subtitle/settings
+   menus all hidden.
+
+   Fix: Set iframe width to DESKTOP_W (960px), then apply
+   CSS transform scale(vw / 960) so it visually fills the
+   screen. Inside the iframe, window.innerWidth = 960px →
+   embedded player renders full desktop UI with all controls.
+
+   overflow:hidden on #playerWrap clips the layout box to
+   the visible viewport, so nothing bleeds outside.
+───────────────────────────────────────────────────────── */
+const DESKTOP_W = 960; // px — player shows full controls at this width
+let   _isMobile = false;
+
+function setIframeScale() {
+  const frame = document.getElementById('stFrame');
+  if (!frame) return;
+
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  if (vw < DESKTOP_W) {
+    _isMobile = true;
+    const scale     = vw / DESKTOP_W;
+    const scaledH   = Math.ceil(vh / scale);
+
+    frame.style.width           = DESKTOP_W + 'px';
+    frame.style.height          = scaledH   + 'px';
+    frame.style.transform       = 'scale(' + scale + ')';
+    frame.style.transformOrigin = '0 0';
+    frame.style.position        = 'absolute';
+    frame.style.top             = '0';
+    frame.style.left            = '0';
+
+    // Show the desktop-mode badge in top bar
+    const badge = document.getElementById('desktopBadge');
+    if (badge) badge.classList.add('show');
+
+  } else {
+    _isMobile = false;
+
+    // Desktop: reset to 100% × 100%
+    frame.style.width           = '100%';
+    frame.style.height          = '100%';
+    frame.style.transform       = 'none';
+    frame.style.transformOrigin = '';
+    frame.style.position        = 'absolute';
+    frame.style.top             = '0';
+    frame.style.left            = '0';
+
+    const badge = document.getElementById('desktopBadge');
+    if (badge) badge.classList.remove('show');
+  }
+}
+
+// Recalculate on resize and orientation change
+window.addEventListener('resize', setIframeScale);
+window.addEventListener('orientationchange', function() {
+  // Short delay lets the browser finish rotating before we read dimensions
+  setTimeout(setIframeScale, 350);
+});
+
+/* ─────────────────────────────────────────────────────────
+   INIT
+───────────────────────────────────────────────────────── */
+(async () => {
   currentUser = await requireAuth();
+  if (!currentUser) return;
 
-  if(!currentUser) return;
-
-  const p       = new URLSearchParams(location.search);
-  const movieId = p.get('id');
-
-  // Season/episode support for TV shows
+  const p          = new URLSearchParams(location.search);
+  const movieId    = p.get('id');
   const urlSeason  = parseInt(p.get('season'))  || 1;
   const urlEpisode = parseInt(p.get('episode')) || 1;
 
   let movie = null;
+  if (movieId) movie = await DB.getMovie(parseInt(movieId));
 
-  if(movieId){
-    movie = await DB.getMovie(parseInt(movieId));
-  }
-
-  if(!movie){
-
+  if (!movie) {
     movie = {
-      id:movieId ? parseInt(movieId) : null,
-      tmdb_id: p.get('tmdb_id') ? parseInt(p.get('tmdb_id')) : null,
-      title:p.get('title') || 'Movie',
-      type:p.get('type') || 'movie',
-      year:p.get('year') || '',
-      quality:p.get('quality') || '',
-      age_rating:p.get('age') || 'UA',
-      duration:p.get('dur') || '',
-      min_plan:p.get('minPlan') || 'free',
-      embed_url:p.get('embed') || '',
-      poster_url:p.get('poster') || '',
-      backdrop_url:p.get('backdrop') || ''
+      id:          movieId ? parseInt(movieId) : null,
+      tmdb_id:     p.get('tmdb_id')  ? parseInt(p.get('tmdb_id')) : null,
+      title:       p.get('title')    || 'Movie',
+      type:        p.get('type')     || 'movie',
+      year:        p.get('year')     || '',
+      quality:     p.get('quality')  || '',
+      age_rating:  p.get('age')      || 'UA',
+      duration:    p.get('dur')      || '',
+      min_plan:    p.get('minPlan')  || 'free',
+      embed_url:   p.get('embed')    || '',
+      poster_url:  p.get('poster')   || '',
+      backdrop_url:p.get('backdrop') || '',
     };
-
   }
 
-  // Attach season/episode to movie object for use in loadVideo
   movie._season  = urlSeason;
   movie._episode = urlEpisode;
-
   movieData = movie;
 
   const profile  = await Auth.getProfile(currentUser.id);
   const userPlan = profile?.plan || 'free';
   const reqPlan  = movie.min_plan || 'free';
 
-  if((PLAN_ORDER[userPlan] ?? 0) < (PLAN_ORDER[reqPlan] ?? 0)){
+  if ((PLAN_ORDER[userPlan] ?? 0) < (PLAN_ORDER[reqPlan] ?? 0)) {
     showPlanGate(reqPlan);
     return;
   }
 
-  if(movie.id){
-    isInML = await DB.isInMyList(currentUser.id,movie.id);
+  if (movie.id) {
+    await ML.init(currentUser.id);   // loads full list; ML.has() used by updateMLBtn
     updateMLBtn();
   }
 
   loadVideo(movie);
 
-  if(movie.id){
-    DB.addToHistory(currentUser.id,movie.id).catch(()=>{});
-    DB.incrementViews(movie.id).catch(()=>{});
+  if (movie.id) {
+    DB.addToHistory(currentUser.id, movie.id).catch(() => {});
+    DB.incrementViews(movie.id).catch(() => {});
   }
 
   watchStart = Date.now();
-
-  syncTimer = setInterval(syncProgress,30000);
-
+  syncTimer  = setInterval(syncProgress, 30000);
 })();
 
-/* LOAD VIDEO */
-
-function loadVideo(m){
-
+/* ─────────────────────────────────────────────────────────
+   LOAD VIDEO
+───────────────────────────────────────────────────────── */
+function loadVideo(m) {
   const season  = m._season  || 1;
   const episode = m._episode || 1;
   const isTV    = m.type === 'tv';
 
   document.getElementById('topTitle').textContent = m.title;
-
-  // Fix: was always showing "Season 1 · Episode 1" for ALL TV shows
-  document.getElementById('topSub').textContent = isTV
-    ? `Season ${season} · Episode ${episode}`
+  document.getElementById('topSub').textContent   = isTV
+    ? 'Season ' + season + ' · Episode ' + episode
     : (m.year || '');
 
   document.getElementById('qualBadge').textContent = m.quality || 'HD';
@@ -607,252 +714,261 @@ function loadVideo(m){
   document.getElementById('durBadge').textContent  = m.duration || '';
 
   document.title = isTV
-    ? `${m.title || 'Show'} S${season}E${episode} — XverseMovies`
-    : `${m.title || 'Movie'} — XverseMovies`;
+    ? m.title + ' S' + season + 'E' + episode + ' — XverseMovies'
+    : m.title + ' — XverseMovies';
 
-  // ── EMBED URL PRIORITY ────────────────────────────────────
-  // 1) DB custom embed_url (admin-set manual override)
-  // 2) URL param embed (passed from home page)
-  // 3) Auto-build from tmdb_id via vidsrc
-  //    - For TV: include season + episode in URL
-  //    - For Movies: just tmdb_id
-
-  const dbEmbed   = (m.embed_url  && m.embed_url.trim())  ? m.embed_url.trim()  : null;
-  const urlEmbed  = (m.embedUrl   && m.embedUrl.trim())   ? m.embedUrl.trim()   : null;
-
-  let embedUrl = dbEmbed || urlEmbed;
+  // Embed URL priority: DB override → URL param → auto-build from TMDB
+  const dbEmbed  = (m.embed_url && m.embed_url.trim()) ? m.embed_url.trim() : null;
+  const urlEmbed = (m.embedUrl  && m.embedUrl.trim())  ? m.embedUrl.trim()  : null;
+  let   embedUrl = dbEmbed || urlEmbed;
 
   if (!embedUrl) {
     const tid = m.tmdb_id || null;
-
     if (tid && m.auto_embed !== false) {
-      if (isTV) {
-        embedUrl = `https://vidsrc.to/embed/tv/${tid}/${season}/${episode}`;
-      } else {
-        embedUrl = `https://vidsrc.to/embed/movie/${tid}`;
-      }
+      embedUrl = isTV
+        ? 'https://vidsrc.to/embed/tv/' + tid + '/' + season + '/' + episode
+        : 'https://vidsrc.to/embed/movie/' + tid;
     }
   }
 
-  // If DB says embed not working AND no manual override → warn but still try
   if (m.embed_working === false && !m.manual_embed) {
     document.getElementById('ldMsg').innerHTML =
-      '⚠️ This video may be unavailable on vidsrc.<br>' +
+      '⚠️ This video may be unavailable.<br>' +
       '<span style="font-size:.72rem;color:#888">Admin panel mein custom embed set karo.</span>';
     document.getElementById('ldMsg').style.color = '#f5c518';
-    if (!embedUrl) return; // nothing to even try
-    // If we have a URL, still attempt to load it (might have been fixed)
+    if (!embedUrl) return;
   }
 
   if (!embedUrl) {
     document.getElementById('ldMsg').innerHTML =
-      '⚠️ Video URL not found.<br><span style="font-size:.72rem;color:#888">Admin panel se embed URL set karo.</span>';
+      '⚠️ Video URL not found.<br>' +
+      '<span style="font-size:.72rem;color:#888">Admin panel se embed URL set karo.</span>';
     document.getElementById('ldMsg').style.color = '#ff6b6b';
     return;
   }
 
   const frame = document.getElementById('stFrame');
-  frame.src = embedUrl;
+  frame.src   = embedUrl;
   frame.style.display = 'block';
 
-  // Hide loader after 2.5s
-  setTimeout(()=>{
+  // FIX #2: Apply scale immediately after iframe is made visible
+  setIframeScale();
+
+  // Show brief mobile desktop-mode notice
+  if (window.innerWidth < DESKTOP_W) {
+    const notice = document.getElementById('mobileNotice');
+    if (notice) {
+      notice.classList.add('show');
+      setTimeout(() => notice.classList.remove('show'), 3000);
+    }
+  }
+
+  setTimeout(() => {
     document.getElementById('loadScreen').style.display = 'none';
-    showUI();
+    openMenu(); // Show controls once on load so user discovers the ≡ button
   }, 2500);
-
 }
 
-/* UI */
+/* ─────────────────────────────────────────────────────────
+   OVERLAY INTERACTION — EXPLICIT CONTROL ARCHITECTURE
 
-function showUI(){
+   The overlay has exactly TWO triggers:
+     openMenu()  ← called by the ≡ button (and on initial load)
+     closeMenu() ← called by the ✕ button
 
-  document.getElementById('playerWrap')
-  .classList.add('ui-on');
+   No document.addEventListener('mousemove', ...)
+   No document.addEventListener('click', ...)
+   No document.addEventListener('touchstart', ...)
+   No tapZone layer.
 
+   The embedded player (VidSrc) receives ALL pointer events by
+   default. The overlay only interrupts the player during the
+   5-second window after the user deliberately presses ≡.
+   Pressing ✕ returns full control to the embedded player
+   immediately and the overlay stays hidden until ≡ is pressed.
+───────────────────────────────────────────────────────── */
+function openMenu() {
+  document.getElementById('playerWrap').classList.add('ui-on');
   clearTimeout(uiTimer);
-
-  uiTimer = setTimeout(()=>{
-
-    document.getElementById('playerWrap')
-    .classList.remove('ui-on');
-
-  },4000);
-
+  uiTimer = setTimeout(closeMenu, 5000);
 }
 
-document.addEventListener('mousemove',showUI);
-document.addEventListener('click',showUI);
+function closeMenu() {
+  clearTimeout(uiTimer);
+  document.getElementById('playerWrap').classList.remove('ui-on');
+}
 
-/* FULLSCREEN */
+// Internal aliases — keeps the rest of the codebase unchanged
+function showUI() { openMenu(); }
+function hideUI()  { closeMenu(); }
 
-function reqFS(){
+// ── NO global listeners that steal events from the iframe ──
 
-  const el = document.getElementById('playerWrap');
+/* ─────────────────────────────────────────────────────────
+   FULLSCREEN  (FIX #4)
 
-  if(document.fullscreenElement){
-    document.exitFullscreen();
-  }else{
-    el.requestFullscreen().catch(()=>{});
+   Cross-browser fullscreen chain:
+   1. Standard Fullscreen API (Chrome, Firefox, Edge, Android)
+   2. webkit prefix (older Safari, older Chrome on iOS WKWebView)
+   3. Fallback: try the iframe element itself (iOS Safari)
+      → frame.webkitEnterFullscreen() is the only method that
+        triggers true native fullscreen on iOS Safari
+───────────────────────────────────────────────────────── */
+function reqFS() {
+  const wrap  = document.getElementById('playerWrap');
+  const frame = document.getElementById('stFrame');
+
+  // Already in fullscreen → exit
+  const inFS = document.fullscreenElement
+             || document.webkitFullscreenElement
+             || document.mozFullScreenElement;
+
+  if (inFS) {
+    const exit = document.exitFullscreen
+               || document.webkitExitFullscreen
+               || document.mozCancelFullScreen;
+    if (exit) exit.call(document);
+    return;
   }
 
-}
+  // Try wrapper div first (best experience — keeps our overlay)
+  const requestFS = wrap.requestFullscreen
+                  || wrap.webkitRequestFullscreen
+                  || wrap.mozRequestFullScreen;
 
-/* MY LIST */
-
-async function toggleML(){
-
-  if(!currentUser || !movieData?.id) return;
-
-  if(isInML){
-
-    await DB.removeFromMyList(currentUser.id,movieData.id);
-
-    isInML = false;
-
-  }else{
-
-    await DB.addToMyList(currentUser.id,movieData.id);
-
-    isInML = true;
-
+  if (requestFS) {
+    requestFS.call(wrap).catch(() => {
+      // Wrapper FS failed (common on iOS) → try iframe directly
+      tryIframeFS(frame);
+    });
+  } else {
+    tryIframeFS(frame);
   }
-
-  updateMLBtn();
-
 }
 
-function updateMLBtn(){
+function tryIframeFS(frame) {
+  // webkitEnterFullscreen works on iOS Safari for <video> inside iframe
+  // For the iframe element itself on iOS:
+  const iFS = frame.requestFullscreen
+            || frame.webkitRequestFullscreen
+            || frame.webkitEnterFullscreen  // iOS Safari-specific
+            || frame.mozRequestFullScreen;
 
-  const btn = document.getElementById('mlBtn');
+  if (iFS) iFS.call(frame).catch(() => {});
+}
 
-  if(isInML){
+/* ─────────────────────────────────────────────────────────
+   MY LIST
+───────────────────────────────────────────────────────── */
+async function toggleML() {
+  if (!currentUser || !movieData?.id) {
+    showToast('ℹ️ This title is not yet in the library');
+    return;
+  }
+  const result = await ML.toggle(movieData);
+  if (result !== null) updateMLBtn();
+}
 
+function updateMLBtn() {
+  const btn    = document.getElementById('mlBtn');
+  const inList = movieData?.id ? ML.has(movieData.id) : false;
+  if (inList) {
     btn.textContent = '✓ In My List';
     btn.classList.add('added');
-
-  }else{
-
+  } else {
     btn.textContent = '＋ My List';
     btn.classList.remove('added');
-
   }
-
 }
 
-/* PLAN */
-
-function showPlanGate(reqPlan){
-
-  document.getElementById('loadScreen').style.display='none';
-
-  document.getElementById('planGate')
-  .classList.add('show');
-
+/* ─────────────────────────────────────────────────────────
+   PLAN GATE
+───────────────────────────────────────────────────────── */
+function showPlanGate(reqPlan) {
+  document.getElementById('loadScreen').style.display = 'none';
+  document.getElementById('planGate').classList.add('show');
 }
 
-function upgradePlan(plan){
-
+function upgradePlan(plan) {
   const link = XVERSE.PAYMENT[plan];
-
-  if(link){
-    window.open(link,'_blank');
-  }
-
+  if (link) window.open(link, '_blank');
 }
 
-/* SHARE */
-
-function shareMovie(){
-
-  if(navigator.share){
-
-    navigator.share({
-      title:movieData?.title,
-      url:location.href
-    });
-
+/* ─────────────────────────────────────────────────────────
+   SHARE
+───────────────────────────────────────────────────────── */
+function shareMovie() {
+  if (navigator.share) {
+    navigator.share({ title: movieData?.title, url: location.href });
   }
-
 }
 
-/* BACK */
-
-async function goBack(){
-
+/* ─────────────────────────────────────────────────────────
+   BACK
+───────────────────────────────────────────────────────── */
+async function goBack() {
   clearInterval(syncTimer);
-
   await syncProgress();
-
-  // Go back to previous page, or home as fallback
-  if(document.referrer && document.referrer.includes('XverseMovies')){
+  if (document.referrer && document.referrer.includes('XverseMovies')) {
     history.back();
   } else {
     location.href = 'XverseMovies_Home.html';
   }
-
 }
 
-/* PROGRESS */
+/* ─────────────────────────────────────────────────────────
+   PROGRESS SYNC
+───────────────────────────────────────────────────────── */
+async function syncProgress() {
+  if (!currentUser || !movieData?.id || !watchStart) return;
 
-async function syncProgress(){
+  const watched = Math.floor((Date.now() - watchStart) / 1000);
+  const dur     = movieData.duration
+                  ? parseInt(movieData.duration) * 60
+                  : 5400;
 
-  if(!currentUser || !movieData?.id || !watchStart) return;
-
-  const watched =
-  Math.floor((Date.now()-watchStart)/1000);
-
-  const dur =
-  movieData.duration
-  ? parseInt(movieData.duration)*60
-  : 5400;
-
-  // For TV shows, also store season/episode in continue_watching note
-  const extraData = movieData.type === 'tv' ? {
-    season:  movieData._season  || 1,
-    episode: movieData._episode || 1,
-  } : {};
+  const extraData = movieData.type === 'tv'
+    ? { season: movieData._season || 1, episode: movieData._episode || 1 }
+    : {};
 
   await DB.upsertContinueWatching(
-    currentUser.id,
-    movieData.id,
-    watched,
-    dur,
-    extraData
+    currentUser.id, movieData.id, watched, dur, extraData
   );
 
   const dot = document.getElementById('syncDot');
-
   dot.classList.add('show');
-
-  setTimeout(()=>{
-    dot.classList.remove('show');
-  },2000);
-
+  setTimeout(() => dot.classList.remove('show'), 2000);
 }
 
-/* KEYS */
-
-document.addEventListener('keydown',e=>{
-
-  showUI();
-
-  if(e.key==='Escape') goBack();
-
-  if(e.key==='f' || e.key==='F') reqFS();
-
+/* ─────────────────────────────────────────────────────────
+   KEYBOARD SHORTCUTS (desktop)
+   M / m   → open overlay menu   (explicit, matches new architecture)
+   F / f   → fullscreen toggle
+   Escape  → go back
+   No showUI() on every keypress — that violated the explicit-only rule.
+───────────────────────────────────────────────────────── */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape')            goBack();
+  if (e.key === 'f' || e.key === 'F') reqFS();
+  if (e.key === 'm' || e.key === 'M') openMenu();
 });
 
-/* BEFORE UNLOAD */
-
-window.addEventListener('beforeunload',()=>{
-
+/* ─────────────────────────────────────────────────────────
+   CLEANUP
+───────────────────────────────────────────────────────── */
+window.addEventListener('beforeunload', () => {
   clearInterval(syncTimer);
-
 });
 
 </script>
 
-<script>if("serviceWorker"in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){});});}</script>
+<!-- Service Worker registration -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js').catch(function() {});
+  });
+}
+</script>
 </body>
 </html>
