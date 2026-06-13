@@ -552,3 +552,458 @@ function xvSwitchProfile() {
   Session.setProfile(null);
   window.location.href = 'index.html';
 }
+
+// ═════════════════════════════════════════════════════════════════
+//  ML  —  Centralized My List Manager
+//
+//  Single source of truth for My List across every page.
+//  ALL pages call ML.init(uid) once, then use ML.has / ML.toggle.
+//
+//  Eliminates all five bugs:
+//    A) Single key = String(movie.id) — no more dual tmdb_id fallback
+//    B) One implementation shared by Home, Browse, Player, MyList
+//    C) Every Supabase write is error-checked and surfaces failures
+//    D) getList filters out null-join rows before storing
+//    E) Browse now has real "already in list" state via ML.has()
+//
+//  Rule: ONLY movies with a DB id (integer) can be saved.
+//        TMDB-only content (trending rows without m.id) shows a
+//        clear message instead of a silent no-op.
+// ═════════════════════════════════════════════════════════════════
+const ML = {
+  _uid:  null,
+  _ids:  new Set(),   // Set<string> of String(movie.id)
+  _data: [],          // full movie objects from DB (with addedAt)
+
+  /* ── init ─────────────────────────────────────────────────────
+     Call once per page after auth, before rendering any cards.
+     Fetches the user's list from Supabase and populates state.    */
+  async init(uid) {
+    if (!uid) return;
+    this._uid = uid;
+    try {
+      const sb   = getSB();
+      const { data, error } = await sb
+        .from('my_list')
+        .select('movie_id, added_at, movies(*)')
+        .eq('user_id', uid)
+        .order('added_at', { ascending: false });
+
+      if (error) { console.error('ML.init fetch error:', error); return; }
+
+      // BUG D FIX: filter rows where the movie join returned null
+      // (can happen if a movie was deleted outside the FK cascade)
+      const valid = (data || []).filter(r => r.movies && r.movies.id);
+
+      this._data = valid.map(r => ({ ...r.movies, addedAt: r.added_at }));
+      this._ids  = new Set(this._data.map(m => String(m.id)));
+    } catch (e) {
+      console.error('ML.init exception:', e);
+    }
+  },
+
+  /* ── has ──────────────────────────────────────────────────────
+     Returns true if movie with this DB id is in the list.
+     Always pass movie.id (integer), never tmdb_id.                */
+  has(movieId) {
+    if (!movieId) return false;
+    return this._ids.has(String(movieId));
+  },
+
+  /* ── toggle ───────────────────────────────────────────────────
+     The one function all Add/Remove buttons should call.
+     Returns: true  = just added
+              false = just removed
+              null  = failed or not applicable                     */
+  async toggle(movie) {
+    if (!this._uid) {
+      showToast('⚠️ Please log in first');
+      return null;
+    }
+    // BUG A FIX: only DB movies (with integer id) can be saved.
+    // TMDB-only rows have no id and cannot be stored in my_list
+    // because the FK requires a real movies.id.
+    if (!movie || !movie.id) {
+      showToast('ℹ️ Not in the library yet — ask admin to add it');
+      return null;
+    }
+
+    if (this.has(movie.id)) {
+      return this._remove(movie.id);
+    } else {
+      return this._add(movie);
+    }
+  },
+
+  /* ── _add (internal) ─────────────────────────────────────────  */
+  async _add(movie) {
+    // BUG C FIX: check the error instead of ignoring it
+    const { error } = await getSB()
+      .from('my_list')
+      .upsert({ user_id: this._uid, movie_id: movie.id },
+              { onConflict: 'user_id,movie_id' });
+
+    if (error) {
+      console.error('ML._add error:', error);
+      showToast('❌ Could not save — ' + (error.message || 'try again'));
+      return null;
+    }
+
+    // Optimistic local update (no re-fetch needed)
+    this._ids.add(String(movie.id));
+    if (!this._data.find(m => m.id === movie.id)) {
+      this._data.unshift({ ...movie, addedAt: new Date().toISOString() });
+    }
+    showToast('✅ Added to My List');
+    return true;
+  },
+
+  /* ── _remove (internal) ──────────────────────────────────────  */
+  async _remove(movieId) {
+    const { error } = await getSB()
+      .from('my_list')
+      .delete()
+      .eq('user_id', this._uid)
+      .eq('movie_id', movieId);
+
+    if (error) {
+      console.error('ML._remove error:', error);
+      showToast('❌ Could not remove — ' + (error.message || 'try again'));
+      return null;
+    }
+
+    this._ids.delete(String(movieId));
+    this._data = this._data.filter(m => m.id !== movieId);
+    showToast('Removed from My List');
+    return false;
+  },
+
+  /* ── getData ──────────────────────────────────────────────────
+     Full array of saved movie objects for the MyList page.        */
+  getData() { return [...this._data]; },
+
+  /* ── removeLocal ──────────────────────────────────────────────
+     Used by MyList page for optimistic undo — splices without DB. */
+  removeLocal(movieId) {
+    this._ids.delete(String(movieId));
+    const idx = this._data.findIndex(m => m.id === movieId);
+    if (idx === -1) return null;
+    const [removed] = this._data.splice(idx, 1);
+    return { ...removed, _idx: idx };
+  },
+
+  restoreLocal(snapshot) {
+    if (!snapshot) return;
+    this._ids.add(String(snapshot.id));
+    this._data.splice(snapshot._idx, 0, snapshot);
+  },
+};
+
+// ─────────────────────────────────────────────────────────
+//  SHARED NOTIFICATION PANEL
+//  Netflix-style slide-in drawer — works on every page.
+//
+//  Usage in any page:
+//    1. Bell button: onclick="XvNotif.toggle()"
+//    2. Add class "_xvNP-dot" on the red dot span  ← auto-hides/shows
+//    3. In page init:  XvNotif.init(currentUser.id);
+// ─────────────────────────────────────────────────────────
+const XvNotif = {
+  _uid:   null,
+  _items: [],
+  _open:  false,
+  _tab:   'all',
+
+  /* Call once after auth. Fire-and-forget is fine. */
+  async init(uid) {
+    this._uid = uid;
+    this._inject();
+    try {
+      this._items = await DB.getNotifications(uid);
+    } catch(e) { this._items = []; }
+    this._badge();
+    this._render();
+  },
+
+  /* Toggle open / close */
+  toggle() {
+    this._open = !this._open;
+    const p  = document.getElementById('_xvNP');
+    const ov = document.getElementById('_xvNPOv');
+    if (p)  p.classList.toggle('_xvNP-open', this._open);
+    if (ov) ov.classList.toggle('_xvNPOv-show', this._open);
+    if (this._open) this._render();
+  },
+
+  close() { if (this._open) this.toggle(); },
+
+  /* Switch All / Unread tabs */
+  setTab(tab, btn) {
+    this._tab = tab;
+    document.querySelectorAll('._xvNP-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    this._render();
+  },
+
+  /* Mark single notification read */
+  async markRead(id) {
+    DB.markNotifRead(id).catch(() => {});
+    this._items = this._items.map(n => n.id === id ? { ...n, is_read: true } : n);
+    this._badge();
+    this._render();
+  },
+
+  /* Mark all read */
+  async markAllRead() {
+    if (!this._uid) return;
+    try { await DB.markAllNotifsRead(this._uid); } catch(e) {}
+    this._items = this._items.map(n => ({ ...n, is_read: true }));
+    this._badge();
+    this._render();
+    showToast('✅ All marked as read');
+  },
+
+  /* ── private ── */
+
+  _render() {
+    const list = document.getElementById('_xvNPList');
+    if (!list) return;
+
+    let items = this._tab === 'unread'
+      ? this._items.filter(n => !n.is_read)
+      : [...this._items];
+
+    if (!items.length) {
+      list.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+                    padding:52px 20px;text-align:center">
+          <div style="font-size:2.6rem;margin-bottom:14px;opacity:.25">🔔</div>
+          <div style="font-size:.9rem;font-weight:700;color:rgba(255,255,255,.45);margin-bottom:6px">
+            ${this._tab === 'unread' ? 'Sab read ho gayi' : 'Abhi koi notification nahi'}
+          </div>
+          <div style="font-size:.76rem;color:rgba(255,255,255,.25);line-height:1.55">
+            Nayi notifications yahan dikhegi
+          </div>
+        </div>`;
+      return;
+    }
+
+    list.innerHTML = items.map(n => `
+      <div class="_xvNP-item${n.is_read ? '' : ' _xvNP-unread'}"
+           onclick="XvNotif.markRead(${n.id})" role="button">
+        <img class="_xvNP-thumb"
+             src="${n.image_url || 'https://ui-avatars.com/api/?name=XV&background=E50914&color=fff&size=64'}"
+             onerror="this.src='https://ui-avatars.com/api/?name=XV&background=333&color=555&size=64'">
+        <div class="_xvNP-body">
+          <div class="_xvNP-ttl">
+            ${!n.is_read ? '<span class="_xvNP-unread-dot"></span>' : ''}
+            ${n.title || ''}
+          </div>
+          <div class="_xvNP-desc">${n.body || ''}</div>
+          <div class="_xvNP-time">${this._timeAgo(n.created_at)}</div>
+        </div>
+      </div>`).join('');
+  },
+
+  _badge() {
+    const u = this._items.filter(n => !n.is_read).length;
+
+    /* Update count labels inside the panel */
+    const cnt = document.getElementById('_xvNPCnt');
+    if (cnt) { cnt.textContent = u > 99 ? '99+' : u; cnt.style.display = u ? 'flex' : 'none'; }
+
+    /* Update every bell dot on the page that has class _xvNP-dot */
+    document.querySelectorAll('._xvNP-dot').forEach(el => {
+      el.style.display = u ? 'block' : 'none';
+    });
+  },
+
+  _timeAgo(ts) {
+    if (!ts) return '';
+    const s = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
+    if (s < 60)    return 'just now';
+    if (s < 3600)  return Math.floor(s / 60) + 'm ago';
+    if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+    return Math.floor(s / 86400) + 'd ago';
+  },
+
+  /* Inject CSS + HTML once */
+  _inject() {
+    if (document.getElementById('_xvNPStyle')) return;
+
+    /* ── CSS ── */
+    const css = document.createElement('style');
+    css.id = '_xvNPStyle';
+    css.textContent = `
+      #_xvNPOv{position:fixed;inset:0;z-index:9000;display:none}
+      #_xvNPOv._xvNPOv-show{display:block}
+      #_xvNP{
+        position:fixed;top:0;right:0;width:360px;height:100vh;
+        background:rgba(9,9,9,.98);border-left:1px solid rgba(255,255,255,.08);
+        z-index:9001;transform:translateX(100%);
+        transition:transform .3s cubic-bezier(.4,0,.2,1);
+        display:flex;flex-direction:column;
+        backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+        box-shadow:-8px 0 32px rgba(0,0,0,.5)
+      }
+      #_xvNP._xvNP-open{transform:translateX(0)}
+      ._xvNP-hd{
+        display:flex;align-items:center;justify-content:space-between;
+        padding:18px 18px 14px;border-bottom:1px solid rgba(255,255,255,.07);
+        flex-shrink:0
+      }
+      ._xvNP-title{
+        font-family:'Bebas Neue',cursive;font-size:1.15rem;letter-spacing:1.5px;
+        color:#fff;display:flex;align-items:center;gap:9px
+      }
+      ._xvNP-cnt{
+        background:#E50914;color:#fff;font-family:'Barlow',sans-serif;
+        font-size:.6rem;font-weight:800;min-width:18px;height:18px;
+        border-radius:9px;display:flex;align-items:center;justify-content:center;
+        padding:0 5px;letter-spacing:0
+      }
+      ._xvNP-x{
+        background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08);
+        color:rgba(255,255,255,.55);cursor:pointer;width:30px;height:30px;
+        border-radius:50%;display:flex;align-items:center;justify-content:center;
+        font-size:.85rem;transition:all .18s
+      }
+      ._xvNP-x:hover{background:rgba(255,255,255,.14);color:#fff}
+      ._xvNP-tabs{
+        display:flex;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0
+      }
+      ._xvNP-tab{
+        flex:1;background:none;border:none;border-bottom:2px solid transparent;
+        color:rgba(255,255,255,.4);font-size:.8rem;font-weight:600;
+        padding:10px 6px;cursor:pointer;font-family:'Barlow',sans-serif;
+        transition:all .2s;margin-bottom:-1px
+      }
+      ._xvNP-tab.active{color:#fff;border-bottom-color:#E50914}
+      ._xvNP-list{
+        flex:1;overflow-y:auto;
+        scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.08) transparent
+      }
+      ._xvNP-list::-webkit-scrollbar{width:4px}
+      ._xvNP-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+      ._xvNP-item{
+        display:flex;gap:12px;padding:13px 16px;
+        border-bottom:1px solid rgba(255,255,255,.05);
+        cursor:pointer;transition:background .17s;position:relative
+      }
+      ._xvNP-item:hover{background:rgba(255,255,255,.04)}
+      ._xvNP-unread{background:rgba(229,9,20,.04)}
+      ._xvNP-unread::before{
+        content:'';position:absolute;left:0;top:0;bottom:0;
+        width:3px;background:#E50914;border-radius:0 2px 2px 0
+      }
+      ._xvNP-thumb{
+        width:52px;height:52px;border-radius:6px;object-fit:cover;
+        flex-shrink:0;background:#1e1e1e
+      }
+      ._xvNP-body{flex:1;min-width:0}
+      ._xvNP-ttl{
+        font-size:.83rem;font-weight:600;color:#fff;
+        margin-bottom:3px;line-height:1.35;display:flex;align-items:center;gap:6px
+      }
+      ._xvNP-unread-dot{
+        width:6px;height:6px;background:#E50914;border-radius:50%;
+        flex-shrink:0;margin-top:1px
+      }
+      ._xvNP-desc{
+        font-size:.74rem;color:rgba(255,255,255,.42);line-height:1.45;
+        margin-bottom:4px;
+        display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden
+      }
+      ._xvNP-time{font-size:.65rem;color:rgba(255,255,255,.22)}
+      ._xvNP-ft{
+        padding:12px 14px;border-top:1px solid rgba(255,255,255,.07);
+        flex-shrink:0;display:flex;gap:8px
+      }
+      ._xvNP-mark{
+        flex:1;background:rgba(255,255,255,.06);
+        border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.62);
+        padding:9px;font-size:.78rem;font-weight:600;border-radius:6px;
+        cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s
+      }
+      ._xvNP-mark:hover{background:rgba(255,255,255,.11);color:#fff}
+      ._xvNP-cfg{
+        background:rgba(229,9,20,.08);border:1px solid rgba(229,9,20,.18);
+        color:#E50914;padding:9px 13px;font-size:.78rem;font-weight:600;
+        border-radius:6px;cursor:pointer;font-family:'Barlow',sans-serif;
+        transition:all .2s;white-space:nowrap
+      }
+      ._xvNP-cfg:hover{background:rgba(229,9,20,.16)}
+      @media(max-width:480px){
+        #_xvNP{width:100vw;border-left:none}
+      }
+    `;
+    document.head.appendChild(css);
+
+    /* ── Overlay ── */
+    const ov = document.createElement('div');
+    ov.id = '_xvNPOv';
+    ov.onclick = () => XvNotif.close();
+    document.body.appendChild(ov);
+
+    /* ── Panel ── */
+    const panel = document.createElement('div');
+    panel.id = '_xvNP';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-label', 'Notifications');
+    panel.innerHTML = `
+      <div class="_xvNP-hd">
+        <div class="_xvNP-title">
+          Notifications
+          <span class="_xvNP-cnt" id="_xvNPCnt" style="display:none">0</span>
+        </div>
+        <button class="_xvNP-x" onclick="XvNotif.close()" aria-label="Close">✕</button>
+      </div>
+      <div class="_xvNP-tabs">
+        <button class="_xvNP-tab active" onclick="XvNotif.setTab('all',this)">All</button>
+        <button class="_xvNP-tab" onclick="XvNotif.setTab('unread',this)">Unread</button>
+      </div>
+      <div class="_xvNP-list" id="_xvNPList">
+        <div style="display:flex;flex-direction:column;align-items:center;
+                    justify-content:center;padding:52px 20px;text-align:center">
+          <div style="width:28px;height:28px;border:2px solid rgba(229,9,20,.4);
+                      border-top-color:#E50914;border-radius:50%;
+                      animation:_xvSpin .8s linear infinite;margin-bottom:14px"></div>
+          <div style="font-size:.8rem;color:rgba(255,255,255,.3)">Loading…</div>
+        </div>
+      </div>
+      <div class="_xvNP-ft">
+        <button class="_xvNP-mark" onclick="XvNotif.markAllRead()">✓ Mark All Read</button>
+        <button class="_xvNP-cfg"
+          onclick="XvNotif.close();window.location.href='XverseMovies_Settings.html#notifs'">
+          ⚙ Settings
+        </button>
+      </div>`;
+    document.body.appendChild(panel);
+
+    /* Spinner keyframes */
+    const spin = document.createElement('style');
+    spin.textContent = '@keyframes _xvSpin{to{transform:rotate(360deg)}}';
+    document.head.appendChild(spin);
+
+    /* Close on Escape key */
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && XvNotif._open) XvNotif.close();
+    });
+  },
+};
+
+// ─────────────────────────────────────────────────────────
+//  SERVICE WORKER UPDATE HANDLER
+//  When a new service worker activates, reload the page so
+//  fresh files (including this config) are used immediately.
+//  Prevents "XvNotif is not defined" from stale SW cache.
+// ─────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  var _xvSwRefreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function() {
+    if (!_xvSwRefreshing) {
+      _xvSwRefreshing = true;
+      window.location.reload();
+    }
+  });
+}

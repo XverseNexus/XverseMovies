@@ -3,7 +3,7 @@
 //  Handles: offline support, app shell caching, background sync
 // ═══════════════════════════════════════════════════════════
 
-const CACHE_NAME    = 'xverse-v3';
+const CACHE_NAME    = 'xverse-v5';
 const SHELL_TIMEOUT = 3000; // ms before falling back to cache
 
 // App shell — these files are cached on install
@@ -75,7 +75,16 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // 3. For HTML pages: Network-first with cache fallback
+  // 3. xverse-config.js — ALWAYS network-first
+  //    This file contains XvNotif and other shared code.
+  //    Cache-first caused "XvNotif is not defined" when old SW served stale config.
+  //    Network-first ensures deployed updates land immediately without hard-refresh.
+  if (url.pathname === '/xverse-config.js') {
+    event.respondWith(networkFirstWithTimeout(event.request, 2000));
+    return;
+  }
+
+  // 4. For HTML pages: Network-first with cache fallback
   //    Shows cached version if network is slow / offline
   if (url.pathname.endsWith('.html') || url.pathname === '/') {
     event.respondWith(
@@ -84,7 +93,7 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // 4. For static assets (JS, CSS, fonts, images): Cache-first
+  // 5. For all other static assets (CSS, fonts, images, other JS): Cache-first
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;
