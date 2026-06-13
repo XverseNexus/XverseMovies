@@ -45,26 +45,20 @@ function getSB() {
 //  AUTH HELPERS
 // ─────────────────────────────────────────────────────────
 const Auth = {
-  // Get current session user (fast, no network)
   async getUser() {
+    const { data: { session } } = await getSB().auth.getSession();
+    return session?.user || null;
+  },
 
-  const { data: { session } } =
-  await getSB().auth.getSession();
-
-  return session?.user || null;
-},
-
-  // Get full profile from DB
   async getProfile(uid) {
     const { data } = await getSB()
       .from('profiles')
       .select('*')
       .eq('id', uid)
-      .maybeSingle(); // FIX: .single() throws 406 when no row exists (new users)
+      .maybeSingle();
     return data;
   },
 
-  // Get viewer profiles
   async getViewerProfiles(uid) {
     const { data } = await getSB()
       .from('viewer_profiles')
@@ -74,12 +68,10 @@ const Auth = {
     return data || [];
   },
 
-  // Sign in with email
   async signIn(email, password) {
     return getSB().auth.signInWithPassword({ email, password });
   },
 
-  // Sign up with email
   async signUp(email, password, name) {
     return getSB().auth.signUp({
       email, password,
@@ -87,7 +79,6 @@ const Auth = {
     });
   },
 
-  // Google OAuth
   async googleSignIn() {
     return getSB().auth.signInWithOAuth({
       provider: 'google',
@@ -95,22 +86,16 @@ const Auth = {
     });
   },
 
-  // Sign out
   async signOut() {
-    // Don't clear saved profile on sign out —
-    // so the same user skips Who's Watching on next sign-in.
-    // Profile is only cleared when "Switch Profile" is explicitly used.
     return getSB().auth.signOut();
   },
 
-  // Reset password
   async resetPassword(email) {
     return getSB().auth.resetPasswordForEmail(email, {
       redirectTo: window.location.origin + '/index.html?reset=1'
     });
   },
 
-  // Update plan after payment
   async updatePlan(uid, plan) {
     const now = new Date();
     const end = new Date(now); end.setMonth(end.getMonth() + 1);
@@ -122,7 +107,6 @@ const Auth = {
     }).eq('id', uid);
   },
 
-  // Can user access this content?
   canAccess(userPlan, requiredPlan) {
     const o = XVERSE.PLANS;
     return (o[userPlan]?.order ?? 0) >= (o[requiredPlan]?.order ?? 0);
@@ -133,7 +117,6 @@ const Auth = {
 //  DATABASE HELPERS
 // ─────────────────────────────────────────────────────────
 const DB = {
-  // ── MY LIST ──────────────────────────────────────────
   async getMyList(uid) {
     const { data } = await getSB()
       .from('my_list')
@@ -158,11 +141,10 @@ const DB = {
       .select('id')
       .eq('user_id', uid)
       .eq('movie_id', movieId)
-      .maybeSingle(); // FIX: .single() throws 406 when movie not in list
+      .maybeSingle();
     return !!data;
   },
 
-  // ── CONTINUE WATCHING ────────────────────────────────
   async getContinueWatching(uid) {
     const { data } = await getSB()
       .from('continue_watching')
@@ -175,7 +157,6 @@ const DB = {
       duration:    r.duration_sec,
       completed:   r.completed,
       updatedAt:   r.updated_at,
-      // TV show resume: last watched season + episode
       lastSeason:  r.last_season  || 1,
       lastEpisode: r.last_episode || 1,
     }));
@@ -191,7 +172,6 @@ const DB = {
   },
 
   async logSubscription(uid, plan, paymentId, amountINR) {
-    // Log payment to subscriptions table (for audit trail)
     return getSB().from('subscriptions').insert({
       user_id:    uid,
       plan,
@@ -204,7 +184,6 @@ const DB = {
     });
   },
 
-  // FIX: function signature was missing — caused SyntaxError breaking the ENTIRE app
   async upsertContinueWatching(uid, movieId, progressSec, durationSec, extraData = {}) {
     const completed = durationSec > 0 && (progressSec / durationSec) > 0.9;
     return getSB().from('continue_watching').upsert({
@@ -214,7 +193,6 @@ const DB = {
       duration_sec: durationSec,
       completed,
       updated_at:   new Date().toISOString(),
-      // Store last-watched season/episode for TV shows (ignored if column doesn't exist)
       ...(extraData.season  ? { last_season:  extraData.season  } : {}),
       ...(extraData.episode ? { last_episode: extraData.episode } : {}),
     }, { onConflict: 'user_id,movie_id' });
@@ -225,7 +203,6 @@ const DB = {
       .delete().eq('user_id', uid).eq('movie_id', movieId);
   },
 
-  // ── WATCH HISTORY ────────────────────────────────────
   async getHistory(uid, limit = 50) {
     const { data } = await getSB()
       .from('watch_history')
@@ -248,7 +225,6 @@ const DB = {
     return getSB().from('watch_history').delete().eq('user_id', uid);
   },
 
-  // ── MOVIES ───────────────────────────────────────────
   async getMovies({ type, lang, genre, featured, limit = 30, page = 0 } = {}) {
     let q = getSB().from('movies').select('*').eq('status', 'active');
     if (type)     q = q.eq('type', type);
@@ -260,16 +236,14 @@ const DB = {
   },
 
   async getAllMovies(limit = 100) {
-
-  const { data } = await getSB()
-    .from('movies')
-    .select('*')
-    .eq('status', 'active')
-    .order('created_at', { ascending: false })
-    .limit(limit);
-
-  return data || [];
-},
+    const { data } = await getSB()
+      .from('movies')
+      .select('*')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    return data || [];
+  },
 
   async getMovie(id) {
     const { data } = await getSB().from('movies').select('*').eq('id', id).single();
@@ -299,7 +273,6 @@ const DB = {
     return getSB().rpc('increment_views', { movie_id: movieId });
   },
 
-  // ── NOTIFICATIONS ────────────────────────────────────
   async getNotifications(uid) {
     const { data } = await getSB()
       .from('notifications')
@@ -319,7 +292,6 @@ const DB = {
       .update({ is_read: true }).eq('user_id', uid);
   },
 
-  // ── VIEWER PROFILES ──────────────────────────────────
   async addViewerProfile(uid, name, avatarUrl = null, isKids = false) {
     return getSB().from('viewer_profiles').insert({
       user_id: uid, name, avatar_url: avatarUrl, is_kids: isKids,
@@ -391,7 +363,7 @@ const TMDB = {
 };
 
 // ─────────────────────────────────────────────────────────
-//  SESSION HELPERS  (localStorage — persists across tabs + restarts)
+//  SESSION HELPERS
 // ─────────────────────────────────────────────────────────
 const Session = {
   setProfile(profile) {
@@ -425,40 +397,26 @@ function showToast(msg, duration = 2800) {
 }
 
 // ─────────────────────────────────────────────────────────
-//  AUTH GUARD  — call on every protected page
+//  AUTH GUARD
 // ─────────────────────────────────────────────────────────
 async function requireAuth(redirectTo = 'index.html') {
-
   const sb = getSB();
-
-  // FIRST TRY
   let { data: { session } } = await sb.auth.getSession();
-
-  // Wait little if session restoring
   if (!session) {
-
     await new Promise(resolve => setTimeout(resolve, 1200));
-
     const retry = await sb.auth.getSession();
-
     session = retry.data.session;
   }
-
-  // FINAL CHECK
   if (!session) {
-
     console.warn('No session found → redirecting');
-
     window.location.replace(redirectTo);
-
     return null;
   }
-
   return session.user;
 }
 
 // ─────────────────────────────────────────────────────────
-//  NAV AVATAR — shared across all pages
+//  NAV AVATAR
 // ─────────────────────────────────────────────────────────
 async function initNavAvatar(avatarElId = 'navAvatar') {
   const el = document.getElementById(avatarElId);
@@ -541,13 +499,11 @@ async function initNavAvatar(avatarElId = 'navAvatar') {
   };
 }
 
-// Sign out — profile NOT cleared, so same user skips Who's Watching on return
 async function xvSignOut() {
   await Auth.signOut();
   window.location.href = 'index.html';
 }
 
-// Switch profile — CLEARS saved profile so Who's Watching shows for selection
 function xvSwitchProfile() {
   Session.setProfile(null);
   window.location.href = 'index.html';
@@ -555,29 +511,12 @@ function xvSwitchProfile() {
 
 // ═════════════════════════════════════════════════════════════════
 //  ML  —  Centralized My List Manager
-//
-//  Single source of truth for My List across every page.
-//  ALL pages call ML.init(uid) once, then use ML.has / ML.toggle.
-//
-//  Eliminates all five bugs:
-//    A) Single key = String(movie.id) — no more dual tmdb_id fallback
-//    B) One implementation shared by Home, Browse, Player, MyList
-//    C) Every Supabase write is error-checked and surfaces failures
-//    D) getList filters out null-join rows before storing
-//    E) Browse now has real "already in list" state via ML.has()
-//
-//  Rule: ONLY movies with a DB id (integer) can be saved.
-//        TMDB-only content (trending rows without m.id) shows a
-//        clear message instead of a silent no-op.
 // ═════════════════════════════════════════════════════════════════
 const ML = {
   _uid:  null,
-  _ids:  new Set(),   // Set<string> of String(movie.id)
-  _data: [],          // full movie objects from DB (with addedAt)
+  _ids:  new Set(),
+  _data: [],
 
-  /* ── init ─────────────────────────────────────────────────────
-     Call once per page after auth, before rendering any cards.
-     Fetches the user's list from Supabase and populates state.    */
   async init(uid) {
     if (!uid) return;
     this._uid = uid;
@@ -591,10 +530,7 @@ const ML = {
 
       if (error) { console.error('ML.init fetch error:', error); return; }
 
-      // BUG D FIX: filter rows where the movie join returned null
-      // (can happen if a movie was deleted outside the FK cascade)
       const valid = (data || []).filter(r => r.movies && r.movies.id);
-
       this._data = valid.map(r => ({ ...r.movies, addedAt: r.added_at }));
       this._ids  = new Set(this._data.map(m => String(m.id)));
     } catch (e) {
@@ -602,27 +538,16 @@ const ML = {
     }
   },
 
-  /* ── has ──────────────────────────────────────────────────────
-     Returns true if movie with this DB id is in the list.
-     Always pass movie.id (integer), never tmdb_id.                */
   has(movieId) {
     if (!movieId) return false;
     return this._ids.has(String(movieId));
   },
 
-  /* ── toggle ───────────────────────────────────────────────────
-     The one function all Add/Remove buttons should call.
-     Returns: true  = just added
-              false = just removed
-              null  = failed or not applicable                     */
   async toggle(movie) {
     if (!this._uid) {
       showToast('⚠️ Please log in first');
       return null;
     }
-    // BUG A FIX: only DB movies (with integer id) can be saved.
-    // TMDB-only rows have no id and cannot be stored in my_list
-    // because the FK requires a real movies.id.
     if (!movie || !movie.id) {
       showToast('ℹ️ Not in the library yet — ask admin to add it');
       return null;
@@ -635,9 +560,7 @@ const ML = {
     }
   },
 
-  /* ── _add (internal) ─────────────────────────────────────────  */
   async _add(movie) {
-    // BUG C FIX: check the error instead of ignoring it
     const { error } = await getSB()
       .from('my_list')
       .upsert({ user_id: this._uid, movie_id: movie.id },
@@ -649,7 +572,6 @@ const ML = {
       return null;
     }
 
-    // Optimistic local update (no re-fetch needed)
     this._ids.add(String(movie.id));
     if (!this._data.find(m => m.id === movie.id)) {
       this._data.unshift({ ...movie, addedAt: new Date().toISOString() });
@@ -658,7 +580,6 @@ const ML = {
     return true;
   },
 
-  /* ── _remove (internal) ──────────────────────────────────────  */
   async _remove(movieId) {
     const { error } = await getSB()
       .from('my_list')
@@ -678,12 +599,8 @@ const ML = {
     return false;
   },
 
-  /* ── getData ──────────────────────────────────────────────────
-     Full array of saved movie objects for the MyList page.        */
   getData() { return [...this._data]; },
 
-  /* ── removeLocal ──────────────────────────────────────────────
-     Used by MyList page for optimistic undo — splices without DB. */
   removeLocal(movieId) {
     this._ids.delete(String(movieId));
     const idx = this._data.findIndex(m => m.id === movieId);
@@ -701,12 +618,6 @@ const ML = {
 
 // ─────────────────────────────────────────────────────────
 //  SHARED NOTIFICATION PANEL
-//  Netflix-style slide-in drawer — works on every page.
-//
-//  Usage in any page:
-//    1. Bell button: onclick="XvNotif.toggle()"
-//    2. Add class "_xvNP-dot" on the red dot span  ← auto-hides/shows
-//    3. In page init:  XvNotif.init(currentUser.id);
 // ─────────────────────────────────────────────────────────
 const XvNotif = {
   _uid:   null,
@@ -714,7 +625,6 @@ const XvNotif = {
   _open:  false,
   _tab:   'all',
 
-  /* Call once after auth. Fire-and-forget is fine. */
   async init(uid) {
     this._uid = uid;
     this._inject();
@@ -725,7 +635,6 @@ const XvNotif = {
     this._render();
   },
 
-  /* Toggle open / close */
   toggle() {
     this._open = !this._open;
     const p  = document.getElementById('_xvNP');
@@ -737,7 +646,6 @@ const XvNotif = {
 
   close() { if (this._open) this.toggle(); },
 
-  /* Switch All / Unread tabs */
   setTab(tab, btn) {
     this._tab = tab;
     document.querySelectorAll('._xvNP-tab').forEach(b => b.classList.remove('active'));
@@ -745,7 +653,6 @@ const XvNotif = {
     this._render();
   },
 
-  /* Mark single notification read */
   async markRead(id) {
     DB.markNotifRead(id).catch(() => {});
     this._items = this._items.map(n => n.id === id ? { ...n, is_read: true } : n);
@@ -753,7 +660,6 @@ const XvNotif = {
     this._render();
   },
 
-  /* Mark all read */
   async markAllRead() {
     if (!this._uid) return;
     try { await DB.markAllNotifsRead(this._uid); } catch(e) {}
@@ -762,8 +668,6 @@ const XvNotif = {
     this._render();
     showToast('✅ All marked as read');
   },
-
-  /* ── private ── */
 
   _render() {
     const list = document.getElementById('_xvNPList');
@@ -807,12 +711,8 @@ const XvNotif = {
 
   _badge() {
     const u = this._items.filter(n => !n.is_read).length;
-
-    /* Update count labels inside the panel */
     const cnt = document.getElementById('_xvNPCnt');
     if (cnt) { cnt.textContent = u > 99 ? '99+' : u; cnt.style.display = u ? 'flex' : 'none'; }
-
-    /* Update every bell dot on the page that has class _xvNP-dot */
     document.querySelectorAll('._xvNP-dot').forEach(el => {
       el.style.display = u ? 'block' : 'none';
     });
@@ -827,11 +727,9 @@ const XvNotif = {
     return Math.floor(s / 86400) + 'd ago';
   },
 
-  /* Inject CSS + HTML once */
   _inject() {
     if (document.getElementById('_xvNPStyle')) return;
 
-    /* ── CSS ── */
     const css = document.createElement('style');
     css.id = '_xvNPStyle';
     css.textContent = `
@@ -939,13 +837,11 @@ const XvNotif = {
     `;
     document.head.appendChild(css);
 
-    /* ── Overlay ── */
     const ov = document.createElement('div');
     ov.id = '_xvNPOv';
     ov.onclick = () => XvNotif.close();
     document.body.appendChild(ov);
 
-    /* ── Panel ── */
     const panel = document.createElement('div');
     panel.id = '_xvNP';
     panel.setAttribute('role', 'dialog');
@@ -980,12 +876,10 @@ const XvNotif = {
       </div>`;
     document.body.appendChild(panel);
 
-    /* Spinner keyframes */
     const spin = document.createElement('style');
     spin.textContent = '@keyframes _xvSpin{to{transform:rotate(360deg)}}';
     document.head.appendChild(spin);
 
-    /* Close on Escape key */
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape' && XvNotif._open) XvNotif.close();
     });
@@ -994,9 +888,6 @@ const XvNotif = {
 
 // ─────────────────────────────────────────────────────────
 //  SERVICE WORKER UPDATE HANDLER
-//  When a new service worker activates, reload the page so
-//  fresh files (including this config) are used immediately.
-//  Prevents "XvNotif is not defined" from stale SW cache.
 // ─────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   var _xvSwRefreshing = false;
