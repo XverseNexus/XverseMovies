@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>XverseMovies — Settings</title>
+<script>/* SW update → auto-reload */if('serviceWorker'in navigator){var _xvR=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!_xvR){_xvR=true;location.reload();}});}</script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="manifest" href="manifest.json">
@@ -161,7 +162,18 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:60px;display:flex;ali
 .mob-nav::-webkit-scrollbar{display:none}
 .mob-btn{background:rgba(255,255,255,.07);border:1px solid var(--border);color:rgba(255,255,255,.7);padding:6px 14px;border-radius:20px;font-size:.74rem;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif;white-space:nowrap;transition:all .2s;flex-shrink:0}
 .mob-btn.on{background:#fff;color:#000;border-color:#fff}
-@media(max-width:768px){.sb{display:none}.mob-nav{display:flex}.main{padding:20px 4% 40px}.plan-g{grid-template-columns:1fr 1fr}.fgrid{grid-template-columns:1fr}}
+@media(max-width:768px){.sb{display:none}.mob-nav{display:flex}.main{padding:20px 4% 40px}.plan-g{grid-template-columns:1fr 1fr}.fgrid{grid-template-columns:1fr}
+  .main{padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))!important}}
+/* ── MOBILE BOTTOM NAV ─────────────────────────────────── */
+.btm-nav{display:none}
+@media(max-width:640px){
+  .btm-nav{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:500;background:rgba(9,9,9,.97);border-top:1px solid rgba(255,255,255,.08);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding-bottom:env(safe-area-inset-bottom,0px)}
+  .mnav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px 4px 8px;text-decoration:none;color:rgba(255,255,255,.42);font-family:'Barlow',sans-serif;transition:color .18s;-webkit-tap-highlight-color:transparent;position:relative}
+  .mnav-item.active{color:#fff}
+  .mnav-item.active::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:20px;height:2px;background:#E50914;border-radius:0 0 3px 3px}
+  .mnav-ico{width:22px;height:22px;fill:currentColor;flex-shrink:0}
+  .mnav-lbl{font-size:.58rem;font-weight:600;letter-spacing:.2px}
+}
 </style>
 </head>
 <body>
@@ -363,6 +375,27 @@ const PLAN_DATA  = [
 ];
 
 // ─────────────────────────────────────────
+//  INSTANT PANEL SWITCH FROM HASH
+//  Runs synchronously so the correct panel is visible IMMEDIATELY —
+//  no 2-3s flash of Account Info while async data loads.
+// ─────────────────────────────────────────
+(function() {
+  const raw = (location.hash || '').replace('#', '');
+  if (!raw) return;
+  const alias = { notifications:'notifs', 'account-info':'account', billing:'plan', security:'security' };
+  const id    = alias[raw] || raw;
+  const target = document.getElementById('panel-' + id);
+  if (!target) return;
+  document.querySelectorAll('.panel').forEach(p  => p.classList.remove('active'));
+  target.classList.add('active');
+  document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+  const sb = document.getElementById('sb-' + id);
+  if (sb) sb.classList.add('active');
+  // Normalise hash to canonical id (e.g. #notifications → #notifs in URL)
+  if (id !== raw) history.replaceState(null, '', '#' + id);
+}());
+
+// ─────────────────────────────────────────
 //  INIT
 // ─────────────────────────────────────────
 (async () => {
@@ -380,9 +413,12 @@ const PLAN_DATA  = [
   buildMobNav();
   loadActivity();
 
-  // Hash-based panel
+  // Hash-based panel — #notifications (old link) and #notifs both work
   const hash = location.hash.replace('#','');
-  if (hash) showPanel(hash);
+  if (hash) {
+    const alias = { 'notifications': 'notifs', 'account-info': 'account', 'billing': 'plan', 'security': 'security' };
+    showPanel(alias[hash] || hash);
+  }
 })();
 
 // ─────────────────────────────────────────
@@ -439,8 +475,9 @@ function buildMobNav() {
     {id:'playback',l:'Playback'},{id:'language',l:'Language'},{id:'plan',l:'Plan'},
     {id:'activity',l:'Activity'},{id:'security',l:'Security'},
   ];
+  const cur = (location.hash || '').replace('#','') || 'account';
   document.getElementById('mobNav').innerHTML = panels.map(p =>
-    `<button class="mob-btn${p.id==='account'?' on':''}" data-panel="${p.id}" onclick="showPanel('${p.id}')">${p.l}</button>`
+    `<button class="mob-btn${p.id===cur?' on':''}" data-panel="${p.id}" onclick="showPanel('${p.id}')">${p.l}</button>`
   ).join('');
 }
 
@@ -716,5 +753,29 @@ function timeAgo(ts){ if(!ts) return ''; const s=Math.floor((Date.now()-new Date
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&npOpen) toggleNP(); });
 </script>
 <script>if("serviceWorker"in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){});});}</script>
+
+<!-- MOBILE BOTTOM NAV — no active tab (Settings is not in nav) -->
+<nav class="btm-nav" aria-label="Mobile navigation">
+  <a class="mnav-item" href="XverseMovies_Home.html">
+    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+    <span class="mnav-lbl">Home</span>
+  </a>
+  <a class="mnav-item" href="XverseMovies_Browse.html#tv">
+    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
+    <span class="mnav-lbl">TV Shows</span>
+  </a>
+  <a class="mnav-item" href="XverseMovies_Browse.html#movies">
+    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
+    <span class="mnav-lbl">Movies</span>
+  </a>
+  <a class="mnav-item" href="XverseMovies_Browse.html#new">
+    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/></svg>
+    <span class="mnav-lbl">New</span>
+  </a>
+  <a class="mnav-item" href="XverseMovies_MyList.html">
+    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+    <span class="mnav-lbl">My List</span>
+  </a>
+</nav>
 </body>
 </html>
