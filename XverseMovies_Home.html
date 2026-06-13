@@ -394,7 +394,14 @@ function renderHero(m) {
     <div class="hero-btns">
       <button class="btn-play" onclick="${m.type==='tv'?`openModal(${JSON.stringify(m).replace(/"/g,'&quot;')})`:`playMovie(${JSON.stringify(m).replace(/"/g,'&quot;')})`}">▶ Play</button>
       <button class="btn-info" onclick="openModal(${JSON.stringify(m).replace(/"/g,'&quot;')})">ⓘ More Info</button>
-      <button class="btn-mylist-hero" id="heroMyListBtn" onclick="mlToggle(${JSON.stringify(m).replace(/"/g,'&quot;')})" title="${inList?'Remove from':'Add to'} My List">${inList?'✓':'+'}</button>
+      <button
+  class="btn-mylist-hero"
+  id="heroMyListBtn"
+  data-ml-id="${m.id}"
+  onclick="mlToggle(${JSON.stringify(m).replace(/"/g,'&quot;')})"
+  title="${inList?'Remove from':'Add to'} My List">
+  ${inList?'✓':'+'}
+</button>
     </div>`;
 }
 
@@ -561,7 +568,12 @@ function cardHTML(m) {
       <span class="card-rating">★ ${m.rating||m.vote_average||''}</span>
       <div class="card-overlay">
         <button class="card-play" onclick="event.stopPropagation();${m.type==='tv'?'openModal':'playMovie'}(${ms})">▶</button>
-        <button class="card-add" onclick="event.stopPropagation();mlToggle(${ms})">${inList?'✓':'+'}</button>
+        <button
+  class="card-add"
+  data-ml-id="${m.id}"
+  onclick="event.stopPropagation();mlToggle(${ms})">
+  ${inList?'✓':'+'}
+</button>
       </div>
     </div>
     <div class="card-info">
@@ -642,25 +654,68 @@ async function playMovie(m, season, episode) {
 //  MY LIST — delegates to ML singleton in xverse-config.js
 // ─────────────────────────────────────────
 async function mlToggle(m) {
-  const result = await ML.toggle(m);
-  if (result === null) return; // failed or not applicable — toast already shown
 
-  // Update any card buttons already rendered on page
-  document.querySelectorAll('[data-ml-id="' + (m.id||'') + '"]').forEach(btn => {
+  const result = await ML.toggle(m);
+
+  if (result === null) return;
+
+  // Update all buttons
+  document.querySelectorAll(
+    `[data-ml-id="${m.id}"]`
+  ).forEach(btn => {
     btn.textContent = result ? '✓' : '+';
   });
 
-  // Update hero button if currently shown
-  const heroBtn = document.getElementById('heroMyListBtn');
-  if (heroBtn && heroBtn.dataset.mlId == m.id) {
-    heroBtn.textContent = result ? '✓' : '+';
+  // Update modal button
+  const modalBtn =
+    document.getElementById('modalAddBtn');
+
+  if (modalBtn &&
+      modalMovie &&
+      modalMovie.id == m.id) {
+
+    modalBtn.textContent =
+      result
+        ? '✓ In My List'
+        : '＋ My List';
   }
 
-  // Update open modal button
-  if (modalMovie && modalMovie.id === m.id) {
-    const mb = document.getElementById('modalAddBtn');
-    if (mb) mb.textContent = result ? '✓ In My List' : '＋ My List';
-  }
+  // Rebuild My List row instantly
+  rebuildMyListRow();
+
+}
+
+function rebuildMyListRow() {
+
+  const rowsWrap =
+    document.getElementById('rowsWrap');
+
+  const oldRow =
+    [...document.querySelectorAll('.row')]
+      .find(r =>
+        r.querySelector('.row-title')
+        ?.textContent === 'My List'
+      );
+
+  if (oldRow) oldRow.remove();
+
+  const myList = ML.getData();
+
+  if (!myList.length) return;
+
+  const row = buildCardRow(
+    'My List',
+    myList,
+    'XverseMovies_MyList.html'
+  );
+
+  const firstRow =
+    rowsWrap.querySelector('.row');
+
+  if (firstRow)
+    rowsWrap.insertBefore(row, firstRow.nextSibling);
+  else
+    rowsWrap.appendChild(row);
 }
 
 async function removeCW(movieId) {
