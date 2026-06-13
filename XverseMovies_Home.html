@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>XverseMovies — Home</title>
-<script>/* SW update → auto-reload so fresh xverse-config.js loads immediately */if('serviceWorker'in navigator){var _xvR=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!_xvR){_xvR=true;location.reload();}});}</script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="manifest" href="manifest.json">
@@ -186,17 +185,7 @@ nav.solid{background:rgba(8,8,8,.97);backdrop-filter:blur(10px);border-bottom:1p
 .empty-row{padding:20px;text-align:center;font-size:.84rem;color:var(--muted)}
 
 /* ── RESPONSIVE ── */
-@media(max-width:640px){.nav-links{display:none}.card{width:120px}.cw-card{width:175px}.t10-num{font-size:5.5rem}.t10-poster{width:80px;height:116px}.ep-thumb{width:80px;height:46px}.modal{width:100%}main{padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))!important}}
-/* ── MOBILE BOTTOM NAV ────────────────────────────────── */
-.mob-nav{display:none}
-@media(max-width:640px){
-  .mob-nav{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:500;background:rgba(9,9,9,.97);border-top:1px solid rgba(255,255,255,.08);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding-bottom:env(safe-area-inset-bottom,0px)}
-  .mnav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px 4px 8px;text-decoration:none;color:rgba(255,255,255,.42);font-family:'Barlow',sans-serif;transition:color .18s;-webkit-tap-highlight-color:transparent;position:relative}
-  .mnav-item.active{color:#fff}
-  .mnav-item.active::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:20px;height:2px;background:#E50914;border-radius:0 0 3px 3px}
-  .mnav-ico{width:22px;height:22px;fill:currentColor;flex-shrink:0}
-  .mnav-lbl{font-size:.58rem;font-weight:600;letter-spacing:.2px}
-}
+@media(max-width:640px){.nav-links{display:none}.card{width:120px}.cw-card{width:175px}.t10-num{font-size:5.5rem}.t10-poster{width:80px;height:116px}.ep-thumb{width:80px;height:46px}.modal{width:100%}}
 </style>
 </head>
 <body>
@@ -214,8 +203,8 @@ nav.solid{background:rgba(8,8,8,.97);backdrop-filter:blur(10px);border-bottom:1p
   </ul>
   <div class="nav-right">
     <button class="nav-icon-btn" onclick="toggleSearch()" title="Search">🔍</button>
-    <button class="nav-icon-btn" onclick="XvNotif.toggle()" title="Notifications" style="position:relative">
-      🔔<span class="notif-dot _xvNP-dot" id="notifDot" style="display:none"></span>
+    <button class="nav-icon-btn" onclick="openNotifs()" title="Notifications">
+      🔔<span class="notif-dot" id="notifDot"></span>
     </button>
     <div class="nav-avatar" id="navAvatar">U</div>
   </div>
@@ -291,7 +280,7 @@ let heroMovies     = [];
 let heroIdx        = 0;
 let heroTimer      = null;
 let modalMovie     = null;
-// myListIds removed — use ML.has(id) / ML.toggle(movie) everywhere
+let myListIds      = new Set();
 
 // ─────────────────────────────────────────
 //  INIT
@@ -303,16 +292,11 @@ let modalMovie     = null;
   currentProfile = Session.getProfile();
   await initNavAvatar('navAvatar');
 
-  // Init notification panel (loads notifs + updates bell badge)
-  // Guard: if old service-worker cache serves an older xverse-config.js
-  // that doesn't have XvNotif yet, skip gracefully instead of crashing.
-  if (typeof XvNotif !== 'undefined') XvNotif.init(currentUser.id);
-
   // Load everything in parallel
-  // ML.init() handles My List — removed DB.getMyList from here to avoid double fetch
   const [
   featured,
   cwItems,
+  myListItems,
   adminMovies,
   trending,
   topRated,
@@ -323,8 +307,8 @@ let modalMovie     = null;
 ] = await Promise.all([
   DB.getFeatured(),
   DB.getContinueWatching(currentUser.id),
-  ML.init(currentUser.id),   // ← centralized ML init (replaces DB.getMyList + myListIds seed)
-  DB.getAllMovies(),
+  DB.getMyList(currentUser.id),
+  DB.getAllMovies(), // 👈 ADD THIS
   TMDB.trending(),
   TMDB.topMovies(),
   TMDB.popularMov(),
@@ -333,6 +317,14 @@ let modalMovie     = null;
   TMDB.popularTV(),
 ]);
 
+  // Build my list ID set for quick lookup
+  myListIds = new Set(myListItems.map(m => String(m.id)));
+
+  // Check unread notifications
+  const notifs = await DB.getNotifications(currentUser.id);
+  const unread = notifs.filter(n => !n.is_read).length;
+  if (unread > 0) document.getElementById('notifDot').classList.add('show');
+
   // Hero: prefer admin-featured, fallback TMDB trending
   const heroSrc = featured.length ? featured : (trending?.results || []).slice(0,7).map(TMDB.normalize);
   buildHero(heroSrc);
@@ -340,7 +332,7 @@ let modalMovie     = null;
   // Rows
   buildRows(
   cwItems,
-  ML.getData(),    // ← replaces myListItems
+  myListItems,
   adminMovies,
   trending,
   topRated,
@@ -379,7 +371,7 @@ function renderHero(m) {
   bg.style.backgroundImage = `url('${m.backdrop_url || m.poster_url}')`;
 
   const match = Math.round(65 + (parseFloat(m.rating||m.vote_average||7) * 3.5));
-  const inList = ML.has(m.id);
+  const inList = myListIds.has(String(m.id));
 
   document.getElementById('heroContent').innerHTML = `
     <div class="hero-badge">★ XVERSEMOVIES PICK</div>
@@ -394,7 +386,7 @@ function renderHero(m) {
     <div class="hero-btns">
       <button class="btn-play" onclick="${m.type==='tv'?`openModal(${JSON.stringify(m).replace(/"/g,'&quot;')})`:`playMovie(${JSON.stringify(m).replace(/"/g,'&quot;')})`}">▶ Play</button>
       <button class="btn-info" onclick="openModal(${JSON.stringify(m).replace(/"/g,'&quot;')})">ⓘ More Info</button>
-      <button class="btn-mylist-hero" id="heroMyListBtn" onclick="mlToggle(${JSON.stringify(m).replace(/"/g,'&quot;')})" title="${inList?'Remove from':'Add to'} My List">${inList?'✓':'+'}</button>
+      <button class="btn-mylist-hero" id="heroMyListBtn" onclick="toggleMyList(${JSON.stringify(m).replace(/"/g,'&quot;')})" title="${inList?'Remove from':'Add to'} My List">${inList?'✓':'+'}</button>
     </div>`;
 }
 
@@ -553,7 +545,7 @@ function buildCWRow(items) {
 
 function cardHTML(m) {
   const ms   = JSON.stringify(m).replace(/"/g,'&quot;');
-  const inList = ML.has(m.id);
+  const inList = myListIds.has(String(m.id || m.tmdb_id));
   return `<div class="card" onclick="openModal(${ms})">
     <div class="card-img-wrap">
       <img class="card-img" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555&size=400'">
@@ -561,7 +553,7 @@ function cardHTML(m) {
       <span class="card-rating">★ ${m.rating||m.vote_average||''}</span>
       <div class="card-overlay">
         <button class="card-play" onclick="event.stopPropagation();${m.type==='tv'?'openModal':'playMovie'}(${ms})">▶</button>
-        <button class="card-add" onclick="event.stopPropagation();mlToggle(${ms})">${inList?'✓':'+'}</button>
+        <button class="card-add" onclick="event.stopPropagation();toggleMyList(${ms})">${inList?'✓':'+'}</button>
       </div>
     </div>
     <div class="card-info">
@@ -597,10 +589,8 @@ async function playMovie(m, season, episode) {
   if (!currentUser) return;
 
   // Increment views / history for DB movies
-  // Fixed: was `m.id && !m.tmdb_id` which skipped all admin-added movies
-  // that have both a DB id AND a tmdb_id. Correct check is simply m.id.
-  if (m.id) DB.incrementViews(m.id).catch(() => {});
-  if (m.id) DB.addToHistory(currentUser.id, m.id).catch(() => {});
+  if (m.id && !m.tmdb_id) DB.incrementViews(m.id).catch(()=>{});
+  if (m.id && !m.tmdb_id) await DB.addToHistory(currentUser.id, m.id);
 
   // ── AUTO EMBED LOGIC ──────────────────────────────────────────
   // Priority: 1) DB embed_url  2) auto-build from tmdb_id via vidsrc
@@ -639,27 +629,26 @@ async function playMovie(m, season, episode) {
 }
 
 // ─────────────────────────────────────────
-//  MY LIST — delegates to ML singleton in xverse-config.js
+//  MY LIST
 // ─────────────────────────────────────────
-async function mlToggle(m) {
-  const result = await ML.toggle(m);
-  if (result === null) return; // failed or not applicable — toast already shown
-
-  // Update any card buttons already rendered on page
-  document.querySelectorAll('[data-ml-id="' + (m.id||'') + '"]').forEach(btn => {
-    btn.textContent = result ? '✓' : '+';
-  });
-
-  // Update hero button if currently shown
-  const heroBtn = document.getElementById('heroMyListBtn');
-  if (heroBtn && heroBtn.dataset.mlId == m.id) {
-    heroBtn.textContent = result ? '✓' : '+';
+async function toggleMyList(m) {
+  if (!currentUser) return;
+  const key = String(m.id || m.tmdb_id);
+  if (myListIds.has(key)) {
+    if (m.id && !m.tmdb_id) await DB.removeFromMyList(currentUser.id, m.id);
+    myListIds.delete(key);
+    showToast('Removed from My List');
+  } else {
+    // If TMDB movie not in DB, we just use localStorage as fallback
+    if (m.id && !m.tmdb_id) {
+      await DB.addToMyList(currentUser.id, m.id);
+    }
+    myListIds.add(key);
+    showToast('✅ Added to My List');
   }
-
-  // Update open modal button
-  if (modalMovie && modalMovie.id === m.id) {
-    const mb = document.getElementById('modalAddBtn');
-    if (mb) mb.textContent = result ? '✓ In My List' : '＋ My List';
+  // Update modal button if open
+  if (modalMovie && String(modalMovie.id||modalMovie.tmdb_id) === key) {
+    document.getElementById('modalAddBtn').textContent = myListIds.has(key) ? '✓ In My List' : '＋ My List';
   }
 }
 
@@ -697,13 +686,13 @@ function openModal(m) {
   document.getElementById('modalOv').textContent   = m.overview || '';
   document.getElementById('modalCast').innerHTML   = m.cast_text ? `<strong>Cast:</strong> ${m.cast_text}` : '';
 
-  const inList = ML.has(m.id);
+  const inList = myListIds.has(String(m.id||m.tmdb_id));
   document.getElementById('modalAddBtn').textContent = inList ? '✓ In My List' : '＋ My List';
 
   // Play button — for TV shows, Play plays S1E1 by default
   document.getElementById('modalPlayBtn').textContent  = isTV ? '▶ Play S1 E1' : '▶ Play';
   document.getElementById('modalPlayBtn').onclick = () => { closeModal(); playMovie(m, 1, 1); };
-  document.getElementById('modalAddBtn').onclick = () => mlToggle(m);
+  document.getElementById('modalAddBtn').onclick  = () => toggleMyList(m);
 
   // Show/hide episode picker
   const epWrap = document.getElementById('epWrap');
@@ -894,9 +883,11 @@ const all = [
 }
 
 // ─────────────────────────────────────────
-//  NOTIFICATIONS (slide-in panel — powered by XvNotif in xverse-config.js)
+//  NOTIFICATIONS (quick panel)
 // ─────────────────────────────────────────
-// XvNotif.toggle() is called directly from the bell button onclick.
+async function openNotifs() {
+  window.location.href = 'XverseMovies_Settings.html#notifications';
+}
 
 // ─────────────────────────────────────────
 //  NAV SCROLL
@@ -912,31 +903,5 @@ document.addEventListener('keydown', e => {
 });
 </script>
 <script>if("serviceWorker"in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){});});}</script>
-
-<!-- ═══ MOBILE BOTTOM NAV ═══════════════════════════════════
-     Visible only on ≤640px. Replaces the hidden desktop nav-links.
-     Active class on "Home" since we're on the Home page.          -->
-<nav class="mob-nav" aria-label="Mobile navigation">
-  <a class="mnav-item active" href="XverseMovies_Home.html" aria-label="Home">
-    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-    <span class="mnav-lbl">Home</span>
-  </a>
-  <a class="mnav-item" href="XverseMovies_Browse.html#tv" aria-label="TV Shows">
-    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
-    <span class="mnav-lbl">TV Shows</span>
-  </a>
-  <a class="mnav-item" href="XverseMovies_Browse.html#movies" aria-label="Movies">
-    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
-    <span class="mnav-lbl">Movies</span>
-  </a>
-  <a class="mnav-item" href="XverseMovies_Browse.html#new" aria-label="New and Popular">
-    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/></svg>
-    <span class="mnav-lbl">New</span>
-  </a>
-  <a class="mnav-item" href="XverseMovies_MyList.html" aria-label="My List">
-    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-    <span class="mnav-lbl">My List</span>
-  </a>
-</nav>
 </body>
 </html>
