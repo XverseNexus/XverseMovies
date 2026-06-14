@@ -1028,6 +1028,107 @@ function fillFormFromTMDB(data, type) {
   document.querySelectorAll('.gtag').forEach(t => {
     t.classList.toggle('on', genres.includes(t.textContent));
   });
+
+  // ── AUTO DISPLAY SETTINGS ────────────────────────────────────
+  //
+  //  STATUS — always Active for newly added content
+  set('mStatus', 'active');
+
+  //  FEATURED IN HERO — auto-yes if highly popular or highly rated
+  const pop       = data.popularity || 0;
+  const voteCount = data.vote_count || 0;
+  const voteAvg   = parseFloat(rating) || 0;
+  const autoFeat  = pop > 80 || (voteCount > 500 && voteAvg >= 7.5);
+  set('mFeatured', autoFeat ? 'true' : 'false');
+
+  //  AGE RATING — map TMDB certification to Indian CBFC ratings
+  //  Movie: release_dates → IN cert first, then US cert
+  //  TV:    content_ratings → IN cert first, then US cert
+  let cert = '';
+  if (type === 'movie') {
+    const rdates = data.release_dates?.results || [];
+    const inRel  = rdates.find(r => r.iso_3166_1 === 'IN');
+    const usRel  = rdates.find(r => r.iso_3166_1 === 'US');
+    cert = inRel?.release_dates?.[0]?.certification
+        || usRel?.release_dates?.[0]?.certification
+        || '';
+  } else {
+    const crs  = data.content_ratings?.results || [];
+    const inCR = crs.find(r => r.iso_3166_1 === 'IN');
+    const usCR = crs.find(r => r.iso_3166_1 === 'US');
+    cert = inCR?.rating || usCR?.rating || '';
+  }
+
+  // Map to Indian ratings
+  const ageRating = mapCertToAge(cert, data.adult, voteAvg, genres);
+  set('mAge', ageRating);
+
+  //  MIN PLAN — free for older content, hd for recent, fhd for new blockbusters
+  const releaseYear = parseInt(year) || 2000;
+  const currentYear = new Date().getFullYear();
+  const ageYears    = currentYear - releaseYear;
+  let minPlan = 'free';
+  if (ageYears <= 1 && (pop > 200 || voteCount > 1000)) {
+    minPlan = 'fhd';  // Brand new popular → Full HD plan
+  } else if (ageYears <= 2) {
+    minPlan = 'hd';   // Recent → HD plan
+  }
+  // Override: if genres include adult content → fhd minimum
+  if (genres.some(g => ['Thriller','Horror','Crime'].includes(g)) && ageYears <= 1) {
+    minPlan = 'hd';
+  }
+  set('mPlan', minPlan);
+
+  //  TAGS — auto-generate from TMDB keywords + popularity signals
+  const kwList   = (data.keywords?.keywords || data.keywords?.results || [])
+                    .slice(0, 8).map(k => k.name);
+  const autoTags = [];
+  if (pop > 200)              autoTags.push('Trending');
+  if (voteAvg >= 8.0)         autoTags.push('Top Rated');
+  if (voteAvg >= 7.5)         autoTags.push('Highly Rated');
+  if (ageYears <= 1)          autoTags.push('New Release');
+  if (voteCount > 5000)       autoTags.push('Blockbuster');
+  if (type === 'tv')          autoTags.push('Binge Worthy');
+  if (genres.includes('Action'))  autoTags.push('Action');
+  if (genres.includes('Comedy'))  autoTags.push('Comedy');
+  if (genres.includes('Drama'))   autoTags.push('Drama');
+  if (genres.includes('Horror'))  autoTags.push('Horror');
+  if (genres.includes('Romance')) autoTags.push('Romance');
+  // Add a few TMDB keyword tags that are short and useful
+  kwList.filter(k => k.length <= 20).slice(0, 3).forEach(k =>
+    autoTags.push(k.split(' ').map(w => w[0].toUpperCase() + w.slice(1)).join(' '))
+  );
+  set('mTags', [...new Set(autoTags)].slice(0, 8).join(', '));
+
+  // Show auto-fill summary toast
+  const featMsg = autoFeat ? '⭐ Featured' : '';
+  showToast(`✅ ${title} — Age: ${ageRating}, Plan: ${minPlan.toUpperCase()}${featMsg ? ', ' + featMsg : ''}`);
+}
+
+// ─────────────────────────────────────────
+//  CERT → INDIAN AGE RATING MAPPER
+// ─────────────────────────────────────────
+function mapCertToAge(cert, isAdult, voteAvg, genres) {
+  if (!cert) cert = '';
+  const c = cert.toUpperCase().trim();
+
+  // Direct Indian CBFC mappings
+  if (c === 'U')   return 'U';
+  if (c === 'UA')  return 'UA 13+';
+
+  // US → Indian equivalents
+  if (c === 'G')   return 'U';
+  if (c === 'PG')  return 'UA 7+';
+  if (['PG-13', 'PG13', '12', '12A', 'TV-14'].includes(c)) return 'UA 13+';
+  if (['TV-MA', 'MA', '15', '16', 'R', 'NC-17'].includes(c)) return 'UA 16+';
+  if (['18', '18+', 'X', 'NR'].includes(c)) return 'A/18+';
+
+  // Fallback: derive from adult flag + genres
+  if (isAdult) return 'A/18+';
+  const matureGenres = ['Horror','Thriller','Crime'];
+  if (genres.some(g => matureGenres.includes(g))) return 'UA 16+';
+  if (voteAvg < 5) return 'UA 13+';
+  return 'UA 16+'; // safe default
 }
 
 // ─────────────────────────────────────────
