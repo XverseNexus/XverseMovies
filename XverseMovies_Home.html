@@ -432,35 +432,16 @@ const norm = arr =>
     .filter(m => m.poster_path)
     .map(TMDB.normalize);
 
-const trendingFiltered = removeDuplicateMovies(
-  adminMovies,
-  norm(trending)
-);
+// DB TV shows (admin-added, always have a real id for ML)
+const dbTV = adminMovies.filter(m => m.type === 'tv');
 
-const topRatedFiltered = removeDuplicateMovies(
-  adminMovies,
-  norm(topRated)
-);
-
-const popularFiltered = removeDuplicateMovies(
-  adminMovies,
-  norm(popular)
-);
-
-const hindiFiltered = removeDuplicateMovies(
-  adminMovies,
-  norm(hindi)
-);
-
-const southFiltered = removeDuplicateMovies(
-  adminMovies,
-  norm(south)
-);
-
-const tvFiltered = removeDuplicateMovies(
-  adminMovies,
-  norm(tv)
-);
+// For each TMDB row: merge so DB version replaces TMDB-only when matched
+const trendingFiltered  = mergeMovieLists(adminMovies, norm(trending));
+const topRatedFiltered  = mergeMovieLists(adminMovies, norm(topRated));
+const popularFiltered   = mergeMovieLists(adminMovies, norm(popular));
+const hindiFiltered     = mergeMovieLists(adminMovies, norm(hindi));
+const southFiltered     = mergeMovieLists(adminMovies, norm(south));
+const tvFiltered        = mergeMovieLists(adminMovies, norm(tv));
 
 if (trendingFiltered.length)
   wrap.appendChild(
@@ -502,11 +483,12 @@ if (southFiltered.length)
     )
   );
 
-if (tvFiltered.length)
+if (tvFiltered.length || dbTV.length)
   wrap.appendChild(
     buildCardRow(
       'Popular TV Shows 📺',
-      tvFiltered
+      // DB TV shows first (guaranteed to have id), then TMDB-merged results
+      [...dbTV, ...tvFiltered.filter(m => !dbTV.find(d => d.id === m.id))]
     )
   );
 }
@@ -834,27 +816,45 @@ function toggleSearch() {
   else { document.getElementById('searchResults').innerHTML = ''; document.getElementById('searchInput').value = ''; }
 }
 
-function removeDuplicateMovies(dbMovies, tmdbMovies) {
-
-  const dbTitles = new Set(
-    dbMovies.map(m =>
-      (m.title || '')
-      .toLowerCase()
-      .trim()
-    )
+// ─────────────────────────────────────────
+//  MERGE HELPERS
+//  mergeMovieLists: replaces removeDuplicateMovies.
+//
+//  OLD logic (broken): TMDB rows that match a DB movie by title
+//  were simply FILTERED OUT. Result: only the pure-TMDB version
+//  (no DB id) was kept in the other rows, so ML.toggle() showed
+//  "Not in library yet" even for admin-added content.
+//
+//  NEW logic: when a TMDB row matches a DB movie (by tmdb_id first,
+//  then by title), the TMDB row is REPLACED with the full DB object
+//  (which has a real id). TMDB-only items that have no DB match
+//  are kept as-is (no id → user sees "ask admin" which is correct).
+// ─────────────────────────────────────────
+function mergeMovieLists(dbMovies, tmdbMovies) {
+  // Build two fast lookup maps from DB movies
+  const byTmdbId = new Map(
+    dbMovies
+      .filter(m => m.tmdb_id)
+      .map(m => [String(m.tmdb_id), m])
+  );
+  const byTitle = new Map(
+    dbMovies.map(m => [(m.title || '').toLowerCase().trim(), m])
   );
 
-  return tmdbMovies.filter(tmdbMovie => {
+  return tmdbMovies.map(tmdbMovie => {
+    // Prefer tmdb_id match (exact), then title match (fuzzy)
+    const dbMatch =
+      byTmdbId.get(String(tmdbMovie.tmdb_id)) ||
+      byTitle.get((tmdbMovie.title || '').toLowerCase().trim());
 
-    const title =
-      (tmdbMovie.title || '')
-      .toLowerCase()
-      .trim();
-
-    return !dbTitles.has(title);
-
+    // Return DB version if found — it has the real integer id for ML
+    return dbMatch || tmdbMovie;
   });
+}
 
+// Keep old name as alias so any other callers don't break
+function removeDuplicateMovies(dbMovies, tmdbMovies) {
+  return mergeMovieLists(dbMovies, tmdbMovies);
 }
 
 function doSearch(q) {
