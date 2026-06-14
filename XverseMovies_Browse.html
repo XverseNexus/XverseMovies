@@ -168,7 +168,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;ali
 .ep-loading{padding:20px;text-align:center;color:var(--muted);font-size:.84rem}
 .ep-skel{background:linear-gradient(90deg,#222 25%,#282828 50%,#222 75%);background-size:200% 100%;animation:skelA 1.4s infinite;border-radius:4px}
 @keyframes skelA{to{background-position:-200% 0}}
-@media(max-width:640px){.ep-thumb{width:80px;height:46px}}position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:500;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(5px)}
+@media(max-width:640px){.ep-thumb{width:80px;height:46px}}
+.mbg{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:500;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(5px)}
 .mbg.open{display:flex;animation:mfi .22s ease}
 @keyframes mfi{from{opacity:0}to{opacity:1}}
 .mo{background:#181818;border:1px solid rgba(255,255,255,.1);border-radius:10px;width:min(96vw,560px);max-height:90vh;overflow-y:auto;animation:msu .28s ease}
@@ -287,6 +288,33 @@ const TVGENRES=['All','Drama','Action','Comedy','Thriller','Sci-Fi','Horror','Fa
 const MOVGENRES=['All','Action','Drama','Comedy','Horror','Sci-Fi','Romance','Thriller','Animation','Crime','Hindi','Telugu','Tamil'];
 const LANGS=[{code:'hi',name:'Hindi',icon:'🇮🇳',count:1800,bg:'#5c1a1a'},{code:'en',name:'English',icon:'🇬🇧',count:4200,bg:'#1a3a5c'},{code:'te',name:'Telugu',icon:'🎭',count:650,bg:'#3a3a1a'},{code:'ta',name:'Tamil',icon:'🌺',count:580,bg:'#1a3a2a'},{code:'kn',name:'Kannada',icon:'🦁',count:320,bg:'#2a1a3a'},{code:'ml',name:'Malayalam',icon:'🌴',count:410,bg:'#1a2a3a'},{code:'ko',name:'Korean',icon:'🇰🇷',count:730,bg:'#1a1a5c'},{code:'ja',name:'Japanese',icon:'🇯🇵',count:890,bg:'#3a1a1a'}];
 
+// ─────────────────────────────────────────────────────────────
+//  MOVIE REGISTRY  (FIX 2 — eliminates JSON-in-onclick crashes)
+//
+//  Root cause: JSON.stringify(m) embedded inside onclick="..." 
+//  attributes breaks whenever movie titles/overviews contain
+//  apostrophes, colons, angle brackets, CJK chars, or any char
+//  that disrupts the HTML attribute value.
+//  The .replace(/"/g,'&quot;') only escapes double quotes, leaving
+//  dozens of other special chars that silently abort onclick.
+//
+//  Fix: store every movie object in a Map keyed by a short id.
+//  onclick handlers pass ONLY the id string → no special chars.
+//  _reg(m) registers a movie and returns its key.
+//  _get(k) retrieves it. Both are < 1 line at call sites.
+// ─────────────────────────────────────────────────────────────
+const _MR = new Map();
+let   _mrSeq = 0;
+function _reg(m) {
+  // Prefer stable keys: db id > tmdb_id > sequential
+  const k = m.id ? ('d' + m.id)
+           : m.tmdb_id ? ('t' + m.tmdb_id)
+           : ('s' + (++_mrSeq));
+  _MR.set(k, m);
+  return k;
+}
+function _get(k) { return _MR.get(k) || null; }
+
 (async()=>{
   currentUser = await requireAuth(); if(!currentUser) return;
   await initNavAvatar('navAvatar');
@@ -326,8 +354,16 @@ async function loadTV(){
 }
 function renderTV(){
   let d=[...tvData];
-  if(tvF.lang) d=d.filter(m=>(m.language||m.lang)===tvF.lang);
-  if(tvF.genre) d=d.filter(m=>(m.genres||m.genre||[]).includes(tvF.genre));
+  // FIX 4: language filter — TMDB uses 'original_language', DB uses 'language'
+  if(tvF.lang) d=d.filter(m=>{
+    const lang = m.language || m.original_language || m.lang || '';
+    return lang === tvF.lang;
+  });
+  // FIX 3: genre filter — genres can be string[] OR {id,name}[] from TMDB
+  if(tvF.genre) d=d.filter(m=>{
+    const genres = m.genres || m.genre || [];
+    return genres.some(g => (typeof g === 'string' ? g : g.name) === tvF.genre);
+  });
   if(tvF.sort==='rating') d.sort((a,b)=>(b.rating||b.vote_average||0)-(a.rating||a.vote_average||0));
   if(tvF.sort==='alpha') d.sort((a,b)=>a.title.localeCompare(b.title));
   if(tvF.sort==='year') d.sort((a,b)=>(b.year||'')>(a.year||'')?1:-1);
@@ -358,8 +394,14 @@ async function loadMovies(){
 }
 function renderMov(){
   let d=[...movData];
-  if(movF.lang) d=d.filter(m=>(m.language||m.lang)===movF.lang);
-  if(movF.genre) d=d.filter(m=>(m.genres||m.genre||[]).includes(movF.genre));
+  if(movF.lang) d=d.filter(m=>{
+    const lang = m.language || m.original_language || m.lang || '';
+    return lang === movF.lang;
+  });
+  if(movF.genre) d=d.filter(m=>{
+    const genres = m.genres || m.genre || [];
+    return genres.some(g => (typeof g === 'string' ? g : g.name) === movF.genre);
+  });
   if(movF.sort==='rating') d.sort((a,b)=>(b.rating||b.vote_average||0)-(a.rating||a.vote_average||0));
   if(movF.sort==='alpha') d.sort((a,b)=>a.title.localeCompare(b.title));
   if(movF.sort==='year') d.sort((a,b)=>(b.year||'')>(a.year||'')?1:-1);
@@ -386,11 +428,11 @@ function renderNP(tab){
   const c=document.getElementById('npCont');
   if(!npItems.length){c.innerHTML=skelG(12);return;}
   if(tab==='top10'){
-    c.innerHTML=`<div class="t10w">${npItems.slice(0,10).map((m,i)=>{const ms=JSON.stringify(m).replace(/"/g,'&quot;');return`<div class="t10c" onclick="openMod(${ms})"><div class="t10n">${i+1}</div><img class="t10p" src="${m.poster_url||''}" alt="${m.title}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555'"></div>`}).join('')}</div>`;
+    c.innerHTML=`<div class="t10w">${npItems.slice(0,10).map((m,i)=>{ const k=_reg(m); return`<div class="t10c" onclick="openMod(_get('${k}'))"><div class="t10n">${i+1}</div><img class="t10p" src="${m.poster_url||\'\'}" alt="${m.title}" onerror="this.src=\'https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555\'"></div>`; }).join(\'\')}</div>`;
     return;
   }
   const items=tab==='new'?[...npItems].reverse():npItems;
-  c.innerHTML=`<div class="npl">${items.slice(0,25).map((m,i)=>{const ms=JSON.stringify(m).replace(/"/g,'&quot;');const inML=ML.has(m.id);return`<div class="npc" onclick="openMod(${ms})"><div class="nprk">${i+1}</div><img class="npth" src="${m.poster_url||''}" alt="${m.title}" onerror="this.style.display='none'"><div class="npif"><div class="nptl">${m.title}</div><div class="npmt"><span>${m.year||''}</span><span style="color:var(--green)">★ ${m.rating||''}</span>${i<4?'<span class="npnew">NEW</span>':i<10?'<span class="nphot">🔥</span>':''}</div></div><div class="npact"><button class="npb" onclick="event.stopPropagation();play(${ms})">▶</button><button class="npb" onclick="event.stopPropagation();addML(${ms})">${inML?'✓':'+'}</button></div></div>`}).join('')}</div>`;
+  c.innerHTML=`<div class="npl">${items.slice(0,25).map((m,i)=>{ const k=_reg(m); const inML=ML.has(m.id); const playCall=m.type==='tv'?`openMod(_get('${k}'))`:`play(_get('${k}')`+')'; return`<div class="npc" onclick="openMod(_get('${k}'))"><div class="nprk">${i+1}</div><img class="npth" src="${m.poster_url||\'\'}" alt="${m.title}" onerror="this.style.display=\'none\'"><div class="npif"><div class="nptl">${m.title}</div><div class="npmt"><span>${m.year||\'\'}</span><span style="color:var(--green)">★ ${m.rating||\'\'}</span>${i<4?\'<span class="npnew">NEW</span>\':i<10?\'<span class="nphot">🔥</span>\':\'\'}</div></div><div class="npact"><button class="npb" onclick="event.stopPropagation();${playCall}">▶</button><button class="npb" onclick="event.stopPropagation();addML(_get('${k}'))">${inML?\'✓\':\'+\'}</button></div></div>`; }).join(\'\')}</div>`;
 }
 
 // ── LANGUAGES ─────────────────────────────
@@ -404,25 +446,32 @@ function setHero(type,m){
   if(bg) bg.style.backgroundImage=`url('${m.backdrop_url||m.poster_url}')`;
   if(!hc) return;
   const match=Math.round(65+parseFloat(m.rating||m.vote_average||7)*3.5);
-  const ms=JSON.stringify(m).replace(/"/g,'&quot;');
-  hc.innerHTML=`<div class="h-badge">★ TOP PICK</div><div class="h-title">${m.title}</div><div class="h-meta"><span class="h-match">${match}% Match</span><span>${m.year||''}</span><span class="h-cert">${m.age_rating||'UA'}</span>${m.quality?`<span style="background:rgba(70,211,105,.12);color:var(--green);font-size:.64rem;font-weight:700;padding:2px 6px;border-radius:3px">${m.quality}</span>`:''}</div><div class="h-ov">${m.overview||''}</div><div class="h-btns"><button class="btn-p" onclick="${m.type==='tv'?`openMod(${ms})`:`play(${ms})`}">▶ Play</button><button class="btn-i" onclick="openMod(${ms})">ⓘ Info</button></div>`;
+  const k=_reg(m);
+  const playCall = m.type==='tv' ? `openMod(_get('${k}'))` : `play(_get('${k}'))`;
+  hc.innerHTML=`<div class="h-badge">★ TOP PICK</div><div class="h-title">${m.title}</div><div class="h-meta"><span class="h-match">${match}% Match</span><span>${m.year||''}</span><span class="h-cert">${m.age_rating||'UA'}</span>${m.quality?`<span style="background:rgba(70,211,105,.12);color:var(--green);font-size:.64rem;font-weight:700;padding:2px 6px;border-radius:3px">${m.quality}</span>`:''}</div><div class="h-ov">${m.overview||''}</div><div class="h-btns"><button class="btn-p" onclick="${playCall}">▶ Play</button><button class="btn-i" onclick="openMod(_get('${k}'))">ⓘ Info</button></div>`;
 }
 
 // ── HELPERS ───────────────────────────────
 function buildT10(elId,items){
-  document.getElementById(elId).innerHTML=items.map((m,i)=>{const ms=JSON.stringify(m).replace(/"/g,'&quot;');return`<div class="t10c" onclick="openMod(${ms})"><div class="t10n">${i+1}</div><img class="t10p" src="${m.poster_url||''}" alt="${m.title}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555'"></div>`}).join('');
+  document.getElementById(elId).innerHTML=items.map((m,i)=>{
+    const k=_reg(m);
+    return`<div class="t10c" onclick="openMod(_get('${k}'))"><div class="t10n">${i+1}</div><img class="t10p" src="${m.poster_url||''}" alt="${m.title}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555'"></div>`;
+  }).join('');
 }
 function buildPills(id,list,cb){
   const c=document.getElementById(id); c.innerHTML='';
   list.forEach((g,i)=>{ const b=document.createElement('button'); b.className='gp'+(i===0?' on':''); b.textContent=g; b.onclick=()=>{ c.querySelectorAll('.gp').forEach(x=>x.classList.remove('on')); b.classList.add('on'); cb(g); }; c.appendChild(b); });
 }
 function cHTML(m,isList){
-  const ms=JSON.stringify(m).replace(/"/g,'&quot;'), rat=m.rating||m.vote_average||'';
+  const k=_reg(m), rat=m.rating||m.vote_average||'';
   const playFn = m.type==='tv' ? 'openMod' : 'play';
-  const inML = ML.has(m.id);  // ← real state from ML singleton (BUG B + E fix)
+  const playCall = `${playFn}(_get('${k}'))`;
+  const modCall  = `openMod(_get('${k}'))`;
+  const addCall  = `addML(_get('${k}'))`;
+  const inML = ML.has(m.id);
   const mlLbl = inML ? '✓' : '+';
-  if(isList) return `<div class="card lc" onclick="openMod(${ms})"><div class="cth"><img class="ci" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555'"><div class="cov"><button class="cpl" onclick="event.stopPropagation();${playFn}(${ms})">▶</button></div></div><div class="cif"><div class="cn">${m.title}</div><div class="cm"><span>${m.year||''}</span>${rat?`<span>·</span><span style="color:var(--green)">★ ${rat}</span>`:''}</div></div><div class="lacts"><button class="lb" onclick="event.stopPropagation();${playFn}(${ms})">▶</button><button class="lb" onclick="event.stopPropagation();addML(${ms})">${mlLbl}</button></div></div>`;
-  return `<div class="card" onclick="openMod(${ms})"><div class="cth"><img class="ci" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555&size=400'"><span class="ctyp ${m.type||'movie'}">${m.type==='tv'?'TV':'MOVIE'}</span>${rat?`<span class="crat">★ ${rat}</span>`:''}<div class="cov"><button class="cpl" onclick="event.stopPropagation();${playFn}(${ms})">▶</button><button class="cad" onclick="event.stopPropagation();addML(${ms})">${mlLbl}</button></div></div><div class="cif"><div class="cn">${m.title}</div><div class="cm"><span>${m.year||''}</span></div></div></div>`;
+  if(isList) return `<div class="card lc" onclick="${modCall}"><div class="cth"><img class="ci" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555'"><div class="cov"><button class="cpl" onclick="event.stopPropagation();${playCall}">▶</button></div></div><div class="cif"><div class="cn">${m.title}</div><div class="cm"><span>${m.year||''}</span>${rat?`<span>·</span><span style="color:var(--green)">★ ${rat}</span>`:''}</div></div><div class="lacts"><button class="lb" onclick="event.stopPropagation();${playCall}">▶</button><button class="lb" onclick="event.stopPropagation();${addCall}">${mlLbl}</button></div></div>`;
+  return `<div class="card" onclick="${modCall}"><div class="cth"><img class="ci" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555&size=400'"><span class="ctyp ${m.type||'movie'}">${m.type==='tv'?'TV':'MOVIE'}</span>${rat?`<span class="crat">★ ${rat}</span>`:''}<div class="cov"><button class="cpl" onclick="event.stopPropagation();${playCall}">▶</button><button class="cad" onclick="event.stopPropagation();${addCall}">${mlLbl}</button></div></div><div class="cif"><div class="cn">${m.title}</div><div class="cm"><span>${m.year||''}</span></div></div></div>`;
 }
 function play(m, season, episode) {
   // Fix: empty string is not a valid embed URL
@@ -446,16 +495,19 @@ function play(m, season, episode) {
 
 async function addML(m) {
   const result = await ML.toggle(m);
-  if (result === null) return; // failed or not applicable
-  // Re-render the currently visible page section to update ✓/+ indicators
+  if (result === null) return;
   const activePg = document.querySelector('.bpg.active');
   if (!activePg) return;
   const pgId = activePg.id.replace('pg-', '');
-  if (pgId === 'tv')     renderTV();
+  if (pgId === 'tv')          renderTV();
   else if (pgId === 'movies') renderMov();
   else if (pgId === 'new') {
-    const activeTab = document.querySelector('.np-tab.active');
-    if (activeTab) renderNP(activeTab.dataset.tab || 'trending');
+    // FIX 5: was '.np-tab.active' — correct class is '.ptab.active'
+    const activeTab = document.querySelector('#pg-new .ptab.active');
+    const tab = activeTab?.textContent?.includes('Top') ? 'top10'
+              : activeTab?.textContent?.includes('New') ? 'new'
+              : 'watching';
+    renderNP(tab);
   }
 }
 
