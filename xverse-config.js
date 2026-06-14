@@ -384,8 +384,8 @@ const TMDB = {
   async nowPlaying()  { return this.fetch('/movie/now_playing', { region:'IN' }); },
   async hindiMovies() { return this.fetch('/discover/movie', { with_original_language:'hi', sort_by:'popularity.desc', region:'IN' }); },
   async southMovies() { return this.fetch('/discover/movie', { with_original_language:'te', sort_by:'popularity.desc' }); },
-  async movieDetails(id)  { return this.fetch(`/movie/${id}`, { append_to_response:'credits,videos,similar' }); },
-  async tvDetails(id)     { return this.fetch(`/tv/${id}`,    { append_to_response:'credits,videos,similar,seasons' }); },
+  async movieDetails(id)  { return this.fetch(`/movie/${id}`, { append_to_response:'credits,videos,similar,release_dates,keywords' }); },
+  async tvDetails(id)     { return this.fetch(`/tv/${id}`,    { append_to_response:'credits,videos,similar,seasons,content_ratings,keywords' }); },
   async tvSeason(id, s)   { return this.fetch(`/tv/${id}/season/${s}`); },
   async search(q)         { return this.fetch('/search/multi', { query:q }); },
 };
@@ -620,11 +620,11 @@ const ML = {
       showToast('⚠️ Please log in first');
       return null;
     }
-    // Only DB movies (with integer id) can be saved to my_list.
-    // TMDB-only rows that weren't matched by mergeMovieLists have no id.
-    // This happens for content that hasn't been added by admin yet.
+    // BUG A FIX: only DB movies (with integer id) can be saved.
+    // TMDB-only rows have no id and cannot be stored in my_list
+    // because the FK requires a real movies.id.
     if (!movie || !movie.id) {
-      showToast('ℹ️ This title is not in the library yet');
+      showToast('ℹ️ Not in the library yet — ask admin to add it');
       return null;
     }
 
@@ -697,11 +697,6 @@ const ML = {
     this._ids.add(String(snapshot.id));
     this._data.splice(snapshot._idx, 0, snapshot);
   },
-
-  /* ── Public remove / add (for pages to call directly) ────────
-     Wraps _add/_remove so pages never call pseudo-private methods. */
-  async remove(movieId) { return this._remove(movieId); },
-  async add(movie)      { return this._add(movie); },
 };
 
 // ─────────────────────────────────────────────────────────
