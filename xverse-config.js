@@ -620,11 +620,11 @@ const ML = {
       showToast('⚠️ Please log in first');
       return null;
     }
-    // BUG A FIX: only DB movies (with integer id) can be saved.
-    // TMDB-only rows have no id and cannot be stored in my_list
-    // because the FK requires a real movies.id.
+    // Only DB movies (with integer id) can be saved to my_list.
+    // TMDB-only rows that weren't matched by mergeMovieLists have no id.
+    // This happens for content that hasn't been added by admin yet.
     if (!movie || !movie.id) {
-      showToast('ℹ️ Not in the library yet — ask admin to add it');
+      showToast('ℹ️ This title is not in the library yet');
       return null;
     }
 
