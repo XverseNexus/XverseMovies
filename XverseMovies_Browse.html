@@ -288,32 +288,19 @@ const TVGENRES=['All','Drama','Action','Comedy','Thriller','Sci-Fi','Horror','Fa
 const MOVGENRES=['All','Action','Drama','Comedy','Horror','Sci-Fi','Romance','Thriller','Animation','Crime','Hindi','Telugu','Tamil'];
 const LANGS=[{code:'hi',name:'Hindi',icon:'🇮🇳',count:1800,bg:'#5c1a1a'},{code:'en',name:'English',icon:'🇬🇧',count:4200,bg:'#1a3a5c'},{code:'te',name:'Telugu',icon:'🎭',count:650,bg:'#3a3a1a'},{code:'ta',name:'Tamil',icon:'🌺',count:580,bg:'#1a3a2a'},{code:'kn',name:'Kannada',icon:'🦁',count:320,bg:'#2a1a3a'},{code:'ml',name:'Malayalam',icon:'🌴',count:410,bg:'#1a2a3a'},{code:'ko',name:'Korean',icon:'🇰🇷',count:730,bg:'#1a1a5c'},{code:'ja',name:'Japanese',icon:'🇯🇵',count:890,bg:'#3a1a1a'}];
 
-// ─────────────────────────────────────────────────────────────
-//  MOVIE REGISTRY  (FIX 2 — eliminates JSON-in-onclick crashes)
-//
-//  Root cause: JSON.stringify(m) embedded inside onclick="..." 
-//  attributes breaks whenever movie titles/overviews contain
-//  apostrophes, colons, angle brackets, CJK chars, or any char
-//  that disrupts the HTML attribute value.
-//  The .replace(/"/g,'&quot;') only escapes double quotes, leaving
-//  dozens of other special chars that silently abort onclick.
-//
-//  Fix: store every movie object in a Map keyed by a short id.
-//  onclick handlers pass ONLY the id string → no special chars.
-//  _reg(m) registers a movie and returns its key.
-//  _get(k) retrieves it. Both are < 1 line at call sites.
-// ─────────────────────────────────────────────────────────────
-const _MR = new Map();
-let   _mrSeq = 0;
-function _reg(m) {
-  // Prefer stable keys: db id > tmdb_id > sequential
-  const k = m.id ? ('d' + m.id)
-           : m.tmdb_id ? ('t' + m.tmdb_id)
-           : ('s' + (++_mrSeq));
-  _MR.set(k, m);
-  return k;
+// ── MOVIE REGISTRY ─────────────────────────────────────
+// Stores movie objects by short key. All card onclick handlers
+// pass only the key (never JSON) so special chars can't crash.
+const _MR = new Map(); let _mrSeq = 0;
+function _reg(m){
+  var k = m.id ? ('d'+m.id) : m.tmdb_id ? ('t'+m.tmdb_id) : ('s'+(++_mrSeq));
+  _MR.set(k, m); return k;
 }
-function _get(k) { return _MR.get(k) || null; }
+function _get(k){ return _MR.get(k)||null; }
+// Play or open modal based on type — avoids inline ternary in onclick
+function _pc(el){ var m=_get(el.dataset.mk); if(!m) return; if(el.dataset.tv==='1') openMod(m); else play(m); }
+function _ac(el){ var m=_get(el.dataset.mk); if(m) addML(m); }
+// ───────────────────────────────────────────────────────
 
 (async()=>{
   currentUser = await requireAuth(); if(!currentUser) return;
@@ -354,16 +341,8 @@ async function loadTV(){
 }
 function renderTV(){
   let d=[...tvData];
-  // FIX 4: language filter — TMDB uses 'original_language', DB uses 'language'
-  if(tvF.lang) d=d.filter(m=>{
-    const lang = m.language || m.original_language || m.lang || '';
-    return lang === tvF.lang;
-  });
-  // FIX 3: genre filter — genres can be string[] OR {id,name}[] from TMDB
-  if(tvF.genre) d=d.filter(m=>{
-    const genres = m.genres || m.genre || [];
-    return genres.some(g => (typeof g === 'string' ? g : g.name) === tvF.genre);
-  });
+  if(tvF.lang) d=d.filter(function(m){ var l=m.language||m.original_language||m.lang||''; return l===tvF.lang; });
+  if(tvF.genre) d=d.filter(function(m){ var g=m.genres||m.genre||[]; return g.some(function(x){ return (typeof x==='string'?x:x.name)===tvF.genre; }); });
   if(tvF.sort==='rating') d.sort((a,b)=>(b.rating||b.vote_average||0)-(a.rating||a.vote_average||0));
   if(tvF.sort==='alpha') d.sort((a,b)=>a.title.localeCompare(b.title));
   if(tvF.sort==='year') d.sort((a,b)=>(b.year||'')>(a.year||'')?1:-1);
@@ -394,14 +373,8 @@ async function loadMovies(){
 }
 function renderMov(){
   let d=[...movData];
-  if(movF.lang) d=d.filter(m=>{
-    const lang = m.language || m.original_language || m.lang || '';
-    return lang === movF.lang;
-  });
-  if(movF.genre) d=d.filter(m=>{
-    const genres = m.genres || m.genre || [];
-    return genres.some(g => (typeof g === 'string' ? g : g.name) === movF.genre);
-  });
+  if(movF.lang) d=d.filter(function(m){ var l=m.language||m.original_language||m.lang||''; return l===movF.lang; });
+  if(movF.genre) d=d.filter(function(m){ var g=m.genres||m.genre||[]; return g.some(function(x){ return (typeof x==='string'?x:x.name)===movF.genre; }); });
   if(movF.sort==='rating') d.sort((a,b)=>(b.rating||b.vote_average||0)-(a.rating||a.vote_average||0));
   if(movF.sort==='alpha') d.sort((a,b)=>a.title.localeCompare(b.title));
   if(movF.sort==='year') d.sort((a,b)=>(b.year||'')>(a.year||'')?1:-1);
@@ -425,14 +398,35 @@ async function loadNP(tab){
 }
 function npSwitch(t,btn){ document.querySelectorAll('#pg-new .ptab').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); renderNP(t); }
 function renderNP(tab){
-  const c=document.getElementById('npCont');
+  var c=document.getElementById('npCont');
   if(!npItems.length){c.innerHTML=skelG(12);return;}
   if(tab==='top10'){
-    c.innerHTML=`<div class="t10w">${npItems.slice(0,10).map((m,i)=>{ const k=_reg(m); return`<div class="t10c" onclick="openMod(_get('${k}'))"><div class="t10n">${i+1}</div><img class="t10p" src="${m.poster_url||\'\'}" alt="${m.title}" onerror="this.src=\'https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555\'"></div>`; }).join(\'\')}</div>`;
-    return;
+    var h='<div class="t10w">';
+    for(var i=0;i<Math.min(10,npItems.length);i++){
+      var m=npItems[i], k=_reg(m);
+      h+='<div class="t10c" data-mk="'+k+'" onclick="openMod(_get(this.dataset.mk))"><div class="t10n">'+(i+1)+'</div><img class="t10p" src="'+(m.poster_url||'')+'" alt="" loading="lazy"></div>';
+    }
+    c.innerHTML=h+'</div>'; return;
   }
-  const items=tab==='new'?[...npItems].reverse():npItems;
-  c.innerHTML=`<div class="npl">${items.slice(0,25).map((m,i)=>{ const k=_reg(m); const inML=ML.has(m.id); const playCall=m.type==='tv'?`openMod(_get('${k}'))`:`play(_get('${k}')`+')'; return`<div class="npc" onclick="openMod(_get('${k}'))"><div class="nprk">${i+1}</div><img class="npth" src="${m.poster_url||\'\'}" alt="${m.title}" onerror="this.style.display=\'none\'"><div class="npif"><div class="nptl">${m.title}</div><div class="npmt"><span>${m.year||\'\'}</span><span style="color:var(--green)">★ ${m.rating||\'\'}</span>${i<4?\'<span class="npnew">NEW</span>\':i<10?\'<span class="nphot">🔥</span>\':\'\'}</div></div><div class="npact"><button class="npb" onclick="event.stopPropagation();${playCall}">▶</button><button class="npb" onclick="event.stopPropagation();addML(_get('${k}'))">${inML?\'✓\':\'+\'}</button></div></div>`; }).join(\'\')}</div>`;
+  var items=tab==='new'?[].concat(npItems).reverse():npItems;
+  var h='<div class="npl">';
+  for(var i=0;i<Math.min(25,items.length);i++){
+    var m=items[i], k=_reg(m);
+    var inML=ML.has(m.id), mlLbl=inML?'&#10003;':'+';
+    var isTV=m.type==='tv'?'1':'0';
+    var badge=i<4?'<span class="npnew">NEW</span>':i<10?'<span class="nphot">&#128293;</span>':'';
+    h+='<div class="npc" data-mk="'+k+'" onclick="openMod(_get(this.dataset.mk))">'
+      +'<div class="nprk">'+(i+1)+'</div>'
+      +'<img class="npth" src="'+(m.poster_url||'')+'" alt="" loading="lazy">'
+      +'<div class="npif"><div class="nptl">'+m.title+'</div>'
+      +'<div class="npmt"><span>'+(m.year||'')+'</span>'
+      +'<span style="color:var(--green)">&#9733; '+(m.rating||m.vote_average||'')+'</span>'+badge+'</div></div>'
+      +'<div class="npact">'
+      +'<button class="npb" data-mk="'+k+'" data-tv="'+isTV+'" onclick="event.stopPropagation();_pc(this)">&#9654;</button>'
+      +'<button class="npb" data-mk="'+k+'" onclick="event.stopPropagation();_ac(this)">'+mlLbl+'</button>'
+      +'</div></div>';
+  }
+  c.innerHTML=h+'</div>';
 }
 
 // ── LANGUAGES ─────────────────────────────
@@ -442,246 +436,19 @@ function buildLangs(){
 
 // ── HERO ──────────────────────────────────
 function setHero(type,m){
-  const bg=document.getElementById(type+'Bg'), hc=document.getElementById(type+'HeroC');
-  if(bg) bg.style.backgroundImage=`url('${m.backdrop_url||m.poster_url}')`;
+  var bg=document.getElementById(type+'Bg'), hc=document.getElementById(type+'HeroC');
+  if(bg && (m.backdrop_url||m.poster_url)) bg.style.backgroundImage='url('+( m.backdrop_url||m.poster_url)+')';
   if(!hc) return;
-  const match=Math.round(65+parseFloat(m.rating||m.vote_average||7)*3.5);
-  const k=_reg(m);
-  const playCall = m.type==='tv' ? `openMod(_get('${k}'))` : `play(_get('${k}'))`;
-  hc.innerHTML=`<div class="h-badge">★ TOP PICK</div><div class="h-title">${m.title}</div><div class="h-meta"><span class="h-match">${match}% Match</span><span>${m.year||''}</span><span class="h-cert">${m.age_rating||'UA'}</span>${m.quality?`<span style="background:rgba(70,211,105,.12);color:var(--green);font-size:.64rem;font-weight:700;padding:2px 6px;border-radius:3px">${m.quality}</span>`:''}</div><div class="h-ov">${m.overview||''}</div><div class="h-btns"><button class="btn-p" onclick="${playCall}">▶ Play</button><button class="btn-i" onclick="openMod(_get('${k}'))">ⓘ Info</button></div>`;
+  var match=Math.round(65+parseFloat(m.rating||m.vote_average||7)*3.5);
+  var k=_reg(m), isTV=m.type==='tv'?'1':'0';
+  hc.innerHTML='<div class="h-badge">&#9733; TOP PICK</div>'
+    +'<div class="h-title">'+m.title+'</div>'
+    +'<div class="h-meta"><span class="h-match">'+match+'% Match</span>'
+    +'<span>'+(m.year||'')+'</span><span class="h-cert">'+(m.age_rating||'UA')+'</span>'
+    +(m.quality?'<span style="background:rgba(70,211,105,.12);color:var(--green);font-size:.64rem;font-weight:700;padding:2px 6px;border-radius:3px">'+m.quality+'</span>':'')
+    +'</div><div class="h-ov">'+(m.overview||'')+'</div>'
+    +'<div class="h-btns">'
+    +'<button class="btn-p" data-mk="'+k+'" data-tv="'+isTV+'" onclick="_pc(this)">&#9654; Play</button>'
+    +'<button class="btn-i" data-mk="'+k+'" onclick="openMod(_get(this.dataset.mk))">&#9432; Info</button>'
+    +'</div>';
 }
-
-// ── HELPERS ───────────────────────────────
-function buildT10(elId,items){
-  document.getElementById(elId).innerHTML=items.map((m,i)=>{
-    const k=_reg(m);
-    return`<div class="t10c" onclick="openMod(_get('${k}'))"><div class="t10n">${i+1}</div><img class="t10p" src="${m.poster_url||''}" alt="${m.title}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555'"></div>`;
-  }).join('');
-}
-function buildPills(id,list,cb){
-  const c=document.getElementById(id); c.innerHTML='';
-  list.forEach((g,i)=>{ const b=document.createElement('button'); b.className='gp'+(i===0?' on':''); b.textContent=g; b.onclick=()=>{ c.querySelectorAll('.gp').forEach(x=>x.classList.remove('on')); b.classList.add('on'); cb(g); }; c.appendChild(b); });
-}
-function cHTML(m,isList){
-  const k=_reg(m), rat=m.rating||m.vote_average||'';
-  const playFn = m.type==='tv' ? 'openMod' : 'play';
-  const playCall = `${playFn}(_get('${k}'))`;
-  const modCall  = `openMod(_get('${k}'))`;
-  const addCall  = `addML(_get('${k}'))`;
-  const inML = ML.has(m.id);
-  const mlLbl = inML ? '✓' : '+';
-  if(isList) return `<div class="card lc" onclick="${modCall}"><div class="cth"><img class="ci" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555'"><div class="cov"><button class="cpl" onclick="event.stopPropagation();${playCall}">▶</button></div></div><div class="cif"><div class="cn">${m.title}</div><div class="cm"><span>${m.year||''}</span>${rat?`<span>·</span><span style="color:var(--green)">★ ${rat}</span>`:''}</div></div><div class="lacts"><button class="lb" onclick="event.stopPropagation();${playCall}">▶</button><button class="lb" onclick="event.stopPropagation();${addCall}">${mlLbl}</button></div></div>`;
-  return `<div class="card" onclick="${modCall}"><div class="cth"><img class="ci" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555&size=400'"><span class="ctyp ${m.type||'movie'}">${m.type==='tv'?'TV':'MOVIE'}</span>${rat?`<span class="crat">★ ${rat}</span>`:''}<div class="cov"><button class="cpl" onclick="event.stopPropagation();${playCall}">▶</button><button class="cad" onclick="event.stopPropagation();${addCall}">${mlLbl}</button></div></div><div class="cif"><div class="cn">${m.title}</div><div class="cm"><span>${m.year||''}</span></div></div></div>`;
-}
-function play(m, season, episode) {
-  // Fix: empty string is not a valid embed URL
-  let embedUrl = (m.embed_url && m.embed_url.trim()) ? m.embed_url.trim() : '';
-  const s = season  || 1;
-  const e = episode || 1;
-  if (!embedUrl) {
-    const tid = m.tmdb_id || m.id;
-    if (tid) embedUrl = (m.type==='tv')
-      ? `https://vidsrc.to/embed/tv/${tid}/${s}/${e}`
-      : `https://vidsrc.to/embed/movie/${tid}`;
-  }
-  const p = new URLSearchParams({
-    id:m.id||'', tmdb_id:m.tmdb_id||'', title:m.title,
-    type:m.type||'movie', year:m.year||'', quality:m.quality||'',
-    embed:embedUrl, poster:m.poster_url||'', backdrop:m.backdrop_url||'',
-    season:s, episode:e,
-  });
-  window.location.href = 'XverseMovies_Player.html?' + p.toString();
-}
-
-async function addML(m) {
-  const result = await ML.toggle(m);
-  if (result === null) return;
-  const activePg = document.querySelector('.bpg.active');
-  if (!activePg) return;
-  const pgId = activePg.id.replace('pg-', '');
-  if (pgId === 'tv')          renderTV();
-  else if (pgId === 'movies') renderMov();
-  else if (pgId === 'new') {
-    // FIX 5: was '.np-tab.active' — correct class is '.ptab.active'
-    const activeTab = document.querySelector('#pg-new .ptab.active');
-    const tab = activeTab?.textContent?.includes('Top') ? 'top10'
-              : activeTab?.textContent?.includes('New') ? 'new'
-              : 'watching';
-    renderNP(tab);
-  }
-}
-
-// ── EPISODE PICKER STATE ───────────────────
-let bModalMovie  = null;
-let bTvTmdbId    = null;
-let bTvSeasons   = [];
-
-function openMod(m) {
-  bModalMovie = m;
-  const isTV  = m.type === 'tv';
-  const match = Math.round(65 + parseFloat(m.rating || m.vote_average || 7) * 3.5);
-
-  document.getElementById('modImg').src             = m.backdrop_url || m.poster_url || '';
-  document.getElementById('modTit').textContent     = m.title;
-  document.getElementById('modMeta').innerHTML      = `
-    <span class="mmt">${match}% Match</span>
-    <span>${m.year||''}</span>
-    <span class="mce">${m.age_rating||'UA'}</span>
-    ${isTV ? '<span style="color:var(--muted)">TV Show</span>' : ''}
-    ${m.quality ? `<span style="background:rgba(70,211,105,.1);color:var(--green);font-size:.61rem;font-weight:700;padding:1px 6px;border-radius:3px">${m.quality}</span>` : ''}`;
-  document.getElementById('modOv').textContent      = m.overview || '';
-
-  // Play button label differs for TV
-  document.getElementById('mPlayBtn').textContent   = isTV ? '▶ Play S1 E1' : '▶ Play';
-  document.getElementById('mPlayBtn').onclick       = () => { closeMod(); play(m, 1, 1); };
-  document.getElementById('mAddBtn').onclick        = () => { addML(m); closeMod(); };
-
-  // Episode picker: show for TV, hide for movies
-  const epWrap = document.getElementById('bEpWrap');
-  if (isTV) {
-    epWrap.style.display = 'block';
-    bLoadTVSeasons(m);
-  } else {
-    epWrap.style.display = 'none';
-    bTvTmdbId  = null;
-    bTvSeasons = [];
-  }
-
-  document.getElementById('modBg').classList.add('open');
-}
-
-function closeMod() {
-  document.getElementById('modBg').classList.remove('open');
-}
-
-async function bLoadTVSeasons(m) {
-  const tmdbId = m.tmdb_id || (m.type === 'tv' ? m.id : null);
-  bTvTmdbId    = tmdbId;
-  const selEl  = document.getElementById('bEpSeasonSel');
-  const listEl = document.getElementById('bEpList');
-
-  listEl.innerHTML = `<div class="ep-loading">
-    <div class="ep-skel" style="height:13px;width:55%;margin:0 auto 7px"></div>
-    <div class="ep-skel" style="height:13px;width:38%;margin:0 auto"></div>
-  </div>`;
-
-  if (!tmdbId) {
-    listEl.innerHTML = `<div class="ep-loading" style="color:#ff6b6b">TMDB ID not set for this show.</div>`;
-    return;
-  }
-
-  const details = await TMDB.tvDetails(tmdbId);
-  if (!details) {
-    listEl.innerHTML = `<div class="ep-loading" style="color:#ff6b6b">Could not load episode data.</div>`;
-    return;
-  }
-
-  bTvSeasons = (details.seasons || []).filter(s => s.season_number > 0);
-  if (!bTvSeasons.length) bTvSeasons = details.seasons || [];
-
-  selEl.innerHTML = bTvSeasons
-    .map(s => `<option value="${s.season_number}">Season ${s.season_number} (${s.episode_count} eps)</option>`)
-    .join('');
-
-  await bLoadEpisodes(1);
-}
-
-async function bLoadEpisodes(seasonNum) {
-  const listEl = document.getElementById('bEpList');
-  const sn     = parseInt(seasonNum);
-
-  listEl.innerHTML = Array(4).fill(0).map(() => `
-    <div class="ep-item" style="pointer-events:none">
-      <div class="ep-num-badge"><div class="ep-skel" style="width:20px;height:22px"></div></div>
-      <div class="ep-thumb"><div class="ep-skel" style="width:100%;height:100%"></div></div>
-      <div class="ep-info">
-        <div class="ep-skel" style="height:13px;width:55%;margin-bottom:5px"></div>
-        <div class="ep-skel" style="height:11px;width:85%"></div>
-      </div>
-    </div>`).join('');
-
-  if (!bTvTmdbId) return;
-
-  // Update Play button to selected season
-  const playBtn = document.getElementById('mPlayBtn');
-  if (playBtn) {
-    playBtn.textContent = `▶ Play S${sn} E1`;
-    playBtn.onclick     = () => { closeMod(); play(bModalMovie, sn, 1); };
-  }
-
-  const data = await TMDB.tvSeason(bTvTmdbId, sn);
-
-  if (!data || !data.episodes?.length) {
-    listEl.innerHTML = `<div class="ep-loading">No episodes found for Season ${sn}.</div>`;
-    return;
-  }
-
-  listEl.innerHTML = data.episodes.map(ep => {
-    const thumb = ep.still_path ? `https://image.tmdb.org/t/p/w300${ep.still_path}` : null;
-    return `
-      <div class="ep-item" onclick="closeMod();play(bModalMovie,${sn},${ep.episode_number})">
-        <div class="ep-num-badge">${ep.episode_number}</div>
-        <div class="ep-thumb">
-          ${thumb
-            ? `<img src="${thumb}" alt="E${ep.episode_number}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=ep-thumb-ph>📺</div>'">`
-            : `<div class="ep-thumb-ph">📺</div>`}
-          <div class="ep-play-icon"><div>▶</div></div>
-        </div>
-        <div class="ep-info">
-          <div class="ep-title-row">
-            <div class="ep-title">${ep.name || 'Episode ' + ep.episode_number}</div>
-            ${ep.runtime ? `<div class="ep-runtime">${ep.runtime}m</div>` : ''}
-          </div>
-          <div class="ep-overview">${ep.overview || 'No description available.'}</div>
-        </div>
-      </div>`;
-  }).join('');
-}
-function skelG(n){ return `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px">${Array(n).fill(`<div class="sk" style="aspect-ratio:2/3;border-radius:5px"></div>`).join('')}</div>`; }
-document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeMod(); });
-</script>
-<script>if("serviceWorker"in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){});});}</script>
-
-<!-- MOBILE BOTTOM NAV — active tab set dynamically from URL hash -->
-<nav class="mob-nav" aria-label="Mobile navigation">
-  <a class="mnav-item" href="XverseMovies_Home.html" id="mn-home">
-    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-    <span class="mnav-lbl">Home</span>
-  </a>
-  <a class="mnav-item" href="XverseMovies_Browse.html#tv" id="mn-tv">
-    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
-    <span class="mnav-lbl">TV Shows</span>
-  </a>
-  <a class="mnav-item" href="XverseMovies_Browse.html#movies" id="mn-movies">
-    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
-    <span class="mnav-lbl">Movies</span>
-  </a>
-  <a class="mnav-item" href="XverseMovies_Browse.html#new" id="mn-new">
-    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/></svg>
-    <span class="mnav-lbl">New</span>
-  </a>
-  <a class="mnav-item" href="XverseMovies_MyList.html" id="mn-mylist">
-    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-    <span class="mnav-lbl">My List</span>
-  </a>
-</nav>
-<script>
-// Highlight correct tab based on current hash
-(function(){
-  var h = (location.hash||'').replace('#','');
-  var map = {tv:'mn-tv', movies:'mn-movies', new:'mn-new'};
-  var id  = map[h] || 'mn-tv';
-  var el  = document.getElementById(id);
-  if (el) el.classList.add('active');
-  // Update on hash change (when user switches tab within Browse)
-  window.addEventListener('hashchange', function(){
-    document.querySelectorAll('.mnav-item').forEach(function(i){ i.classList.remove('active'); });
-    var newH = (location.hash||'').replace('#','');
-    var newId = map[newH] || 'mn-tv';
-    var newEl = document.getElementById(newId);
-    if (newEl) newEl.classList.add('active');
-  });
-}());
-</script>
-</body>
-</html>
