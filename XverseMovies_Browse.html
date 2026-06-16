@@ -452,3 +452,301 @@ function setHero(type,m){
     +'<button class="btn-i" data-mk="'+k+'" onclick="openMod(_get(this.dataset.mk))">&#9432; Info</button>'
     +'</div>';
 }
+
+// ─────────────────────────────────────────────────────────────
+//  PILL CALLBACK REGISTRY  — CSP-safe alternative to eval
+//  buildPills stores the cb by id; onclick calls _pill(id, val)
+// ─────────────────────────────────────────────────────────────
+const _pillCB = {};
+function _pill(id, val) { if(_pillCB[id]) _pillCB[id](val); }
+
+function buildPills(id, list, cb) {
+  _pillCB[id] = cb;
+  var el = document.getElementById(id);
+  if (!el) return;
+  var h = '';
+  for (var i = 0; i < list.length; i++) {
+    var active = i === 0 ? ' on' : '';
+    h += '<button class="gpill' + active + '" data-pid="' + id + '" data-val="' + list[i] + '" onclick="_pill(this.dataset.pid,this.dataset.val);document.querySelectorAll(\'[data-pid=\\\'' + id + '\\\']\').forEach(function(b){b.classList.remove(\'on\')});this.classList.add(\'on\')">' + list[i] + '</button>';
+  }
+  el.innerHTML = h;
+}
+
+// ─────────────────────────────────────────────────────────────
+//  SKELETON  — loading placeholder cards
+// ─────────────────────────────────────────────────────────────
+function skelG(n) {
+  var h = '';
+  for (var i = 0; i < n; i++) {
+    h += '<div class="card skel"><div class="cth skel-box"></div><div class="cif"><div class="skel-line" style="width:70%;height:10px;margin:8px 0 4px;background:rgba(255,255,255,.08);border-radius:4px"></div><div class="skel-line" style="width:40%;height:9px;background:rgba(255,255,255,.05);border-radius:4px"></div></div></div>';
+  }
+  return h;
+}
+
+// ─────────────────────────────────────────────────────────────
+//  CARD HTML  — grid & list view
+// ─────────────────────────────────────────────────────────────
+function cHTML(m, isList) {
+  var k = _reg(m);
+  var rat = m.rating || m.vote_average || '';
+  var isTV = m.type === 'tv';
+  var tvFlag = isTV ? '1' : '0';
+  var inML = ML.has(m.id);
+  var mlLbl = inML ? '&#10003;' : '+';
+  var img = m.poster_url || '';
+  var title = m.title || '';
+  var year = m.year || '';
+  var typ = m.type || 'movie';
+  var ratHtml = rat ? '<span class="crat">&#9733; ' + rat + '</span>' : '';
+  var ratCm   = rat ? '<span style="color:var(--green)">&#9733; ' + rat + '</span>' : '';
+
+  if (isList) {
+    return '<div class="card lc" data-mk="' + k + '" onclick="openMod(_get(this.dataset.mk))">'
+      + '<div class="cth"><img class="ci" src="' + img + '" alt="" loading="lazy">'
+      + '<div class="cov"><button class="cpl" data-mk="' + k + '" data-tv="' + tvFlag + '" onclick="event.stopPropagation();_pc(this)">&#9654;</button></div></div>'
+      + '<div class="cif"><div class="cn">' + title + '</div>'
+      + '<div class="cm"><span>' + year + '</span>' + ratCm + '</div></div>'
+      + '<div class="lacts">'
+      + '<button class="lb" data-mk="' + k + '" data-tv="' + tvFlag + '" onclick="event.stopPropagation();_pc(this)">&#9654;</button>'
+      + '<button class="lb" data-mk="' + k + '" onclick="event.stopPropagation();_ac(this)">' + mlLbl + '</button>'
+      + '</div></div>';
+  }
+  return '<div class="card" data-mk="' + k + '" onclick="openMod(_get(this.dataset.mk))">'
+    + '<div class="cth"><img class="ci" src="' + img + '" alt="" loading="lazy">'
+    + '<span class="ctyp ' + typ + '">' + (isTV ? 'TV' : 'MOVIE') + '</span>'
+    + ratHtml
+    + '<div class="cov">'
+    + '<button class="cpl" data-mk="' + k + '" data-tv="' + tvFlag + '" onclick="event.stopPropagation();_pc(this)">&#9654;</button>'
+    + '<button class="cad" data-mk="' + k + '" onclick="event.stopPropagation();_ac(this)">' + mlLbl + '</button>'
+    + '</div></div>'
+    + '<div class="cif"><div class="cn">' + title + '</div><div class="cm"><span>' + year + '</span></div></div>'
+    + '</div>';
+}
+
+// ─────────────────────────────────────────────────────────────
+//  TOP 10 ROW
+// ─────────────────────────────────────────────────────────────
+function buildT10(elId, items) {
+  var h = '';
+  for (var i = 0; i < items.length; i++) {
+    var m = items[i], k = _reg(m);
+    h += '<div class="t10c" data-mk="' + k + '" onclick="openMod(_get(this.dataset.mk))">'
+       + '<div class="t10n">' + (i + 1) + '</div>'
+       + '<img class="t10p" src="' + (m.poster_url || '') + '" alt="" loading="lazy">'
+       + '</div>';
+  }
+  document.getElementById(elId).innerHTML = h;
+}
+
+// ─────────────────────────────────────────────────────────────
+//  MODAL — open / close
+// ─────────────────────────────────────────────────────────────
+var _modMovie = null;
+function openMod(m) {
+  if (!m) return;
+  _modMovie = m;
+  var bg = document.getElementById('modBg');
+  var mc = document.getElementById('modContent');
+  if (!bg || !mc) return;
+
+  var k = _reg(m);
+  var isTV = m.type === 'tv';
+  var tvFlag = isTV ? '1' : '0';
+  var inML = ML.has(m.id);
+  var mlLbl = inML ? '&#10003; In My List' : '+ My List';
+  var match = Math.round(65 + parseFloat(m.rating || m.vote_average || 7) * 3.5);
+
+  mc.innerHTML = ''
+    + (m.backdrop_url ? '<img class="mod-bd" src="' + m.backdrop_url + '" alt="">' : '')
+    + '<button class="mod-x" onclick="closeMod()">&#10005;</button>'
+    + '<div class="mod-body">'
+    + '<h2 class="mod-title">' + (m.title || '') + '</h2>'
+    + '<div class="mod-meta">'
+    + '<span class="h-match">' + match + '% Match</span>'
+    + '<span>' + (m.year || '') + '</span>'
+    + (m.age_rating ? '<span class="h-cert">' + m.age_rating + '</span>' : '')
+    + (isTV ? '<span>TV Show</span>' : '<span>Movie</span>')
+    + '</div>'
+    + '<div class="mod-ov">' + (m.overview || '') + '</div>'
+    + '<div class="mod-btns">'
+    + '<button class="btn-p" data-mk="' + k + '" data-tv="' + tvFlag + '" onclick="_pc(this)">&#9654; ' + (isTV ? 'Play S1 E1' : 'Play') + '</button>'
+    + '<button class="btn-ml" id="modMLBtn" data-mk="' + k + '" onclick="_acMod(this)">' + mlLbl + '</button>'
+    + '<button class="mod-close-btn" onclick="closeMod()">&#10005; Close</button>'
+    + '</div>';
+
+  // Episodes for TV shows
+  if (isTV && m.tmdb_id) {
+    mc.innerHTML += '<div id="modEps"><div class="ep-hd">Episodes</div><div id="epList" style="color:rgba(255,255,255,.4);font-size:.8rem;padding:10px 0">Loading episodes...</div></div>';
+    loadEpisodes(m);
+  }
+
+  mc.innerHTML += '</div>';
+  bg.classList.add('open');
+}
+
+function closeMod() {
+  var bg = document.getElementById('modBg');
+  if (bg) bg.classList.remove('open');
+  _modMovie = null;
+}
+
+// Update ML button inside modal without closing it
+async function _acMod(btn) {
+  var m = _get(btn.dataset.mk);
+  if (!m) return;
+  var result = await ML.toggle(m);
+  if (result === null) return;
+  btn.innerHTML = result ? '&#10003; In My List' : '+ My List';
+}
+
+// ─────────────────────────────────────────────────────────────
+//  EPISODE LOADER
+// ─────────────────────────────────────────────────────────────
+async function loadEpisodes(m) {
+  var el = document.getElementById('epList');
+  if (!el) return;
+  try {
+    var details = await TMDB.tvDetails(m.tmdb_id);
+    var seasons = (details.seasons || []).filter(function(s){ return s.season_number > 0; });
+    if (!seasons.length) { el.innerHTML = 'No episode data found.'; return; }
+
+    // Season selector
+    var selHtml = '<select id="epSeasSel" onchange="loadSeasonEps(' + m.id + ',' + m.tmdb_id + ',this.value)" style="background:#1a1a1a;color:#fff;border:1px solid rgba(255,255,255,.15);padding:6px 10px;border-radius:6px;font-size:.8rem;margin-bottom:12px">';
+    for (var i = 0; i < seasons.length; i++) {
+      selHtml += '<option value="' + seasons[i].season_number + '">Season ' + seasons[i].season_number + ' (' + (seasons[i].episode_count || '?') + ' eps)</option>';
+    }
+    selHtml += '</select>';
+    el.innerHTML = selHtml + '<div id="epItems"></div>';
+    loadSeasonEps(m.id, m.tmdb_id, 1);
+  } catch(e) {
+    el.innerHTML = 'Could not load episodes.';
+  }
+}
+
+async function loadSeasonEps(dbId, tmdbId, season) {
+  var el = document.getElementById('epItems');
+  if (!el) return;
+  el.innerHTML = '<div style="color:rgba(255,255,255,.35);font-size:.8rem;padding:8px 0">Loading...</div>';
+  try {
+    var data = await TMDB.fetch('/tv/' + tmdbId + '/season/' + season);
+    var eps = data.episodes || [];
+    var h = '';
+    for (var i = 0; i < eps.length; i++) {
+      var ep = eps[i];
+      var thumb = ep.still_path ? 'https://image.tmdb.org/t/p/w300' + ep.still_path : '';
+      var sn = parseInt(season), en = ep.episode_number;
+      h += '<div class="ep-row" style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer;align-items:flex-start" '
+         + 'onclick="playEp(' + (dbId||'null') + ',' + tmdbId + ',' + sn + ',' + en + ')">'
+         + (thumb ? '<img style="width:100px;height:58px;object-fit:cover;border-radius:4px;flex-shrink:0" src="' + thumb + '" alt="">' : '<div style="width:100px;height:58px;background:#222;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.4rem">▶</div>')
+         + '<div><div style="font-size:.83rem;font-weight:600;color:#fff;margin-bottom:3px">' + en + '. ' + (ep.name || 'Episode ' + en) + '</div>'
+         + '<div style="font-size:.72rem;color:rgba(255,255,255,.4)">' + (ep.runtime ? ep.runtime + 'm · ' : '') + (ep.overview ? ep.overview.slice(0,100) + '...' : '') + '</div></div>'
+         + '</div>';
+    }
+    el.innerHTML = h || '<div style="color:rgba(255,255,255,.35);font-size:.8rem">No episodes found.</div>';
+  } catch(e) {
+    el.innerHTML = '<div style="color:rgba(255,255,255,.35);font-size:.8rem">Could not load episodes.</div>';
+  }
+}
+
+function playEp(dbId, tmdbId, season, episode) {
+  var p = new URLSearchParams();
+  if (dbId && dbId !== 'null') p.set('id', dbId);
+  p.set('tmdb_id', tmdbId); p.set('type','tv');
+  p.set('season', season); p.set('episode', episode);
+  if (_modMovie) {
+    p.set('title', _modMovie.title||'');
+    p.set('year', _modMovie.year||'');
+    p.set('poster', _modMovie.poster_url||'');
+  }
+  window.location.href = 'XverseMovies_Player.html?' + p.toString();
+}
+
+// ─────────────────────────────────────────────────────────────
+//  PLAY  — navigate to player
+// ─────────────────────────────────────────────────────────────
+function play(m, season, episode) {
+  if (!m) return;
+  if (m.type === 'tv') { openMod(m); return; }
+  var p = new URLSearchParams();
+  if (m.id)       p.set('id',       m.id);
+  if (m.tmdb_id)  p.set('tmdb_id',  m.tmdb_id);
+  p.set('type',    m.type || 'movie');
+  p.set('title',   m.title || '');
+  p.set('year',    m.year  || '');
+  p.set('poster',  m.poster_url   || '');
+  p.set('backdrop',m.backdrop_url || '');
+  p.set('age',     m.age_rating   || '');
+  p.set('dur',     m.duration     || '');
+  p.set('quality', m.quality      || '');
+  p.set('minPlan', m.min_plan     || 'free');
+  if (m.embed_url)  p.set('embed', m.embed_url);
+  if (season)   p.set('season',  season);
+  if (episode)  p.set('episode', episode);
+  window.location.href = 'XverseMovies_Player.html?' + p.toString();
+}
+
+// ─────────────────────────────────────────────────────────────
+//  ADD TO MY LIST
+// ─────────────────────────────────────────────────────────────
+async function addML(m) {
+  if (!m) return;
+  var result = await ML.toggle(m);
+  if (result === null) return;
+  // Re-render current visible page to update +/✓ indicators
+  var activePg = document.querySelector('.bpg.active');
+  if (!activePg) return;
+  var pgId = activePg.id.replace('pg-', '');
+  if (pgId === 'tv')           renderTV();
+  else if (pgId === 'movies')  renderMov();
+  else if (pgId === 'new') {
+    var at = document.querySelector('#pg-new .ptab.active');
+    renderNP(at && at.textContent.indexOf('Top') >= 0 ? 'top10'
+           : at && at.textContent.indexOf('New') >= 0 ? 'new' : 'watching');
+  }
+}
+
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeMod(); });
+
+</script>
+
+<!-- MOBILE BOTTOM NAV -->
+<nav class="mob-nav" aria-label="Mobile navigation">
+  <a class="mnav-item" href="XverseMovies_Home.html">
+    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+    <span class="mnav-lbl">Home</span>
+  </a>
+  <a class="mnav-item" href="XverseMovies_Browse.html#tv" id="mn-tv">
+    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
+    <span class="mnav-lbl">TV Shows</span>
+  </a>
+  <a class="mnav-item" href="XverseMovies_Browse.html#movies" id="mn-movies">
+    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
+    <span class="mnav-lbl">Movies</span>
+  </a>
+  <a class="mnav-item" href="XverseMovies_Browse.html#new" id="mn-new">
+    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/></svg>
+    <span class="mnav-lbl">New</span>
+  </a>
+  <a class="mnav-item" href="XverseMovies_MyList.html">
+    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+    <span class="mnav-lbl">My List</span>
+  </a>
+</nav>
+<script>
+// Highlight active mobile nav tab from hash
+(function(){
+  var h=(location.hash||'').replace('#','');
+  var map={tv:'mn-tv',movies:'mn-movies',new:'mn-new'};
+  var el=document.getElementById(map[h]||'mn-tv');
+  if(el) el.classList.add('active');
+  window.addEventListener('hashchange',function(){
+    document.querySelectorAll('.mnav-item').forEach(function(i){i.classList.remove('active');});
+    var nh=(location.hash||'').replace('#','');
+    var nel=document.getElementById(map[nh]||'mn-tv');
+    if(nel) nel.classList.add('active');
+  });
+}());
+if('serviceWorker'in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}
+</script>
+</body>
+</html>
