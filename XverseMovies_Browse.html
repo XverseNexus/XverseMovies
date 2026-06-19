@@ -453,83 +453,47 @@ function setHero(type,m){
     +'</div>';
 }
 
-    <div class="mb" id="modBody">
-      <div class="mt" id="modTitle"></div>
-      <div class="mm" id="modMeta"></div>
-      <div class="mov" id="modOv"></div>
-      <div class="mac">
-        <button class="mpl" id="modPlayBtn">&#9654; Play</button>
-        <button class="mad" id="modMLBtn">+ My List</button>
-        <button class="mad" onclick="closeMod()">&#10005; Close</button>
-      </div>
-      <!-- Episode picker (TV only) -->
-      <div class="ep-wrap" id="modEpWrap" style="display:none">
-        <div class="ep-hd">
-          <span class="ep-hd-title">Episodes</span>
-          <select class="ep-season-sel" id="epSeasSel" onchange="loadSeasonEps(this.value)"></select>
-        </div>
-        <div class="ep-list" id="epList"></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-'use strict';
-let currentUser = null;
-let tvData=[], movData=[], npItems=[];
-let tvV='grid', movV='grid';
-let tvPage=0, movPage=0;
-let tvF={lang:'',genre:'',sort:''}, movF={lang:'',genre:'',sort:''};
-const PS=20;
-const TVGENRES=['All','Drama','Action','Comedy','Thriller','Sci-Fi','Horror','Fantasy','Anime','Crime','Hindi','Korean'];
-const MOVGENRES=['All','Action','Drama','Comedy','Horror','Sci-Fi','Romance','Thriller','Animation','Crime','Hindi','Telugu','Tamil'];
-const LANGS=[{code:'hi',name:'Hindi',icon:'🇮🇳',count:1800,bg:'#5c1a1a'},{code:'en',name:'English',icon:'🇬🇧',count:4200,bg:'#1a3a5c'},{code:'te',name:'Telugu',icon:'🎭',count:650,bg:'#3a3a1a'},{code:'ta',name:'Tamil',icon:'🌺',count:580,bg:'#1a3a2a'},{code:'kn',name:'Kannada',icon:'🦁',count:320,bg:'#2a1a3a'},{code:'ml',name:'Malayalam',icon:'🌴',count:410,bg:'#1a2a3a'},{code:'ko',name:'Korean',icon:'🇰🇷',count:730,bg:'#1a1a5c'},{code:'ja',name:'Japanese',icon:'🇯🇵',count:890,bg:'#3a1a1a'}];
-
-// ── MOVIE REGISTRY ─ no JSON-in-onclick, no eval, no CSP issues ──
-const _MR=new Map(); let _seq=0;
-function _reg(m){ var k=m.id?('d'+m.id):m.tmdb_id?('t'+m.tmdb_id):('s'+(++_seq)); _MR.set(k,m); return k; }
-function _get(k){ return _MR.get(k)||null; }
-function _pc(el){ var m=_get(el.dataset.mk); if(!m) return; if(el.dataset.tv==='1') openMod(m); else play(m); }
-function _ac(el){ var m=_get(el.dataset.mk); if(m) addML(m); }
-
-// ── PILL REGISTRY ─ CSP-safe callbacks (no eval) ──────────────
-const _pillCB={};
-function _pill(id,val){
-  if(_pillCB[id]) _pillCB[id](val);
-  // Update active state
+// ── PILL REGISTRY — CSP-safe, no eval ─────────────────────────
+const _pillCB = {};
+function _pill(id, val) {
+  if (_pillCB[id]) _pillCB[id](val);
   document.querySelectorAll('[data-pid="'+id+'"]').forEach(function(b){
-    b.classList.toggle('on', b.dataset.val===val);
+    b.classList.toggle('on', b.dataset.val === val);
   });
 }
-function buildPills(id,list,cb){
-  _pillCB[id]=cb;
-  var el=document.getElementById(id); if(!el) return;
-  var h='';
-  for(var i=0;i<list.length;i++){
-    h+='<button class="gp'+(i===0?' on':'')+'" data-pid="'+id+'" data-val="'+list[i]+'" onclick="_pill(this.dataset.pid,this.dataset.val)">'+list[i]+'</button>';
+function buildPills(id, list, cb) {
+  _pillCB[id] = cb;
+  var el = document.getElementById(id); if (!el) return;
+  var h = '';
+  for (var i = 0; i < list.length; i++) {
+    h += '<button class="gp'+(i===0?' on':'')+'" data-pid="'+id+'" data-val="'
+       + list[i]+'" onclick="_pill(this.dataset.pid,this.dataset.val)">'+list[i]+'</button>';
   }
-  el.innerHTML=h;
+  el.innerHTML = h;
 }
 
 // ── SKELETON ──────────────────────────────────────────────────
-function skelG(n){
-  var h='';
-  for(var i=0;i<n;i++){
-    h+='<div class="card sk" style="aspect-ratio:2/3"><div style="width:100%;height:100%;background:linear-gradient(90deg,#222 25%,#2a2a2a 50%,#222 75%);background-size:200% 100%;animation:ska 1.4s infinite;border-radius:5px"></div></div>';
+function skelG(n) {
+  var h = '';
+  for (var i = 0; i < n; i++) {
+    h += '<div class="card sk"><div style="width:100%;padding-top:150%;position:relative">'
+       + '<div style="position:absolute;inset:0;background:linear-gradient(90deg,#222 25%,#2a2a2a 50%,#222 75%);'
+       + 'background-size:200% 100%;animation:ska 1.4s ease infinite;border-radius:4px"></div></div></div>';
   }
   return h;
 }
 
 // ── CARD HTML ─────────────────────────────────────────────────
-function cHTML(m,isList){
-  var k=_reg(m), rat=m.rating||m.vote_average||'';
-  var isTV=m.type==='tv', tvF=isTV?'1':'0';
-  var inML=ML.has(m.id), mlLbl=inML?'&#10003;':'+';
-  var img=m.poster_url||'', title=m.title||'', year=m.year||'', typ=m.type||'movie';
-  var ratH=rat?'<span class="crat">&#9733; '+rat+'</span>':'';
-  var ratC=rat?'<span style="color:var(--green)">&#9733; '+rat+'</span>':'';
-  if(isList){
+function cHTML(m, isList) {
+  var k = _reg(m);
+  var rat = m.rating || m.vote_average || '';
+  var isTV = m.type === 'tv', tvF = isTV ? '1' : '0';
+  var inML = ML.has(m.id), mlLbl = inML ? '&#10003;' : '+';
+  var img = m.poster_url || '', title = m.title || '';
+  var year = m.year || '', typ = m.type || 'movie';
+  var ratH = rat ? '<span class="crat">&#9733; '+rat+'</span>' : '';
+  var ratC = rat ? '<span style="color:var(--green)">&#9733; '+rat+'</span>' : '';
+  if (isList) {
     return '<div class="card lc" data-mk="'+k+'" onclick="openMod(_get(this.dataset.mk))">'
       +'<div class="cth"><img class="ci" src="'+img+'" alt="" loading="lazy">'
       +'<div class="cov"><button class="cpl" data-mk="'+k+'" data-tv="'+tvF+'" onclick="event.stopPropagation();_pc(this)">&#9654;</button></div></div>'
@@ -551,169 +515,183 @@ function cHTML(m,isList){
 }
 
 // ── TOP 10 ────────────────────────────────────────────────────
-function buildT10(elId,items){
-  var h='';
-  for(var i=0;i<items.length;i++){
-    var m=items[i], k=_reg(m);
-    h+='<div class="t10c" data-mk="'+k+'" onclick="openMod(_get(this.dataset.mk))">'
-      +'<div class="t10n">'+(i+1)+'</div>'
-      +'<img class="t10p" src="'+(m.poster_url||'')+'" alt="" loading="lazy">'
-      +'</div>';
+function buildT10(elId, items) {
+  var h = '';
+  for (var i = 0; i < items.length; i++) {
+    var m = items[i], k = _reg(m);
+    h += '<div class="t10c" data-mk="'+k+'" onclick="openMod(_get(this.dataset.mk))">'
+       + '<div class="t10n">'+(i+1)+'</div>'
+       + '<img class="t10p" src="'+(m.poster_url||'')+'" alt="" loading="lazy"></div>';
   }
-  document.getElementById(elId).innerHTML=h;
+  var el = document.getElementById(elId);
+  if (el) el.innerHTML = h;
 }
 
-// ── MODAL ─────────────────────────────────────────────────────
-var _curMovie=null;
+// ── MODAL — uses existing HTML IDs from the page ──────────────
+// IDs in HTML: modBg, modImg, modTit, modMeta, modOv,
+//              mPlayBtn, mAddBtn, bEpWrap, bEpSeasonSel, bEpList
+var _curMovie = null;
 
-function openMod(m){
-  if(!m) return;
-  _curMovie=m;
-  var isTV=m.type==='tv', k=_reg(m), tvF=isTV?'1':'0';
-  var match=Math.round(65+parseFloat(m.rating||m.vote_average||7)*3.5);
-  var inML=ML.has(m.id);
+function openMod(m) {
+  if (!m) return;
+  _curMovie = m;
+  var isTV = m.type === 'tv', k = _reg(m), tvF = isTV ? '1' : '0';
+  var match = Math.round(65 + parseFloat(m.rating || m.vote_average || 7) * 3.5);
+  var inML = ML.has(m.id);
 
-  document.getElementById('modImg').src=m.backdrop_url||m.poster_url||'';
-  document.getElementById('modTitle').textContent=m.title||'';
-  document.getElementById('modMeta').innerHTML=
+  // Fill modal elements
+  var imgEl = document.getElementById('modImg');
+  if (imgEl) imgEl.src = m.backdrop_url || m.poster_url || '';
+
+  var titEl = document.getElementById('modTit');
+  if (titEl) titEl.textContent = m.title || '';
+
+  var metaEl = document.getElementById('modMeta');
+  if (metaEl) metaEl.innerHTML =
     '<span class="mmt">'+match+'% Match</span>'
-    +(m.year?'<span>'+m.year+'</span>':'')
-    +(m.age_rating?'<span class="mce">'+m.age_rating+'</span>':'')
-    +'<span>'+(isTV?'TV Show':'Movie')+'</span>'
-    +(m.quality?'<span style="background:rgba(70,211,105,.12);color:var(--green);font-size:.65rem;font-weight:700;padding:2px 7px;border-radius:3px">'+m.quality+'</span>':'');
-  document.getElementById('modOv').textContent=m.overview||'';
+    +(m.year ? '<span>'+m.year+'</span>' : '')
+    +(m.age_rating ? '<span class="mce">'+m.age_rating+'</span>' : '')
+    +'<span>'+(isTV ? 'TV Show' : 'Movie')+'</span>'
+    +(m.quality ? '<span style="background:rgba(70,211,105,.12);color:var(--green);font-size:.65rem;font-weight:700;padding:2px 7px;border-radius:3px">'+m.quality+'</span>' : '');
+
+  var ovEl = document.getElementById('modOv');
+  if (ovEl) ovEl.textContent = m.overview || '';
 
   // Play button
-  var playBtn=document.getElementById('modPlayBtn');
-  playBtn.dataset.mk=k; playBtn.dataset.tv=tvF;
-  playBtn.innerHTML='&#9654; '+(isTV?'Play S1 E1':'Play');
-  playBtn.onclick=function(){ if(this.dataset.tv==='1') playEp(_curMovie,1,1); else play(_curMovie); };
+  var playBtn = document.getElementById('mPlayBtn');
+  if (playBtn) {
+    playBtn.dataset.mk = k; playBtn.dataset.tv = tvF;
+    playBtn.textContent = isTV ? '▶ Play S1 E1' : '▶ Play';
+    playBtn.onclick = function() {
+      if (_curMovie && _curMovie.type === 'tv') bPlayEp(1, 1); else play(_curMovie);
+    };
+  }
 
-  // ML button
-  var mlBtn=document.getElementById('modMLBtn');
-  mlBtn.dataset.mk=k;
-  mlBtn.innerHTML=inML?'&#10003; In My List':'+ My List';
-  mlBtn.onclick=async function(){
-    var result=await ML.toggle(_curMovie);
-    if(result===null) return;
-    this.innerHTML=result?'&#10003; In My List':'+ My List';
-    // Update any card button with same key
-    document.querySelectorAll('[data-mk="'+k+'"]').forEach(function(el){
-      if(el.classList.contains('cad')||el.classList.contains('lb')) el.innerHTML=result?'&#10003;':'+';
-    });
-  };
+  // My List button
+  var mlBtn = document.getElementById('mAddBtn');
+  if (mlBtn) {
+    mlBtn.innerHTML = inML ? '&#10003; In My List' : '＋ My List';
+    mlBtn.onclick = async function() {
+      var r = await ML.toggle(_curMovie);
+      if (r === null) return;
+      this.innerHTML = r ? '&#10003; In My List' : '＋ My List';
+      document.querySelectorAll('[data-mk="'+k+'"]').forEach(function(el){
+        if (el.classList.contains('cad') || el.classList.contains('lb'))
+          el.innerHTML = r ? '&#10003;' : '+';
+      });
+    };
+  }
 
-  // Episode picker
-  var epWrap=document.getElementById('modEpWrap');
-  epWrap.style.display=isTV?'block':'none';
-  if(isTV && m.tmdb_id) loadEpisodesMod(m);
+  // Episode picker visibility
+  var epWrap = document.getElementById('bEpWrap');
+  if (epWrap) {
+    epWrap.style.display = isTV ? 'block' : 'none';
+    if (isTV && m.tmdb_id) bLoadSeasons(m);
+  }
 
   document.getElementById('modBg').classList.add('open');
-  document.body.style.overflow='hidden';
+  document.body.style.overflow = 'hidden';
 }
 
-function closeMod(){
-  document.getElementById('modBg').classList.remove('open');
-  document.body.style.overflow='';
-  _curMovie=null;
+function closeMod() {
+  var bg = document.getElementById('modBg');
+  if (bg) bg.classList.remove('open');
+  document.body.style.overflow = '';
+  _curMovie = null;
 }
 
 // ── EPISODE LOADER ────────────────────────────────────────────
-var _curTmdbId=null;
-
-async function loadEpisodesMod(m){
-  _curTmdbId=m.tmdb_id;
-  var sel=document.getElementById('epSeasSel');
-  var list=document.getElementById('epList');
-  sel.innerHTML=''; list.innerHTML='<div class="ep-loading">Loading episodes...</div>';
-  try{
-    var d=await TMDB.tvDetails(m.tmdb_id);
-    var seasons=(d.seasons||[]).filter(function(s){return s.season_number>0;});
-    if(!seasons.length){list.innerHTML='<div class="ep-loading">No episodes found.</div>';return;}
-    sel.innerHTML=seasons.map(function(s){
+async function bLoadSeasons(m) {
+  var sel = document.getElementById('bEpSeasonSel');
+  var list = document.getElementById('bEpList');
+  if (!sel || !list) return;
+  sel.innerHTML = ''; list.innerHTML = '<div style="padding:12px;color:rgba(255,255,255,.4);font-size:.8rem">Loading...</div>';
+  try {
+    var d = await TMDB.tvDetails(m.tmdb_id);
+    var seasons = (d.seasons||[]).filter(function(s){ return s.season_number > 0; });
+    if (!seasons.length) { list.innerHTML='<div style="padding:12px;color:rgba(255,255,255,.4);font-size:.8rem">No seasons found.</div>'; return; }
+    sel.innerHTML = seasons.map(function(s){
       return '<option value="'+s.season_number+'">Season '+s.season_number+' ('+s.episode_count+' eps)</option>';
     }).join('');
-    loadSeasonEps(1);
-  }catch(e){ list.innerHTML='<div class="ep-loading">Could not load episodes.</div>'; }
+    bLoadEpisodes(1);
+  } catch(e) { list.innerHTML = '<div style="padding:12px;color:rgba(255,255,255,.4);font-size:.8rem">Could not load.</div>'; }
 }
 
-async function loadSeasonEps(season){
-  var list=document.getElementById('epList');
-  if(!list||!_curTmdbId) return;
-  list.innerHTML='<div class="ep-loading">Loading...</div>';
-  try{
-    var d=await TMDB.fetch('/tv/'+_curTmdbId+'/season/'+season);
-    var eps=d.episodes||[];
-    if(!eps.length){list.innerHTML='<div class="ep-loading">No episodes.</div>';return;}
-    var h='';
-    for(var i=0;i<eps.length;i++){
-      var ep=eps[i];
-      var thumb=ep.still_path?'https://image.tmdb.org/t/p/w300'+ep.still_path:'';
-      var sn=parseInt(season), en=ep.episode_number;
-      h+='<div class="ep-item" onclick="playEp(_curMovie,'+sn+','+en+')">'
-        +'<div class="ep-num-badge">'+en+'</div>'
-        +'<div class="ep-thumb">'
-        +(thumb?'<img src="'+thumb+'" alt="" loading="lazy"><div class="ep-play-icon"><div>&#9654;</div></div>'
-               :'<div class="ep-thumb-ph">&#9654;</div>')
-        +'</div>'
-        +'<div class="ep-info">'
-        +'<div class="ep-title-row"><div class="ep-title">'+(ep.name||'Episode '+en)+'</div>'
-        +(ep.runtime?'<div class="ep-runtime">'+ep.runtime+'m</div>':'')
-        +'</div>'
-        +(ep.overview?'<div class="ep-overview">'+ep.overview+'</div>':'')
-        +'</div></div>';
+async function bLoadEpisodes(season) {
+  var list = document.getElementById('bEpList');
+  if (!list || !_curMovie) return;
+  list.innerHTML = '<div style="padding:12px;color:rgba(255,255,255,.4);font-size:.8rem">Loading episodes...</div>';
+  try {
+    var d = await TMDB.fetch('/tv/'+_curMovie.tmdb_id+'/season/'+season);
+    var eps = d.episodes || [];
+    if (!eps.length) { list.innerHTML='<div style="padding:12px;color:rgba(255,255,255,.4);font-size:.8rem">No episodes.</div>'; return; }
+    var sn = parseInt(season), h = '';
+    for (var i = 0; i < eps.length; i++) {
+      var ep = eps[i], en = ep.episode_number;
+      var thumb = ep.still_path ? 'https://image.tmdb.org/t/p/w300'+ep.still_path : '';
+      h += '<div class="ep-row" onclick="bPlayEp('+sn+','+en+')">'
+        + '<div class="ep-num">'+en+'</div>'
+        + '<div class="ep-thumb">'
+        + (thumb ? '<img src="'+thumb+'" alt="" loading="lazy"><div class="ep-play">&#9654;</div>' : '<div class="ep-nothumb">&#9654;</div>')
+        + '</div>'
+        + '<div class="ep-info"><div class="ep-title-row">'
+        + '<span class="ep-name">'+(ep.name||'Episode '+en)+'</span>'
+        + (ep.runtime ? '<span class="ep-rt">'+ep.runtime+'m</span>' : '')
+        + '</div>'
+        + (ep.overview ? '<div class="ep-ov">'+ep.overview.slice(0,120)+(ep.overview.length>120?'...':'')+'</div>' : '')
+        + '</div></div>';
     }
-    list.innerHTML=h;
-  }catch(e){ list.innerHTML='<div class="ep-loading">Could not load episodes.</div>'; }
+    list.innerHTML = h;
+  } catch(e) { list.innerHTML = '<div style="padding:12px;color:rgba(255,255,255,.4);font-size:.8rem">Could not load episodes.</div>'; }
 }
 
-function playEp(m,season,episode){
-  if(!m) return;
-  var p=new URLSearchParams();
-  if(m.id) p.set('id',m.id);
-  if(m.tmdb_id) p.set('tmdb_id',m.tmdb_id);
+function bPlayEp(season, episode) {
+  var m = _curMovie; if (!m) return;
+  var p = new URLSearchParams();
+  if (m.id) p.set('id', m.id);
+  if (m.tmdb_id) p.set('tmdb_id', m.tmdb_id);
   p.set('type','tv'); p.set('season',season); p.set('episode',episode);
   p.set('title',m.title||''); p.set('year',m.year||'');
   p.set('poster',m.poster_url||''); p.set('backdrop',m.backdrop_url||'');
   p.set('age',m.age_rating||''); p.set('quality',m.quality||'');
   p.set('minPlan',m.min_plan||'free');
-  if(m.embed_url) p.set('embed',m.embed_url);
+  if (m.embed_url) p.set('embed',m.embed_url);
   closeMod();
-  window.location.href='XverseMovies_Player.html?'+p.toString();
+  window.location.href = 'XverseMovies_Player.html?'+p.toString();
 }
 
 // ── PLAY ──────────────────────────────────────────────────────
-function play(m){
-  if(!m) return;
-  if(m.type==='tv'){ openMod(m); return; }
-  var p=new URLSearchParams();
-  if(m.id) p.set('id',m.id);
-  if(m.tmdb_id) p.set('tmdb_id',m.tmdb_id);
-  p.set('type',m.type||'movie'); p.set('title',m.title||''); p.set('year',m.year||'');
+function play(m) {
+  if (!m) return;
+  if (m.type === 'tv') { openMod(m); return; }
+  var p = new URLSearchParams();
+  if (m.id) p.set('id', m.id);
+  if (m.tmdb_id) p.set('tmdb_id', m.tmdb_id);
+  p.set('type', m.type||'movie'); p.set('title',m.title||''); p.set('year',m.year||'');
   p.set('poster',m.poster_url||''); p.set('backdrop',m.backdrop_url||'');
   p.set('age',m.age_rating||''); p.set('dur',m.duration||'');
   p.set('quality',m.quality||''); p.set('minPlan',m.min_plan||'free');
-  if(m.embed_url) p.set('embed',m.embed_url);
-  window.location.href='XverseMovies_Player.html?'+p.toString();
+  if (m.embed_url) p.set('embed',m.embed_url);
+  window.location.href = 'XverseMovies_Player.html?'+p.toString();
 }
 
 // ── ADD TO MY LIST ────────────────────────────────────────────
-async function addML(m){
-  if(!m) return;
-  var result=await ML.toggle(m);
-  if(result===null) return;
-  var pg=document.querySelector('.bpg.active');
-  if(!pg) return;
-  var pgId=pg.id.replace('pg-','');
-  if(pgId==='tv') renderTV();
-  else if(pgId==='movies') renderMov();
-  else if(pgId==='new'){
-    var at=document.querySelector('#pg-new .ptab.active');
+async function addML(m) {
+  if (!m) return;
+  var result = await ML.toggle(m);
+  if (result === null) return;
+  var pg = document.querySelector('.bpg.active');
+  if (!pg) return;
+  var pgId = pg.id.replace('pg-','');
+  if (pgId==='tv') renderTV();
+  else if (pgId==='movies') renderMov();
+  else if (pgId==='new') {
+    var at = document.querySelector('#pg-new .ptab.active');
     renderNP(at&&at.textContent.indexOf('Top')>=0?'top10':at&&at.textContent.indexOf('New')>=0?'new':'watching');
   }
 }
 
-document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeMod(); });
+document.addEventListener('keydown', function(e){ if (e.key==='Escape') closeMod(); });
 </script>
 
 <!-- MOBILE BOTTOM NAV -->
