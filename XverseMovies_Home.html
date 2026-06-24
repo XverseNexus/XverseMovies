@@ -76,11 +76,11 @@ nav.solid{background:rgba(8,8,8,.97);backdrop-filter:blur(10px);border-bottom:1p
 .row-title{font-size:1.08rem;font-weight:700;color:#fff}
 .row-see-all{font-size:.78rem;color:var(--muted);cursor:pointer;background:none;border:none;font-family:'Barlow',sans-serif;transition:color .2s}
 .row-see-all:hover{color:#fff}
-.cards-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none}
+.cards-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
 .cards-scroll::-webkit-scrollbar{display:none}
 
 /* ── CARD ── */
-.card{flex-shrink:0;width:155px;border-radius:5px;overflow:hidden;background:var(--card);border:1px solid var(--border);cursor:pointer;transition:transform .22s,border-color .22s,box-shadow .22s;position:relative}
+.card{flex-shrink:0;width:155px;border-radius:5px;overflow:hidden;background:var(--card);border:1px solid var(--border);cursor:pointer;transition:transform .22s,border-color .22s,box-shadow .22s;position:relative;scroll-snap-align:start}
 .card:hover{transform:scale(1.07);border-color:rgba(255,255,255,.28);box-shadow:0 8px 32px rgba(0,0,0,.7);z-index:4}
 .card-img-wrap{position:relative;aspect-ratio:2/3;overflow:hidden}
 .card-img{width:100%;height:100%;object-fit:cover;background:#222;display:block;transition:filter .22s}
@@ -101,7 +101,7 @@ nav.solid{background:rgba(8,8,8,.97);backdrop-filter:blur(10px);border-bottom:1p
 .card-meta{font-size:.66rem;color:var(--muted);display:flex;gap:5px}
 
 /* ── CONTINUE WATCHING CARD ── */
-.cw-card{flex-shrink:0;width:220px;border-radius:5px;overflow:hidden;background:var(--card);border:1px solid var(--border);cursor:pointer;transition:transform .2s,border-color .2s;position:relative}
+.cw-card{flex-shrink:0;width:220px;border-radius:5px;overflow:hidden;background:var(--card);border:1px solid var(--border);cursor:pointer;transition:transform .2s,border-color .2s;position:relative;scroll-snap-align:start}
 .cw-card:hover{transform:scale(1.04);border-color:rgba(255,255,255,.28)}
 .cw-thumb-wrap{position:relative;height:126px;overflow:hidden}
 .cw-thumb{width:100%;height:100%;object-fit:cover;background:#222;display:block;transition:filter .2s}
@@ -119,7 +119,7 @@ nav.solid{background:rgba(8,8,8,.97);backdrop-filter:blur(10px);border-bottom:1p
 .cw-remove:hover{background:rgba(229,9,20,.7);color:#fff}
 
 /* ── TOP 10 ── */
-.t10-wrap{display:flex;gap:0;overflow-x:auto;padding-bottom:8px;scrollbar-width:none}
+.t10-wrap{display:flex;gap:0;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
 .t10-wrap::-webkit-scrollbar{display:none}
 .t10-card{flex-shrink:0;display:flex;align-items:flex-end;cursor:pointer;transition:transform .2s}
 .t10-card:hover{transform:scale(1.04);z-index:3}
