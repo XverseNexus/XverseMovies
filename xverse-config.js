@@ -370,7 +370,7 @@ const TMDB = {
       rating:       item.vote_average?.toFixed(1),
       overview:     item.overview,
       poster_url:   TMDB.img(item.poster_path),
-      backdrop_url: TMDB.img(item.backdrop_path, 'w1280'),
+      backdrop_url: TMDB.img(item.backdrop_path, 'original'),
       genres:       [],
     };
   },
