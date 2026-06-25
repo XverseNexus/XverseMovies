@@ -455,6 +455,79 @@ html,body{
 #mobileNotice.show{
   opacity:1;
 }
+
+/* ── SKIP INTRO BUTTON ──────────────────────────────────────────
+   Shown 15s–75s after video load (TV shows only).
+   Positioned bottom-right, outside the menu overlay.              */
+#skipIntroBtn{
+  position:absolute;
+  bottom:90px;
+  right:24px;
+  z-index:40;
+  display:none;
+  background:rgba(0,0,0,.72);
+  border:2px solid rgba(255,255,255,.85);
+  color:#fff;
+  padding:10px 22px;
+  border-radius:4px;
+  font-family:'Barlow',sans-serif;
+  font-size:.88rem;
+  font-weight:700;
+  cursor:pointer;
+  letter-spacing:.3px;
+  backdrop-filter:blur(6px);
+  transition:background .18s,border-color .18s;
+  animation:fadeInUp .3s ease;
+}
+#skipIntroBtn.show{display:block}
+#skipIntroBtn:hover{background:rgba(255,255,255,.18);border-color:#fff}
+
+/* ── NEXT EPISODE PANEL ─────────────────────────────────────────
+   Shown with 10-second countdown at end of TV episode.            */
+#nextEpPanel{
+  position:absolute;
+  bottom:90px;
+  right:24px;
+  z-index:40;
+  display:none;
+  background:rgba(14,14,14,.96);
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:10px;
+  padding:16px 18px;
+  min-width:260px;
+  backdrop-filter:blur(12px);
+  animation:fadeInUp .35s ease;
+  box-shadow:0 8px 32px rgba(0,0,0,.7);
+}
+#nextEpPanel.show{display:flex;align-items:center;gap:14px}
+.nep-info{flex:1;min-width:0}
+.nep-label{font-size:.6rem;font-weight:800;letter-spacing:1.2px;color:rgba(255,255,255,.45);text-transform:uppercase;margin-bottom:4px}
+.nep-title{font-size:.88rem;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nep-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.nep-play{
+  background:#fff;color:#000;border:none;
+  padding:8px 14px;border-radius:5px;
+  font-family:'Barlow',sans-serif;font-size:.82rem;font-weight:800;
+  cursor:pointer;display:flex;align-items:center;gap:6px;
+  transition:.18s;white-space:nowrap;
+}
+.nep-play:hover{background:rgba(255,255,255,.85)}
+.nep-dismiss{
+  background:none;border:1px solid rgba(255,255,255,.25);
+  color:rgba(255,255,255,.6);width:30px;height:30px;
+  border-radius:50%;cursor:pointer;font-size:.75rem;
+  display:flex;align-items:center;justify-content:center;
+  transition:.18s;
+}
+.nep-dismiss:hover{background:rgba(255,255,255,.1);color:#fff}
+#nepCountdown{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:20px;height:20px;border-radius:50%;
+  background:#E50914;color:#fff;font-size:.65rem;font-weight:800;
+  flex-shrink:0;
+}
+
+@keyframes fadeInUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 </style>
 </head>
 
@@ -551,6 +624,24 @@ html,body{
       <div class="ctrl-spacer"></div>
       <span class="ctrl-hint">≡ to show controls · ✕ to hide</span>
       <button class="ctrl-btn" onclick="reqFS()" aria-label="Fullscreen">⛶</button>
+    </div>
+  </div>
+
+
+  <!-- SKIP INTRO BUTTON (TV shows — 15s to 75s after load) -->
+  <button id="skipIntroBtn" onclick="doSkipIntro()">Skip Intro →</button>
+
+  <!-- NEXT EPISODE PANEL (TV shows — near end of episode) -->
+  <div id="nextEpPanel">
+    <div class="nep-info">
+      <div class="nep-label">Next Episode</div>
+      <div class="nep-title" id="nepTitle">Episode</div>
+    </div>
+    <div class="nep-actions">
+      <button class="nep-play" onclick="doPlayNextEp()">
+        &#9654; Play&nbsp;<span id="nepCountdown">10</span>
+      </button>
+      <button class="nep-dismiss" onclick="doDismissNextEp()" title="Dismiss">&#10005;</button>
     </div>
   </div>
 
@@ -769,6 +860,111 @@ function loadVideo(m) {
     document.getElementById('loadScreen').style.display = 'none';
     openMenu(); // Show controls once on load so user discovers the ≡ button
   }, 2500);
+
+  // Start Skip Intro + Next Episode timers
+  startEpisodeTimers(m);
+}
+
+/* ─────────────────────────────────────────────────────────
+   SKIP INTRO  —  appears 15s–75s after load (TV shows only)
+   NEXT EPISODE — appears at 85% of episode duration with
+                  10-second auto-play countdown
+───────────────────────────────────────────────────────── */
+let _skipTimer1   = null;  // show skip intro
+let _skipTimer2   = null;  // hide skip intro
+let _nextEpTimer  = null;  // show next episode panel
+let _nepInterval  = null;  // countdown interval
+let _nepCount     = 10;
+
+function startEpisodeTimers(m) {
+  // Clear any previous timers (e.g. user navigated to next ep)
+  clearTimeout(_skipTimer1);
+  clearTimeout(_skipTimer2);
+  clearTimeout(_nextEpTimer);
+  clearInterval(_nepInterval);
+  document.getElementById('skipIntroBtn').classList.remove('show');
+  document.getElementById('nextEpPanel').classList.remove('show');
+
+  if (m.type !== 'tv') return; // Movies don't need these
+
+  const season  = m._season  || 1;
+  const episode = m._episode || 1;
+
+  // ── SKIP INTRO ───────────────────────────────────────
+  // Show after 15s, hide after 75s (during opening credits)
+  _skipTimer1 = setTimeout(() => {
+    document.getElementById('skipIntroBtn').classList.add('show');
+  }, 15000);
+
+  _skipTimer2 = setTimeout(() => {
+    document.getElementById('skipIntroBtn').classList.remove('show');
+  }, 75000);
+
+  // ── NEXT EPISODE ─────────────────────────────────────
+  // Typical TV episode = 42 min → show panel at 85% = ~35.7 min
+  // Use movieData.duration if available, else default 42 min
+  const epMinutes = movieData?.duration ? parseInt(movieData.duration) : 42;
+  const showAtMs  = Math.max(120000, epMinutes * 60 * 1000 * 0.85); // min 2 min (for testing)
+
+  _nextEpTimer = setTimeout(() => {
+    showNextEpPanel(season, episode + 1);
+  }, showAtMs);
+}
+
+function doSkipIntro() {
+  // Hide the button immediately
+  document.getElementById('skipIntroBtn').classList.remove('show');
+  clearTimeout(_skipTimer2);
+
+  // Reload iframe at 85-second mark
+  // VidSrc supports #t=N for time offset on some embed types
+  const frame = document.getElementById('stFrame');
+  if (frame.src && frame.src.includes('vidsrc.to')) {
+    const base = frame.src.split('#')[0];
+    frame.src = base + '#t=85';
+  }
+  showToast('⏩ Skipped intro');
+}
+
+function showNextEpPanel(season, nextEp) {
+  const panel = document.getElementById('nextEpPanel');
+  const title = document.getElementById('nepTitle');
+  const count = document.getElementById('nepCountdown');
+
+  title.textContent = 'S' + season + ' E' + nextEp;
+  _nepCount = 10;
+  count.textContent = '10';
+  panel.classList.add('show');
+
+  // 10-second countdown → auto-play
+  clearInterval(_nepInterval);
+  _nepInterval = setInterval(() => {
+    _nepCount--;
+    count.textContent = _nepCount;
+    if (_nepCount <= 0) {
+      clearInterval(_nepInterval);
+      doPlayNextEp();
+    }
+  }, 1000);
+}
+
+function doDismissNextEp() {
+  clearInterval(_nepInterval);
+  clearTimeout(_nextEpTimer);
+  document.getElementById('nextEpPanel').classList.remove('show');
+}
+
+function doPlayNextEp() {
+  doDismissNextEp();
+  if (!movieData) return;
+  const nextEp  = (movieData._episode || 1) + 1;
+  const season  = movieData._season  || 1;
+  const p       = new URLSearchParams(location.search);
+  p.set('episode', nextEp);
+  p.set('season',  season);
+  // Reset embed so it auto-builds for the new episode
+  p.delete('embed');
+  location.href = 'XverseMovies_Player.html?' + p.toString();
 }
 
 /* ─────────────────────────────────────────────────────────
@@ -950,9 +1146,14 @@ async function syncProgress() {
    No showUI() on every keypress — that violated the explicit-only rule.
 ───────────────────────────────────────────────────────── */
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape')            goBack();
+  if (e.key === 'Escape')             goBack();
   if (e.key === 'f' || e.key === 'F') reqFS();
   if (e.key === 'm' || e.key === 'M') openMenu();
+  if (e.key === 's' || e.key === 'S') {
+    // S key → skip intro if button is visible
+    const sb = document.getElementById('skipIntroBtn');
+    if (sb.classList.contains('show')) doSkipIntro();
+  }
 });
 
 /* ─────────────────────────────────────────────────────────
@@ -960,6 +1161,10 @@ document.addEventListener('keydown', e => {
 ───────────────────────────────────────────────────────── */
 window.addEventListener('beforeunload', () => {
   clearInterval(syncTimer);
+  clearTimeout(_skipTimer1);
+  clearTimeout(_skipTimer2);
+  clearTimeout(_nextEpTimer);
+  clearInterval(_nepInterval);
 });
 
 </script>
