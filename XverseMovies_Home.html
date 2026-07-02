@@ -108,8 +108,8 @@ nav.solid{background:rgba(8,8,8,.97);backdrop-filter:blur(10px);border-bottom:1p
 .cw-card:hover .cw-thumb{filter:brightness(.65)}
 .cw-play-ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;background:rgba(0,0,0,.3)}
 .cw-card:hover .cw-play-ov{opacity:1}
-.cw-prog{position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,.2)}
-.cw-prog-fill{height:100%;background:var(--red);border-radius:0 1.5px 1.5px 0}
+.cw-prog{position:absolute;bottom:0;left:0;right:0;height:4px;background:rgba(255,255,255,.22)}
+.cw-prog-fill{height:100%;background:var(--red);border-radius:0 2px 2px 0;transition:width .3s ease;box-shadow:0 0 6px rgba(229,9,20,.6);min-width:3px}
 .cw-time-left{position:absolute;bottom:7px;right:8px;font-size:.62rem;color:rgba(255,255,255,.75);background:rgba(0,0,0,.6);padding:2px 6px;border-radius:3px}
 .cw-info{padding:9px 11px 11px}
 .cw-title{font-size:.83rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
@@ -287,6 +287,11 @@ nav.solid{background:rgba(8,8,8,.97);backdrop-filter:blur(10px);border-bottom:1p
 //  STATE
 // ─────────────────────────────────────────
 let currentUser    = null;
+
+// ── MOVIE REGISTRY ─ safe onclick, no JSON-in-attribute crashes ──
+const _MR = new Map(); let _mrSeq = 0;
+function _reg(m) { const k = m.id?('d'+m.id):m.tmdb_id?('t'+m.tmdb_id):('s'+(++_mrSeq)); _MR.set(k,m); return k; }
+function _get(k) { return _MR.get(k) || null; }
 let currentProfile = null;
 let heroMovies     = [];
 let heroIdx        = 0;
@@ -556,16 +561,21 @@ function cardHTML(m) {
 }
 
 function cwCardHTML(m) {
-  const pct      = m.duration > 0 ? Math.min(100, (m.progress / m.duration) * 100) : 0;
-  const minsLeft = m.duration > 0 ? Math.max(0, Math.round((m.duration - m.progress) / 60)) : 0;
-  const ms       = JSON.stringify(m).replace(/"/g,'&quot;');
-  return `<div class="cw-card" onclick="playMovie(${ms})">
+  // NaN-safe: progress/duration might be null for freshly-added items
+  const dur      = Number(m.duration) || 0;
+  const prog     = Number(m.progress) || 0;
+  const rawPct   = dur > 0 ? (prog / dur) * 100 : 0;
+  // Netflix always shows a visible sliver even at 1-2% so users see "started"
+  const pct      = Math.min(100, Math.max(rawPct > 0 ? 3 : 0, rawPct));
+  const minsLeft = dur > 0 ? Math.max(0, Math.round((dur - prog) / 60)) : 0;
+  const k        = _reg(m); // registry — no JSON-in-onclick special char crashes
+  return `<div class="cw-card" data-mk="${k}" onclick="playMovie(_get(this.dataset.mk))">
     <div class="cw-thumb-wrap">
-      <img class="cw-thumb" src="${m.backdrop_url||m.poster_url||''}" alt="${m.title}" onerror="this.src='${m.poster_url||''}'">
+      <img class="cw-thumb" src="${m.backdrop_url||m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='${m.poster_url||''}'">
       <div class="cw-play-ov"><div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;color:#000;font-size:1rem">▶</div></div>
       <div class="cw-prog"><div class="cw-prog-fill" style="width:${pct}%"></div></div>
       ${minsLeft > 0 ? `<div class="cw-time-left">${minsLeft}m left</div>` : ''}
-      <button class="cw-remove" onclick="event.stopPropagation();removeCW(${m.id})" title="Remove">✕</button>
+      <button class="cw-remove" data-mk="${k}" onclick="event.stopPropagation();removeCW(_get(this.dataset.mk).id)" title="Remove">✕</button>
     </div>
     <div class="cw-info">
       <div class="cw-title">${m.title}</div>
