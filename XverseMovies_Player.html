@@ -782,17 +782,40 @@ function loadVideo(m) {
     ? m.title + ' S' + season + 'E' + episode + ' — XverseMovies'
     : m.title + ' — XverseMovies';
 
-  // Embed URL priority: DB override → URL param → auto-build from TMDB
+  // Embed URL priority — DIFFERS for movies vs TV shows:
+  //
+  // MOVIES: DB override → URL param → auto-build from TMDB
+  //   (no episodes, one fixed embed_url is always correct)
+  //
+  // TV SHOWS: ALWAYS auto-build from tmdb_id + season + episode
+  //   BUG FIX: previously dbEmbed (a single static URL, usually
+  //   saved from testing S1E1 in admin panel) took priority over
+  //   season/episode — so "Next Episode" changed the URL params
+  //   and UI text, but the iframe kept loading the SAME fixed
+  //   episode every time. A single embed_url field cannot
+  //   represent more than one episode, so for TV it must never
+  //   override the per-episode auto-build.
   const dbEmbed  = (m.embed_url && m.embed_url.trim()) ? m.embed_url.trim() : null;
   const urlEmbed = (m.embedUrl  && m.embedUrl.trim())  ? m.embedUrl.trim()  : null;
-  let   embedUrl = dbEmbed || urlEmbed;
+  let   embedUrl = null;
 
-  if (!embedUrl) {
+  if (isTV) {
+    // TV: build fresh per-episode URL first; only fall back to a
+    // static DB/URL embed if there's no tmdb_id to auto-build from.
     const tid = m.tmdb_id || null;
     if (tid && m.auto_embed !== false) {
-      embedUrl = isTV
-        ? 'https://vidsrc.to/embed/tv/' + tid + '/' + season + '/' + episode
-        : 'https://vidsrc.to/embed/movie/' + tid;
+      embedUrl = 'https://vidsrc.to/embed/tv/' + tid + '/' + season + '/' + episode;
+    } else {
+      embedUrl = dbEmbed || urlEmbed;
+    }
+  } else {
+    // Movies: static override still makes sense (no episodes)
+    embedUrl = dbEmbed || urlEmbed;
+    if (!embedUrl) {
+      const tid = m.tmdb_id || null;
+      if (tid && m.auto_embed !== false) {
+        embedUrl = 'https://vidsrc.to/embed/movie/' + tid;
+      }
     }
   }
 
