@@ -456,22 +456,6 @@ html,body{
   opacity:1;
 }
 
-/* ── SKIP INTRO BUTTON ─────────────────────────────────
-   TV shows only. Appears 20s after load, fades at 80s.  */
-#skipIntroBtn{
-  position:absolute;bottom:90px;right:24px;z-index:40;
-  display:none;
-  background:rgba(0,0,0,.75);
-  border:2px solid rgba(255,255,255,.9);
-  color:#fff;padding:10px 24px;border-radius:4px;
-  font-family:'Barlow',sans-serif;font-size:.9rem;font-weight:700;
-  cursor:pointer;letter-spacing:.3px;
-  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
-  transition:background .18s;
-  animation:fadeInUp .3s ease;
-}
-#skipIntroBtn.show{display:block}
-#skipIntroBtn:hover{background:rgba(255,255,255,.18)}
 
 /* ── NEXT EPISODE PANEL ────────────────────────────────
    TV shows only. 10-second countdown then auto-plays.   */
@@ -593,6 +577,7 @@ html,body{
       <div class="top-sub" id="topSub"></div>
     </div>
     <span id="desktopBadge" title="Desktop mode active — all player controls visible">🖥 Desktop</span>
+    <button id="nextEpBtn" class="top-btn" onclick="doPlayNextEp()" title="Next Episode" style="display:none;align-items:center;gap:5px;width:auto;padding:0 12px;font-size:.78rem;font-weight:700">Next Ep &#9654;</button>
     <a href="XverseMovies_Search.html" title="Search" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:6px;color:rgba(255,255,255,.8);text-decoration:none;font-size:1.05rem;transition:.2s" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background=''">&#x1F50D;</a>
     <button class="top-btn" onclick="reqFS()" aria-label="Fullscreen">⛶</button>
     <!-- ✕ hides overlay. Embedded player regains full control instantly. -->
@@ -616,9 +601,6 @@ html,body{
     </div>
   </div>
 
-
-  <!-- SKIP INTRO (TV shows, 20s-80s after load) -->
-  <button id="skipIntroBtn" onclick="doSkipIntro()">Skip Intro &#10140;</button>
 
   <!-- NEXT EPISODE PANEL (TV shows, near episode end) -->
   <div id="nextEpPanel">
@@ -1050,53 +1032,47 @@ async function syncProgress() {
    • User can dismiss or click Play immediately
    ═════════════════════════════════════════════════════════ */
 
-let _skiT1 = null, _skiT2 = null;   // skip intro show/hide timers
-let _nepT  = null;                   // next episode show timer
-let _nepI  = null;                   // next episode countdown interval
-let _nepN  = 10;                     // countdown value
+/* ═════════════════════════════════════════════════════════
+   NEXT EPISODE  (TV shows only)
+   ═════════════════════════════════════════════════════════
+   Honest constraint: VidSrc/Dailymotion iframes are cross-origin.
+   We cannot read currentTime, detect play/pause, or know when
+   the video actually ends. So "Skip Intro" was removed entirely —
+   it did nothing except hide a button, which is misleading UI.
+
+   What IS reliable and kept:
+   1. Manual "Next Episode" button in the top bar — always visible
+      for TV shows, works instantly via URL navigation. 100% real.
+   2. "Up Next" suggestion panel — a best-effort ESTIMATE based on
+      admin-set duration (default 42 min), shown at ~85% of that
+      estimate. Clearly optional — user can dismiss or ignore it,
+      and the reliable manual button is always available too.
+   ═════════════════════════════════════════════════════════ */
+
+let _nepT = null;   // "Up Next" suggestion show timer
+let _nepI = null;   // countdown interval
+let _nepN = 10;      // countdown value
 
 function startEpisodeTimers(m) {
-  // Clear any leftovers from previous episode
-  clearTimeout(_skiT1); clearTimeout(_skiT2);
-  clearTimeout(_nepT);  clearInterval(_nepI);
-  const sb = document.getElementById('skipIntroBtn');
+  clearTimeout(_nepT); clearInterval(_nepI);
   const np = document.getElementById('nextEpPanel');
-  if (sb) sb.classList.remove('show');
   if (np) np.classList.remove('show');
 
-  if (m.type !== 'tv') return; // Movies: no skip intro, no next ep
+  const nextBtn = document.getElementById('nextEpBtn');
+  if (nextBtn) nextBtn.style.display = (m.type === 'tv') ? 'flex' : 'none';
+
+  if (m.type !== 'tv') return; // Movies: no next-episode features
 
   const season  = m._season  || 1;
   const episode = m._episode || 1;
 
-  // ── SKIP INTRO: show at 20s, auto-hide at 80s ──
-  _skiT1 = setTimeout(() => {
-    const btn = document.getElementById('skipIntroBtn');
-    if (btn) btn.classList.add('show');
-  }, 20000);
-
-  _skiT2 = setTimeout(() => {
-    const btn = document.getElementById('skipIntroBtn');
-    if (btn) btn.classList.remove('show');
-  }, 80000);
-
-  // ── NEXT EPISODE: show at 85% of episode duration ──
-  // Default 42 min if duration not set; min 30 min to avoid accidental trigger
-  const epMins  = Math.max(30, movieData?.duration ? parseInt(movieData.duration) : 42);
+  // Best-effort "Up Next" suggestion at ~85% of estimated duration
+  const epMins   = Math.max(30, movieData?.duration ? parseInt(movieData.duration) : 42);
   const showAtMs = epMins * 60 * 1000 * 0.85;
 
   _nepT = setTimeout(() => {
     showNextEpPanel(season, episode + 1);
   }, showAtMs);
-}
-
-function doSkipIntro() {
-  // Dismiss the button — we can't seek inside VidSrc iframe.
-  // VidSrc has its own native skip intro inside the player.
-  const btn = document.getElementById('skipIntroBtn');
-  if (btn) btn.classList.remove('show');
-  clearTimeout(_skiT2);
-  showToast('⏩ Use the player's own skip button to seek');
 }
 
 function showNextEpPanel(season, nextEp) {
@@ -1130,6 +1106,9 @@ function doDismissNextEp() {
   if (p) p.classList.remove('show');
 }
 
+// Reliable manual trigger — always works, no timer dependency.
+// Called by: the "Up Next" panel's Play button, OR the persistent
+// Next Episode button in the top bar.
 function doPlayNextEp() {
   doDismissNextEp();
   if (!movieData) return;
@@ -1141,6 +1120,7 @@ function doPlayNextEp() {
   params.delete('embed'); // Force auto-build embed for new episode
   location.href = 'XverseMovies_Player.html?' + params.toString();
 }
+
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape')            goBack();
