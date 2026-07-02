@@ -387,6 +387,7 @@ function renderHero(m) {
 
   const match = Math.round(65 + (parseFloat(m.rating||m.vote_average||7) * 3.5));
   const inList = ML.has(m.id);
+  const k = _reg(m); // registry — no JSON-in-onclick special char crashes
 
   document.getElementById('heroContent').innerHTML = `
     <div class="hero-badge">★ XVERSEMOVIES PICK</div>
@@ -399,9 +400,9 @@ function renderHero(m) {
     </div>
     <div class="hero-overview">${m.overview || ''}</div>
     <div class="hero-btns">
-      <button class="btn-play" onclick="${m.type==='tv'?`openModal(${JSON.stringify(m).replace(/"/g,'&quot;')})`:`playMovie(${JSON.stringify(m).replace(/"/g,'&quot;')})`}">▶ Play</button>
-      <button class="btn-info" onclick="openModal(${JSON.stringify(m).replace(/"/g,'&quot;')})">ⓘ More Info</button>
-      <button class="btn-mylist-hero" id="heroMyListBtn" onclick="mlToggle(${JSON.stringify(m).replace(/"/g,'&quot;')})" title="${inList?'Remove from':'Add to'} My List">${inList?'✓':'+'}</button>
+      <button class="btn-play" data-mk="${k}" data-tv="${m.type==='tv'?1:0}" onclick="if(this.dataset.tv==='1')openModal(_get(this.dataset.mk));else playMovie(_get(this.dataset.mk))">▶ Play</button>
+      <button class="btn-info" data-mk="${k}" onclick="openModal(_get(this.dataset.mk))">ⓘ More Info</button>
+      <button class="btn-mylist-hero" id="heroMyListBtn" data-mk="${k}" onclick="mlToggle(_get(this.dataset.mk))" title="${inList?'Remove from':'Add to'} My List">${inList?'✓':'+'}</button>
     </div>`;
 }
 
@@ -518,11 +519,14 @@ function buildTop10Row(title, movies) {
   row.className = 'row';
   row.innerHTML = `
     <div class="row-hd"><span class="row-title">${title}</span></div>
-    <div class="t10-wrap">${movies.map((m,i) => `
-      <div class="t10-card" onclick="openModal(${JSON.stringify(m).replace(/"/g,'&quot;')})">
+    <div class="t10-wrap">${movies.map((m,i) => {
+      const k = _reg(m);
+      return `
+      <div class="t10-card" data-mk="${k}" onclick="openModal(_get(this.dataset.mk))">
         <div class="t10-num">${i+1}</div>
-        <img class="t10-poster" src="${m.poster_url||''}" alt="${m.title}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555&size=200'">
-      </div>`).join('')}
+        <img class="t10-poster" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555&size=200'">
+      </div>`;
+    }).join('')}
     </div>`;
   return row;
 }
@@ -541,16 +545,17 @@ function buildCWRow(items) {
 }
 
 function cardHTML(m) {
-  const ms   = JSON.stringify(m).replace(/"/g,'&quot;');
+  const k      = _reg(m);
   const inList = ML.has(m.id);
-  return `<div class="card" onclick="openModal(${ms})">
+  const isTV   = m.type === 'tv';
+  return `<div class="card" data-mk="${k}" onclick="openModal(_get(this.dataset.mk))">
     <div class="card-img-wrap">
       <img class="card-img" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555&size=400'">
-      <span class="card-type ${m.type||'movie'}">${m.type==='tv'?'TV':'MOVIE'}</span>
+      <span class="card-type ${m.type||'movie'}">${isTV?'TV':'MOVIE'}</span>
       <span class="card-rating">★ ${m.rating||m.vote_average||''}</span>
       <div class="card-overlay">
-        <button class="card-play" onclick="event.stopPropagation();${m.type==='tv'?'openModal':'playMovie'}(${ms})">▶</button>
-        <button class="card-add" onclick="event.stopPropagation();mlToggle(${ms})">${inList?'✓':'+'}</button>
+        <button class="card-play" data-mk="${k}" data-tv="${isTV?1:0}" onclick="event.stopPropagation();if(this.dataset.tv==='1')openModal(_get(this.dataset.mk));else playMovie(_get(this.dataset.mk))">▶</button>
+        <button class="card-add" data-mk="${k}" onclick="event.stopPropagation();mlToggle(_get(this.dataset.mk))">${inList?'✓':'+'}</button>
       </div>
     </div>
     <div class="card-info">
@@ -895,9 +900,9 @@ const all = [
     const res  = document.getElementById('searchResults');
     res.innerHTML = all.length
       ? all.map(m => {
-          const ms = JSON.stringify(m).replace(/"/g,'&quot;');
-          return `<div onclick="openModal(${ms});toggleSearch()" style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;min-width:140px;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">
-            <img src="${m.poster_url||''}" style="width:36px;height:52px;object-fit:cover;border-radius:3px;flex-shrink:0;background:#222" onerror="this.style.display='none'">
+          const k = _reg(m);
+          return `<div data-mk="${k}" onclick="openModal(_get(this.dataset.mk));toggleSearch()" style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;min-width:140px;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">
+            <img src="${m.poster_url||''}" style="width:36px;height:52px;object-fit:cover;border-radius:3px;flex-shrink:0;background:#222" loading="lazy" onerror="this.style.display='none'">
             <div><div style="font-size:.82rem;font-weight:700;color:#fff;white-space:nowrap">${m.title}</div><div style="font-size:.7rem;color:var(--muted)">${m.year||''}</div></div>
           </div>`;
         }).join('')
