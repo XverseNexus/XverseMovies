@@ -22,6 +22,29 @@
 <script src="xverse-config.js"></script>
 
 <style>
+:root{
+  /* Brand */
+  --red: #E50914;
+  --red-dark: #B00710;
+  --green: #46d369;
+  /* Backgrounds — player uses pure black by design (immersive playback) */
+  --bg: #000;
+  --bg2: #0a0a0a;
+  --card: #1c1c1c;
+  --card2: #242424;
+  /* Text / Border */
+  --text: #e5e5e5;
+  --muted: #808080;
+  --border: rgba(255,255,255,.08);
+  /* Spacing scale */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px;
+  --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
+  /* Radius scale */
+  --r-sm: 4px; --r-md: 6px; --r-lg: 10px; --r-full: 50%;
+  /* Shadows */
+  --shadow-card: 0 8px 32px rgba(0,0,0,.7);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,.4);
+}
 *,*::before,*::after{
   margin:0;
   padding:0;
@@ -279,7 +302,7 @@ html,body{
 .meta-badge{
   background:rgba(70,211,105,.12);
   border:1px solid rgba(70,211,105,.2);
-  color:#46d369;
+  color:var(--green);
   font-size:.65rem;
   font-weight:700;
   padding:3px 8px;
@@ -325,8 +348,8 @@ html,body{
 }
 
 .ml-btn.added{
-  border-color:#46d369;
-  color:#46d369;
+  border-color:var(--green);
+  color:var(--green);
 }
 
 /* Desktop mode indicator badge */
@@ -421,7 +444,7 @@ html,body{
   z-index:30;
   background:rgba(70,211,105,.15);
   border:1px solid rgba(70,211,105,.25);
-  color:#46d369;
+  color:var(--green);
   padding:4px 10px;
   border-radius:20px;
   font-size:.65rem;
