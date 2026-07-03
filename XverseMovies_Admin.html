@@ -15,7 +15,29 @@
 <script src="xverse-config.js"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-:root{--red:#E50914;--bg:#0f0f0f;--card:#1a1a1a;--card2:#222;--text:#e5e5e5;--muted:#666;--border:rgba(255,255,255,.08);--green:#46d369;--yellow:#f5c518}
+:root{
+      /* Brand */
+      --red: #E50914;
+      --red-dark: #B00710;
+      --green: #46d369;
+      /* Backgrounds */
+      --bg: #141414;
+      --bg2: #0a0a0a;
+      --card: #1c1c1c;
+      --card2: #242424;
+      /* Text / Border */
+      --text: #e5e5e5;
+      --muted: #808080;
+      --border: rgba(255,255,255,.08);
+      /* Spacing scale */
+      --sp-1: 4px; --sp-2: 8px; --sp-3: 12px;
+      --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
+      /* Radius scale */
+      --r-sm: 4px; --r-md: 6px; --r-lg: 10px; --r-full: 50%;
+      /* Shadows */
+      --shadow-card: 0 8px 32px rgba(0,0,0,.7);
+      --shadow-sm: 0 2px 8px rgba(0,0,0,.4);
+    }
 html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;overflow-x:hidden}
 nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
 .logo{font-family:'Bebas Neue',cursive;font-size:1.5rem;color:var(--red);letter-spacing:2px}
@@ -154,7 +176,7 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
 .fsel option{background:#1a1a1a;color:#fff}
 /* EMBED SOURCE BADGE */
 .esrc{display:inline-flex;align-items:center;gap:4px;font-size:.58rem;font-weight:700;padding:2px 7px;border-radius:3px;letter-spacing:.4px;white-space:nowrap}
-.esrc-custom{background:rgba(70,211,105,.12);border:1px solid rgba(70,211,105,.25);color:#46d369}
+.esrc-custom{background:rgba(70,211,105,.12);border:1px solid rgba(70,211,105,.25);color:var(--green)}
 .esrc-vidsrc{background:rgba(100,181,246,.1);border:1px solid rgba(100,181,246,.2);color:#64b5f6}
 .esrc-none{background:rgba(229,9,20,.08);border:1px solid rgba(229,9,20,.18);color:#ff6b6b}
 .esrc-unavail{background:rgba(245,197,24,.1);border:1px solid rgba(245,197,24,.2);color:#f5c518}
@@ -279,7 +301,7 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
               <div class="fw">
                 <label>vidsrc URL Preview</label>
                 <div style="display:flex;gap:8px;align-items:center">
-                  <input type="text" id="seriesEmbedPreview" placeholder="Fill TMDB ID + Season + Episode then click Build" readonly style="background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.08);color:#46d369;padding:9px 11px;font-size:.76rem;border-radius:6px;font-family:monospace;flex:1;outline:none">
+                  <input type="text" id="seriesEmbedPreview" placeholder="Fill TMDB ID + Season + Episode then click Build" readonly style="background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.08);color:var(--green);padding:9px 11px;font-size:.76rem;border-radius:6px;font-family:monospace;flex:1;outline:none">
                   <button class="btn-sec" onclick="buildSeriesEmbed()" style="padding:8px 14px;white-space:nowrap">Build URL</button>
                 </div>
                 <div class="hint">Format: https://vidsrc.to/embed/tv/TMDB_ID/SEASON/EPISODE</div>
@@ -713,7 +735,7 @@ async function generateAutoMovie() {
     if (prev) {
       prev.style.display = 'block';
       prev.innerHTML = `
-        <div style="font-size:.8rem;color:#46d369;font-weight:700">✅ Auto Embed Ready</div>
+        <div style="font-size:.8rem;color:var(--green);font-weight:700">✅ Auto Embed Ready</div>
         <div style="margin-top:8px;font-size:.75rem;color:#aaa">Embed URL:</div>
         <div style="margin-top:5px;background:#111;padding:8px;border-radius:6px;font-family:monospace;word-break:break-all;color:#fff;font-size:.74rem">${embedUrl}</div>
         <div style="margin-top:10px;font-size:.75rem;color:#aaa">⚠️ If this movie shows black screen (not on vidsrc), use Manual tab to paste a custom embed URL.</div>`;
@@ -868,7 +890,7 @@ if (exists) {
   } else {
 
     res.style.display = 'block';
-    res.style.color = '#46d369';
+    res.style.color = 'var(--green)';
 
     res.textContent =
       `✅ "${title}" successfully added! ID: ${data.id}`;
@@ -1188,7 +1210,7 @@ function openVisualTest(movieId, embedUrl, title, onWorking, onBroken) {
         allowfullscreen allow="autoplay;fullscreen"></iframe>
       <div style="display:flex;gap:10px;margin-top:14px;justify-content:center">
         <button id="vtWorkBtn" style="background:rgba(70,211,105,.15);border:1px solid rgba(70,211,105,.4);
-          color:#46d369;padding:10px 28px;border-radius:6px;cursor:pointer;font-size:.88rem;font-weight:700">
+          color:var(--green);padding:10px 28px;border-radius:6px;cursor:pointer;font-size:.88rem;font-weight:700">
           ✅ Chal rahi hai (Working)
         </button>
         <button id="vtBrokenBtn" style="background:rgba(229,9,20,.12);border:1px solid rgba(229,9,20,.35);
@@ -1309,7 +1331,7 @@ function movieCheckRowHTML(m) {
         ` : ''}
         <button class="tab-btn play" onclick="mcTest(${m.id})" title="Test video">▶</button>
         <button onclick="mcMarkWorking(${m.id})" title="Mark working"
-          style="background:rgba(70,211,105,.1);border:1px solid rgba(70,211,105,.25);color:#46d369;
+          style="background:rgba(70,211,105,.1);border:1px solid rgba(70,211,105,.25);color:var(--green);
           width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:.8rem" title="Mark ✅">✓</button>
         <button onclick="mcMarkBroken(${m.id})" title="Mark broken"
           style="background:rgba(229,9,20,.08);border:1px solid rgba(229,9,20,.2);color:#ff6b6b;
@@ -1561,7 +1583,7 @@ async function fixEmbedUrl(movieId) {
   if (m) Object.assign(m, updates);
 
   const row = document.getElementById('unavRow_' + movieId);
-  if (row) { row.classList.add('fixed'); input.style.borderColor = '#46d369'; }
+  if (row) { row.classList.add('fixed'); input.style.borderColor = 'var(--green)'; }
   showToast(`✅ ${source} embed saved!`);
 }
 
@@ -1599,7 +1621,7 @@ async function inviteModerator() {
     return;
   }
 
-  msgEl.style.color = '#46d369';
+  msgEl.style.color = 'var(--green)';
   msgEl.textContent = `✅ ${data.name || email} ko moderator access de diya!`;
   document.getElementById('modEmail').value = '';
   loadModerators();
@@ -2017,7 +2039,7 @@ async function bulkImport() {
     }));
     const { data, error } = await getSB().from('movies').insert(cleaned).select();
     if (error) throw new Error(error.message);
-    res.style.display='block'; res.style.color='#46d369';
+    res.style.display='block'; res.style.color='var(--green)';
     res.textContent = `✅ ${data.length} movies imported successfully!`;
     showToast(`✅ ${data.length} movies imported!`);
     document.getElementById('bulkJson').value = '';
