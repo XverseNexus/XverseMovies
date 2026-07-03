@@ -700,6 +700,216 @@ const ML = {
 };
 
 // ─────────────────────────────────────────────────────────
+//  SHARED CARD COMPONENT
+//  One visual pattern for every poster/list/continue-watching
+//  card across Home, Browse and My List. Previously each page
+//  had its own cardHTML/cHTML/mlCardHTML/cwCardHTML with
+//  slightly different class names & spacing — this unifies
+//  them so spacing, radius, hover effects stay consistent and
+//  future tweaks only happen in one place.
+//
+//  Relies on the page-local `_reg`/`_get` registry (each page
+//  already defines these) to avoid JSON-in-onclick crashes.
+//
+//  Usage:
+//    XCard.poster(m, { onOpen:'openModal', action:{type:'add', inList, onToggle:'mlToggle'} })
+//    XCard.row(m,    { onOpen:'openMod',   action:{type:'remove', onRemove:'removeML'}, subtitle:m.overview })
+//    XCard.cw(m,     { isDone:false, subtitle:'...', onRemove:'removeCW' })
+//    XCard.top10(m, i, { onOpen:'openModal' })
+// ─────────────────────────────────────────────────────────
+const XCard = {
+  _stylesInjected: false,
+
+  injectStyles() {
+    if (XCard._stylesInjected) return;
+    XCard._stylesInjected = true;
+    const s = document.createElement('style');
+    s.id = 'xcard-styles';
+    s.textContent = `
+/* ===== XCard — shared card component ===== */
+.xc-card{width:100%;border-radius:5px;overflow:hidden;background:var(--card);border:1px solid var(--border);cursor:pointer;transition:transform .22s,border-color .22s,box-shadow .22s;position:relative}
+.cards-scroll .xc-card{flex-shrink:0;width:155px;scroll-snap-align:start}
+@media(max-width:640px){.cards-scroll .xc-card{width:120px}}
+.xc-card:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.22);box-shadow:var(--shadow-card)}
+.xc-thumb{position:relative;aspect-ratio:2/3;overflow:hidden}
+.xc-img{width:100%;height:100%;object-fit:cover;background:#222;display:block;transition:filter .22s}
+.xc-card:hover .xc-img{filter:brightness(.55)}
+.xc-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;opacity:0;transition:opacity .2s;background:rgba(0,0,0,.35)}
+.xc-card:hover .xc-overlay{opacity:1}
+.xc-play{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.92);border:none;color:#000;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s}
+.xc-play:hover{transform:scale(1.1)}
+.xc-add,.xc-remove-btn{width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.55);border:1.5px solid rgba(255,255,255,.45);color:#fff;font-size:.88rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.xc-add:hover{border-color:#fff}
+.xc-remove-btn:hover{background:rgba(229,9,20,.75);border-color:var(--red)}
+.xc-type{position:absolute;top:6px;left:6px;font-size:.57rem;font-weight:800;padding:2px 6px;border-radius:3px;letter-spacing:.8px;background:rgba(0,0,0,.7);color:#fff}
+.xc-type.tv{color:var(--green)}
+.xc-rating{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.7);color:var(--green);font-size:.6rem;font-weight:700;padding:2px 6px;border-radius:3px;opacity:0;transition:opacity .2s}
+.xc-card:hover .xc-rating{opacity:1}
+.xc-info{padding:8px 9px 10px}
+.xc-name{font-size:.8rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+.xc-meta{font-size:.66rem;color:var(--muted);display:flex;gap:5px;align-items:center}
+
+/* Row (list) variant — Browse list-view & My List list-view */
+.xc-card.xc-row{display:flex;align-items:center;gap:0}
+.xc-card.xc-row .xc-thumb{width:62px;height:93px;flex-shrink:0;aspect-ratio:unset}
+.xc-card.xc-row:hover .xc-img{filter:brightness(.8)}
+.xc-card.xc-row .xc-overlay{flex-direction:row}
+.xc-card.xc-row .xc-info{flex:1;padding:9px 13px;min-width:0}
+.xc-card.xc-row .xc-name{font-size:.88rem;white-space:normal;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.xc-card.xc-row .xc-meta{font-size:.72rem}
+.xc-sub-desc{font-size:.7rem;color:var(--muted);margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.xc-added{font-size:.64rem;color:var(--muted);margin-top:3px}
+.xc-row-acts{display:flex;gap:8px;padding:0 12px;flex-shrink:0}
+.xc-la-btn{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid var(--border);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.8rem;transition:all .2s}
+.xc-la-btn:hover{background:rgba(255,255,255,.16)}
+.xc-la-btn.xc-del:hover{background:rgba(229,9,20,.7);border-color:var(--red)}
+
+/* Continue-watching thumb card — Home & My List */
+.xc-cw{flex-shrink:0;width:220px;border-radius:5px;overflow:hidden;background:var(--card);border:1px solid var(--border);cursor:pointer;transition:transform .2s,border-color .2s;position:relative;scroll-snap-align:start}
+.xc-cw:hover{transform:scale(1.04);border-color:rgba(255,255,255,.28)}
+@media(max-width:640px){.xc-cw{width:175px}}
+.xc-cw-thumb{position:relative;height:126px;overflow:hidden}
+.xc-cw-img{width:100%;height:100%;object-fit:cover;background:#222;display:block;transition:filter .2s}
+.xc-cw:hover .xc-cw-img{filter:brightness(.65)}
+.xc-cw-playov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;background:rgba(0,0,0,.3)}
+.xc-cw:hover .xc-cw-playov{opacity:1}
+.xc-cw-playbtn{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;color:#000;font-size:1rem}
+.xc-cw-prog{position:absolute;bottom:0;left:0;right:0;height:4px;background:rgba(255,255,255,.22)}
+.xc-cw-progfill{height:100%;background:var(--red);border-radius:0 2px 2px 0;transition:width .3s ease;box-shadow:0 0 6px rgba(229,9,20,.6);min-width:3px}
+.xc-cw-time{position:absolute;bottom:7px;right:8px;font-size:.62rem;color:rgba(255,255,255,.75);background:rgba(0,0,0,.6);padding:2px 6px;border-radius:3px}
+.xc-cw-info{padding:9px 11px 11px}
+.xc-cw-title{font-size:.83rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+.xc-cw-sub{font-size:.7rem;color:var(--muted)}
+.xc-cw-remove{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);border:none;color:rgba(255,255,255,.6);width:22px;height:22px;border-radius:50%;font-size:.65rem;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:all .2s}
+.xc-cw:hover .xc-cw-remove{opacity:1}
+.xc-cw-remove:hover{background:rgba(229,9,20,.7);color:#fff}
+
+/* Top 10 numbered card — Home & Browse */
+.xc-t10{flex-shrink:0;display:flex;align-items:flex-end;cursor:pointer;transition:transform .2s}
+.xc-t10:hover{transform:scale(1.04);z-index:3}
+.xc-t10-num{font-family:'Bebas Neue',cursive;font-size:7rem;color:transparent;-webkit-text-stroke:2px rgba(255,255,255,.18);line-height:1;margin-right:-20px;z-index:1;flex-shrink:0;transition:-webkit-text-stroke-color .2s}
+.xc-t10:hover .xc-t10-num{-webkit-text-stroke-color:rgba(255,255,255,.42)}
+.xc-t10-img{width:100px;height:146px;border-radius:4px;object-fit:cover;background:#222;z-index:2;position:relative;border:1px solid var(--border)}
+@media(max-width:640px){.xc-t10-num{font-size:5.5rem}.xc-t10-img{width:80px;height:116px}}
+    `;
+    document.head.appendChild(s);
+  },
+
+  _actionBtn(k, action, size /* 'overlay' | 'row' */) {
+    if (!action || action.type === 'none') return '';
+    const cls = size === 'row' ? 'xc-la-btn' : 'xc-add';
+    if (action.type === 'add') {
+      const inList = !!action.inList;
+      return `<button class="${cls}" data-mk="${k}" onclick="event.stopPropagation();${action.onToggle || 'mlToggle'}(_get(this.dataset.mk))">${inList ? '✓' : '+'}</button>`;
+    }
+    if (action.type === 'remove') {
+      const delCls = size === 'row' ? 'xc-la-btn xc-del' : 'xc-remove-btn';
+      return `<button class="${delCls}" data-mk="${k}" onclick="event.stopPropagation();${action.onRemove || 'removeML'}(_get(this.dataset.mk).id)">✕</button>`;
+    }
+    return '';
+  },
+
+  // Poster grid card — replaces cardHTML (Home) / cHTML grid mode (Browse) / mlCardHTML grid mode (My List)
+  poster(m, opts = {}) {
+    XCard.injectStyles();
+    const { onOpen = 'openModal', onPlay = null, showBadge = true, action = { type: 'add' } } = opts;
+    const k      = _reg(m);
+    const isTV   = m.type === 'tv';
+    const rat    = m.rating || m.vote_average || '';
+    const playFn = onPlay || onOpen;
+    return `<div class="xc-card" data-mk="${k}" onclick="${onOpen}(_get(this.dataset.mk))">
+      <div class="xc-thumb">
+        <img class="xc-img" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555&size=400'">
+        ${showBadge ? `<span class="xc-type ${m.type||'movie'}">${isTV?'TV':'MOVIE'}</span>` : ''}
+        ${showBadge && rat ? `<span class="xc-rating">★ ${rat}</span>` : ''}
+        <div class="xc-overlay">
+          <button class="xc-play" data-mk="${k}" onclick="event.stopPropagation();${playFn}(_get(this.dataset.mk))">▶</button>
+          ${XCard._actionBtn(k, action, 'overlay')}
+        </div>
+      </div>
+      <div class="xc-info">
+        <div class="xc-name">${m.title}</div>
+        <div class="xc-meta"><span>${m.year||''}</span>${rat?`<span style="color:var(--green)">★ ${rat}</span>`:''}</div>
+      </div>
+    </div>`;
+  },
+
+  // Wide row/list card — replaces cHTML list mode (Browse) / mlCardHTML list mode (My List)
+  row(m, opts = {}) {
+    XCard.injectStyles();
+    const { onOpen = 'openModal', onPlay = null, action = { type: 'add' }, subtitle = '', added = '' } = opts;
+    const k      = _reg(m);
+    const rat    = m.rating || m.vote_average || '';
+    const playFn = onPlay || onOpen;
+    return `<div class="xc-card xc-row" data-mk="${k}" onclick="${onOpen}(_get(this.dataset.mk))">
+      <div class="xc-thumb">
+        <img class="xc-img" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555'">
+        <div class="xc-overlay"><button class="xc-play" data-mk="${k}" onclick="event.stopPropagation();${playFn}(_get(this.dataset.mk))">▶</button></div>
+      </div>
+      <div class="xc-info">
+        <div class="xc-name">${m.title}</div>
+        <div class="xc-meta"><span>${m.year||''}</span>${rat?`<span>·</span><span style="color:var(--green)">★ ${rat}</span>`:''}</div>
+        ${subtitle ? `<div class="xc-sub-desc">${subtitle}</div>` : ''}
+        ${added ? `<div class="xc-added">${added}</div>` : ''}
+      </div>
+      <div class="xc-row-acts">
+        <button class="xc-la-btn" data-mk="${k}" onclick="event.stopPropagation();${playFn}(_get(this.dataset.mk))" title="Play">▶</button>
+        ${XCard._actionBtn(k, action, 'row')}
+      </div>
+    </div>`;
+  },
+
+  // Continue-watching thumb card — replaces cwCardHTML (Home + My List, incl. TV resume / isDone state)
+  cw(m, opts = {}) {
+    XCard.injectStyles();
+    const {
+      onPlay     = 'playMovie',
+      onRemove   = 'removeCW',
+      showRemove = true,
+      isDone     = false,
+      subtitle   = null, // override default subtitle text if provided
+    } = opts;
+    const dur      = Number(m.duration) || 0;
+    const prog     = Number(m.progress) || 0;
+    const rawPct   = dur > 0 ? (prog / dur) * 100 : 0;
+    const pct      = Math.min(100, Math.max(rawPct > 0 ? 3 : 0, rawPct));
+    const minsLeft = dur > 0 ? Math.max(0, Math.round((dur - prog) / 60)) : 0;
+    const isTV     = m.type === 'tv';
+    const lastS    = m.lastSeason  || 1;
+    const lastE    = m.lastEpisode || 1;
+    const k        = _reg(m);
+    const onClickPlay = isTV
+      ? `${onPlay}(_get(this.dataset.mk),${lastS},${lastE})`
+      : `${onPlay}(_get(this.dataset.mk))`;
+    const sub = subtitle !== null ? subtitle : (isDone ? 'Watched' : (isTV ? `S${lastS} E${lastE} · Continue` : 'Continue watching'));
+    return `<div class="xc-cw" data-mk="${k}" onclick="${onClickPlay}">
+      <div class="xc-cw-thumb">
+        <img class="xc-cw-img" src="${m.backdrop_url||m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='${m.poster_url||''}'">
+        <div class="xc-cw-playov"><div class="xc-cw-playbtn">▶</div></div>
+        <div class="xc-cw-prog"><div class="xc-cw-progfill" style="width:${pct}%"></div></div>
+        ${isDone ? `<div class="xc-cw-time" style="color:var(--green)">✓ Done</div>` : (minsLeft > 0 ? `<div class="xc-cw-time">${minsLeft}m left</div>` : '')}
+        ${showRemove ? `<button class="xc-cw-remove" data-mk="${k}" onclick="event.stopPropagation();${onRemove}(_get(this.dataset.mk).id)" title="Remove">✕</button>` : ''}
+      </div>
+      <div class="xc-cw-info">
+        <div class="xc-cw-title">${m.title}</div>
+        <div class="xc-cw-sub">${sub}</div>
+      </div>
+    </div>`;
+  },
+
+  // Top-10 numbered card — replaces manual markup in buildTopTen (Home) / buildT10 (Browse)
+  top10(m, i, opts = {}) {
+    XCard.injectStyles();
+    const { onOpen = 'openModal' } = opts;
+    const k = _reg(m);
+    return `<div class="xc-t10" data-mk="${k}" onclick="${onOpen}(_get(this.dataset.mk))">
+      <div class="xc-t10-num">${i+1}</div>
+      <img class="xc-t10-img" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555&size=200'">
+    </div>`;
+  },
+};
+
+// ─────────────────────────────────────────────────────────
 //  SHARED NOTIFICATION PANEL
 //  Netflix-style slide-in drawer — works on every page.
 //
