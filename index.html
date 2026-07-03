@@ -38,9 +38,15 @@
       --shadow-sm: 0 2px 8px rgba(0,0,0,.4);
     }
 html,body{height:100%;font-family:'Barlow',sans-serif;background:var(--bg);color:#e5e5e5;overflow-x:hidden}
-.bg-wrap{position:fixed;inset:0;z-index:0}
-.bg-img{width:100%;height:100%;object-fit:cover;opacity:.28;filter:brightness(.4)}
+.bg-wrap{position:fixed;inset:0;z-index:0;overflow:hidden;background:#000}
+.bg-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;filter:brightness(.4);transition:opacity 2.2s ease;will-change:opacity,transform;transform:scale(1)}
+.bg-img.active{opacity:.3}
+.bg-img.active.kb{animation:bgKenBurns 16s ease-in-out forwards}
+@keyframes bgKenBurns{from{transform:scale(1)}to{transform:scale(1.1)}}
 .bg-grad{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.75) 0%,rgba(0,0,0,.25) 40%,rgba(0,0,0,.85) 80%,rgba(0,0,0,.98) 100%)}
+.bg-vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 40%,transparent 35%,rgba(0,0,0,.55) 100%);animation:bgPulse 10s ease-in-out infinite}
+@keyframes bgPulse{0%,100%{opacity:.65}50%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.bg-img.active.kb{animation:none}.bg-vignette{animation:none}}
 nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 4%;height:72px}
 .logo{font-family:'Bebas Neue',cursive;font-size:2.4rem;color:var(--red);letter-spacing:2px;cursor:pointer;user-select:none}
 .logo span{color:#fff}
@@ -126,9 +132,11 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
   <div class="ld-bar"><div class="ld-fill"></div></div>
 </div>
 
-<div class="bg-wrap">
-  <img class="bg-img" src="https://image.tmdb.org/t/p/original/628Dep6AxEtDxjZoGP78TsOxYbY.jpg" alt="">
+<div class="bg-wrap" id="bgWrap">
+  <img class="bg-img active kb" id="bgLayerA" src="https://image.tmdb.org/t/p/original/628Dep6AxEtDxjZoGP78TsOxYbY.jpg" alt="">
+  <img class="bg-img" id="bgLayerB" src="" alt="">
   <div class="bg-grad"></div>
+  <div class="bg-vignette"></div>
 </div>
 
 <nav><span class="logo" onclick="showPage('landing')">Xverse<span>Movies</span></span></nav>
@@ -222,6 +230,43 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 let selectedPlan = 'free';
 let signupData   = {};
 let _inSignupFlow = false; // prevents handleSession from interfering during signup
+
+// ── CINEMATIC BACKGROUND ─────────────────────────────
+// Netflix-style login backdrop: crossfades between a few trending
+// movie/show backdrops with a slow Ken Burns zoom on each. Falls
+// back gracefully to the single static image already in the HTML
+// if TMDB can't be reached (offline / proxy down).
+async function initBgCollage() {
+  try {
+    const res = await TMDB.trending();
+    const backdrops = (res?.results || [])
+      .map(r => TMDB.img(r.backdrop_path, 'original'))
+      .filter(Boolean)
+      .slice(0, 8);
+    if (backdrops.length < 2) return; // not enough variety — keep the static fallback
+
+    let idx = 0;
+    let front = document.getElementById('bgLayerA'); // currently visible
+    let back  = document.getElementById('bgLayerB'); // preloading next
+
+    const cycle = () => {
+      idx = (idx + 1) % backdrops.length;
+      back.src = backdrops[idx];
+      back.onload = () => {
+        back.classList.remove('kb');
+        void back.offsetWidth; // restart the Ken Burns animation
+        back.classList.add('active', 'kb');
+        front.classList.remove('active', 'kb');
+        [front, back] = [back, front];
+      };
+    };
+
+    setInterval(cycle, 9000);
+  } catch (e) {
+    // Network/CORS failure — the static bg-img already in the HTML stays visible.
+  }
+}
+initBgCollage();
 
 // ── INIT ──────────────────────────────────────────
 (async () => {
