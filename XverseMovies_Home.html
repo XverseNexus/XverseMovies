@@ -101,53 +101,12 @@ nav.solid{background:rgba(8,8,8,.97);backdrop-filter:blur(10px);border-bottom:1p
 .cards-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
 .cards-scroll::-webkit-scrollbar{display:none}
 
-/* ── CARD ── */
-.card{flex-shrink:0;width:155px;border-radius:5px;overflow:hidden;background:var(--card);border:1px solid var(--border);cursor:pointer;transition:transform .22s,border-color .22s,box-shadow .22s;position:relative;scroll-snap-align:start}
-.card:hover{transform:scale(1.07);border-color:rgba(255,255,255,.28);box-shadow:0 8px 32px rgba(0,0,0,.7);z-index:4}
-.card-img-wrap{position:relative;aspect-ratio:2/3;overflow:hidden}
-.card-img{width:100%;height:100%;object-fit:cover;background:#222;display:block;transition:filter .22s}
-.card:hover .card-img{filter:brightness(.55)}
-.card-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;opacity:0;transition:opacity .2s;background:rgba(0,0,0,.35)}
-.card:hover .card-overlay{opacity:1}
-.card-play{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.92);border:none;color:#000;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s}
-.card-play:hover{transform:scale(1.1)}
-.card-add{width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.55);border:1.5px solid rgba(255,255,255,.45);color:#fff;font-size:.88rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
-.card-add:hover{background:rgba(229,9,20,.35);border-color:var(--red)}
-.card-type{position:absolute;top:6px;left:6px;font-size:.57rem;font-weight:800;padding:2px 6px;border-radius:3px;letter-spacing:.8px}
-.card-type.movie{background:rgba(229,9,20,.8);color:#fff}
-.card-type.tv{background:rgba(33,150,243,.8);color:#fff}
-.card-rating{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.7);color:var(--green);font-size:.6rem;font-weight:700;padding:2px 6px;border-radius:3px;opacity:0;transition:opacity .2s}
-.card:hover .card-rating{opacity:1}
-.card-info{padding:8px 9px 10px}
-.card-name{font-size:.8rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
-.card-meta{font-size:.66rem;color:var(--muted);display:flex;gap:5px}
-
-/* ── CONTINUE WATCHING CARD ── */
-.cw-card{flex-shrink:0;width:220px;border-radius:5px;overflow:hidden;background:var(--card);border:1px solid var(--border);cursor:pointer;transition:transform .2s,border-color .2s;position:relative;scroll-snap-align:start}
-.cw-card:hover{transform:scale(1.04);border-color:rgba(255,255,255,.28)}
-.cw-thumb-wrap{position:relative;height:126px;overflow:hidden}
-.cw-thumb{width:100%;height:100%;object-fit:cover;background:#222;display:block;transition:filter .2s}
-.cw-card:hover .cw-thumb{filter:brightness(.65)}
-.cw-play-ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;background:rgba(0,0,0,.3)}
-.cw-card:hover .cw-play-ov{opacity:1}
-.cw-prog{position:absolute;bottom:0;left:0;right:0;height:4px;background:rgba(255,255,255,.22)}
-.cw-prog-fill{height:100%;background:var(--red);border-radius:0 2px 2px 0;transition:width .3s ease;box-shadow:0 0 6px rgba(229,9,20,.6);min-width:3px}
-.cw-time-left{position:absolute;bottom:7px;right:8px;font-size:.62rem;color:rgba(255,255,255,.75);background:rgba(0,0,0,.6);padding:2px 6px;border-radius:3px}
-.cw-info{padding:9px 11px 11px}
-.cw-title{font-size:.83rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
-.cw-sub{font-size:.7rem;color:var(--muted)}
-.cw-remove{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);border:none;color:rgba(255,255,255,.6);width:22px;height:22px;border-radius:50%;font-size:.65rem;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:all .2s}
-.cw-card:hover .cw-remove{opacity:1}
-.cw-remove:hover{background:rgba(229,9,20,.7);color:#fff}
-
-/* ── TOP 10 ── */
+/* ── CARD / CONTINUE WATCHING CARD / TOP 10 ──
+   Moved to the shared XCard component (xverse-config.js → XCard.injectStyles())
+   so Home, Browse and My List all render cards with identical spacing,
+   radius and hover behavior. See .xc-card / .xc-cw / .xc-t10 there. */
 .t10-wrap{display:flex;gap:0;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
 .t10-wrap::-webkit-scrollbar{display:none}
-.t10-card{flex-shrink:0;display:flex;align-items:flex-end;cursor:pointer;transition:transform .2s}
-.t10-card:hover{transform:scale(1.04);z-index:3}
-.t10-num{font-family:'Bebas Neue',cursive;font-size:7rem;color:transparent;-webkit-text-stroke:2px rgba(255,255,255,.18);line-height:1;margin-right:-20px;z-index:1;flex-shrink:0;transition:-webkit-text-stroke-color .2s}
-.t10-card:hover .t10-num{-webkit-text-stroke-color:rgba(255,255,255,.42)}
-.t10-poster{width:100px;height:146px;border-radius:4px;object-fit:cover;background:#222;z-index:2;position:relative;border:1px solid var(--border)}
 
 /* ── SKELETON ── */
 .skel{background:linear-gradient(90deg,#222 25%,#2a2a2a 50%,#222 75%);background-size:200% 100%;animation:skelA 1.4s infinite;border-radius:4px}
@@ -208,7 +167,7 @@ nav.solid{background:rgba(8,8,8,.97);backdrop-filter:blur(10px);border-bottom:1p
 .empty-row{padding:20px;text-align:center;font-size:.84rem;color:var(--muted)}
 
 /* ── RESPONSIVE ── */
-@media(max-width:640px){.nav-links{display:none}.card{width:120px}.cw-card{width:175px}.t10-num{font-size:5.5rem}.t10-poster{width:80px;height:116px}.ep-thumb{width:80px;height:46px}.modal{width:100%}main{padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))!important}}
+@media(max-width:640px){.nav-links{display:none}.ep-thumb{width:80px;height:46px}.modal{width:100%}main{padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))!important}}
 /* ── MOBILE BOTTOM NAV ────────────────────────────────── */
 .mob-nav{display:none}
 @media(max-width:640px){
@@ -541,15 +500,7 @@ function buildTop10Row(title, movies) {
   row.className = 'row';
   row.innerHTML = `
     <div class="row-hd"><span class="row-title">${title}</span></div>
-    <div class="t10-wrap">${movies.map((m,i) => {
-      const k = _reg(m);
-      return `
-      <div class="t10-card" data-mk="${k}" onclick="openModal(_get(this.dataset.mk))">
-        <div class="t10-num">${i+1}</div>
-        <img class="t10-poster" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555&size=200'">
-      </div>`;
-    }).join('')}
-    </div>`;
+    <div class="t10-wrap">${movies.map((m,i) => XCard.top10(m, i, { onOpen: 'openModal' })).join('')}</div>`;
   return row;
 }
 
@@ -566,49 +517,24 @@ function buildCWRow(items) {
   return row;
 }
 
+// Thin delegate to the shared XCard component (see xverse-config.js).
+// Keeps the cardHTML(m) call signature so every existing call site
+// (buildCardRow, .map(cardHTML), etc.) needs no other changes.
 function cardHTML(m) {
-  const k      = _reg(m);
-  const inList = ML.has(m.id);
-  const isTV   = m.type === 'tv';
-  return `<div class="card" data-mk="${k}" onclick="openModal(_get(this.dataset.mk))">
-    <div class="card-img-wrap">
-      <img class="card-img" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555&size=400'">
-      <span class="card-type ${m.type||'movie'}">${isTV?'TV':'MOVIE'}</span>
-      <span class="card-rating">★ ${m.rating||m.vote_average||''}</span>
-      <div class="card-overlay">
-        <button class="card-play" data-mk="${k}" data-tv="${isTV?1:0}" onclick="event.stopPropagation();if(this.dataset.tv==='1')openModal(_get(this.dataset.mk));else playMovie(_get(this.dataset.mk))">▶</button>
-        <button class="card-add" data-mk="${k}" onclick="event.stopPropagation();mlToggle(_get(this.dataset.mk))">${inList?'✓':'+'}</button>
-      </div>
-    </div>
-    <div class="card-info">
-      <div class="card-name">${m.title}</div>
-      <div class="card-meta"><span>${m.year||''}</span></div>
-    </div>
-  </div>`;
+  return XCard.poster(m, {
+    onOpen: 'openModal',
+    onPlay: m.type === 'tv' ? 'openModal' : 'playMovie',
+    action: { type: 'add', inList: ML.has(m.id), onToggle: 'mlToggle' },
+  });
 }
 
+// Thin delegate to the shared XCard component — same signature as before.
 function cwCardHTML(m) {
-  // NaN-safe: progress/duration might be null for freshly-added items
-  const dur      = Number(m.duration) || 0;
-  const prog     = Number(m.progress) || 0;
-  const rawPct   = dur > 0 ? (prog / dur) * 100 : 0;
-  // Netflix always shows a visible sliver even at 1-2% so users see "started"
-  const pct      = Math.min(100, Math.max(rawPct > 0 ? 3 : 0, rawPct));
-  const minsLeft = dur > 0 ? Math.max(0, Math.round((dur - prog) / 60)) : 0;
-  const k        = _reg(m); // registry — no JSON-in-onclick special char crashes
-  return `<div class="cw-card" data-mk="${k}" onclick="playMovie(_get(this.dataset.mk))">
-    <div class="cw-thumb-wrap">
-      <img class="cw-thumb" src="${m.backdrop_url||m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='${m.poster_url||''}'">
-      <div class="cw-play-ov"><div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;color:#000;font-size:1rem">▶</div></div>
-      <div class="cw-prog"><div class="cw-prog-fill" style="width:${pct}%"></div></div>
-      ${minsLeft > 0 ? `<div class="cw-time-left">${minsLeft}m left</div>` : ''}
-      <button class="cw-remove" data-mk="${k}" onclick="event.stopPropagation();removeCW(_get(this.dataset.mk).id)" title="Remove">✕</button>
-    </div>
-    <div class="cw-info">
-      <div class="cw-title">${m.title}</div>
-      <div class="cw-sub">${m.completed ? 'Watched' : 'Continue watching'}</div>
-    </div>
-  </div>`;
+  return XCard.cw(m, {
+    onPlay: 'playMovie',
+    onRemove: 'removeCW',
+    isDone: !!m.completed,
+  });
 }
 
 // ─────────────────────────────────────────
@@ -689,7 +615,7 @@ async function removeCW(movieId) {
   await DB.removeContinueWatching(currentUser.id, movieId);
   const row = document.getElementById('cwRow');
   if (row) {
-    const cards = row.querySelectorAll('.cw-card');
+    const cards = row.querySelectorAll('.xc-cw');
     if (cards.length <= 1) row.remove();
   }
   showToast('Removed from Continue Watching');
