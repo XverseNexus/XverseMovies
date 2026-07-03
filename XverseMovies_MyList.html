@@ -88,58 +88,11 @@ main{padding:88px 4% 60px}
 /* GRID */
 .ml-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px}
 .ml-grid.list{grid-template-columns:1fr;gap:6px}
-/* CARD */
-.ml-card{border-radius:6px;overflow:hidden;background:var(--card);border:1px solid var(--border);cursor:pointer;transition:transform .2s,border-color .2s;position:relative}
-.ml-card:hover{transform:scale(1.05);border-color:rgba(255,255,255,.26);z-index:2}
-.ml-card.list{display:flex;align-items:center;transform:none!important;transition:background .2s,border-color .2s}
-.ml-card.list:hover{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.16)}
-.ml-thumb{position:relative;aspect-ratio:2/3;overflow:hidden}
-.ml-card.list .ml-thumb{width:64px;height:96px;flex-shrink:0;aspect-ratio:unset}
-.ml-img{width:100%;height:100%;object-fit:cover;background:#222;display:block;transition:filter .2s}
-.ml-card:hover .ml-img{filter:brightness(.55)}
-.ml-card.list:hover .ml-img{filter:brightness(.8)}
-.ml-ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;opacity:0;transition:opacity .2s;background:rgba(0,0,0,.38)}
-.ml-card:hover .ml-ov{opacity:1}
-.ml-card.list .ml-ov{flex-direction:row}
-.ml-play{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.92);border:none;color:#000;font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s;flex-shrink:0}
-.ml-play:hover{transform:scale(1.1)}
-.ml-del{width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.55);border:1.5px solid rgba(255,255,255,.4);color:#fff;font-size:.78rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
-.ml-del:hover{background:rgba(229,9,20,.45);border-color:var(--red)}
-.ml-type{position:absolute;top:6px;left:6px;font-size:.58rem;font-weight:800;padding:2px 6px;border-radius:3px;letter-spacing:.8px}
-.ml-type.movie{background:rgba(229,9,20,.8);color:#fff}
-.ml-type.tv{background:rgba(33,150,243,.8);color:#fff}
-.ml-info{padding:8px 9px 10px}
-.ml-card.list .ml-info{flex:1;padding:10px 14px;min-width:0}
-.ml-name{font-size:.8rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
-.ml-card.list .ml-name{font-size:.9rem;white-space:normal;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
-.ml-meta{font-size:.66rem;color:var(--muted);display:flex;gap:5px;align-items:center;flex-wrap:wrap}
-.ml-card.list .ml-meta{font-size:.74rem}
-.ml-desc{font-size:.74rem;color:rgba(255,255,255,.44);margin-top:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.4}
-.ml-added{font-size:.66rem;color:rgba(255,255,255,.3);margin-top:4px}
-.list-acts{display:flex;gap:6px;align-items:center;padding:0 12px;flex-shrink:0}
-.la-btn{background:rgba(255,255,255,.07);border:1px solid var(--border);color:rgba(255,255,255,.68);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:.78rem;display:flex;align-items:center;justify-content:center;transition:all .2s}
-.la-btn:hover{background:rgba(255,255,255,.14);color:#fff}
-.la-btn.del{color:#ff6b6b;border-color:rgba(255,100,100,.2)}
-.la-btn.del:hover{background:rgba(229,9,20,.12)}
-/* CW CARDS */
+/* CARD / CW CARDS — moved to the shared XCard component
+   (xverse-config.js → XCard.injectStyles()); see .xc-card / .xc-row / .xc-cw.
+   The scroll container below is page layout, kept here. */
 .cw-scroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;margin-bottom:32px}
 .cw-scroll::-webkit-scrollbar{display:none}
-.cw-card{flex-shrink:0;width:215px;border-radius:6px;overflow:hidden;background:var(--card);border:1px solid var(--border);cursor:pointer;transition:transform .2s,border-color .2s;position:relative}
-.cw-card:hover{transform:scale(1.04);border-color:rgba(255,255,255,.26)}
-.cw-thumb-w{position:relative;height:122px;overflow:hidden}
-.cw-img{width:100%;height:100%;object-fit:cover;background:#222;display:block;transition:filter .2s}
-.cw-card:hover .cw-img{filter:brightness(.65)}
-.cw-play-ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;background:rgba(0,0,0,.32)}
-.cw-card:hover .cw-play-ov{opacity:1}
-.cw-prog-bar{position:absolute;bottom:0;left:0;right:0;height:4px;background:rgba(255,255,255,.22)}
-.cw-prog-fill{height:100%;background:var(--red);border-radius:0 2px 2px 0;transition:width .3s ease;box-shadow:0 0 6px rgba(229,9,20,.6);min-width:3px}
-.cw-time{position:absolute;bottom:8px;right:8px;font-size:.62rem;color:rgba(255,255,255,.75);background:rgba(0,0,0,.6);padding:2px 6px;border-radius:3px}
-.cw-rem{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);border:none;color:rgba(255,255,255,.6);width:22px;height:22px;border-radius:50%;font-size:.6rem;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:all .2s}
-.cw-card:hover .cw-rem{opacity:1}
-.cw-rem:hover{background:rgba(229,9,20,.7);color:#fff}
-.cw-info{padding:8px 10px 10px}
-.cw-title{font-size:.82rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
-.cw-sub{font-size:.7rem;color:var(--muted)}
 /* HISTORY */
 .hist-group{margin-bottom:28px}
 .hist-date{font-size:.7rem;font-weight:700;color:var(--muted);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
@@ -167,7 +120,7 @@ main{padding:88px 4% 60px}
 /* SKELETON */
 .skel{background:linear-gradient(90deg,#222 25%,#2a2a2a 50%,#222 75%);background-size:200% 100%;animation:sk 1.4s infinite;border-radius:4px}
 @keyframes sk{0%{background-position:200%}100%{background-position:-200%}}
-@media(max-width:640px){.nav-links{display:none}.stats{grid-template-columns:repeat(2,1fr)}.ml-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}.cw-card{width:175px}main{padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))!important}}
+@media(max-width:640px){.nav-links{display:none}.stats{grid-template-columns:repeat(2,1fr)}.ml-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}main{padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))!important}}
 /* ── MOBILE BOTTOM NAV ────────────────────────────────── */
 .mob-nav{display:none}
 @media(max-width:640px){
@@ -382,41 +335,21 @@ function renderMyList() {
   grid.innerHTML = filtered.map(m => mlCardHTML(m)).join('');
 }
 
+// Thin delegate to the shared XCard component (see xverse-config.js).
+// Same mlCardHTML(m) signature as before — renderMyList() needs no
+// other changes. My List always shows a remove (✕) action instead
+// of add-to-list, since every card here is already in the list.
 function mlCardHTML(m) {
-  const k   = _reg(m);
-  const ago = timeAgo(m.addedAt);
+  const action = { type: 'remove', onRemove: 'removeML' };
   if (mlView === 'list') {
-    return `<div class="ml-card list" data-mk="${k}" onclick="playMovie(_get(this.dataset.mk))">
-      <div class="ml-thumb">
-        <img class="ml-img" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555'">
-        <div class="ml-ov"><button class="ml-play" data-mk="${k}" onclick="event.stopPropagation();playMovie(_get(this.dataset.mk))">▶</button></div>
-      </div>
-      <div class="ml-info">
-        <div class="ml-name">${m.title}</div>
-        <div class="ml-meta"><span>${m.year||''}</span>${m.rating?`<span>·</span><span style="color:var(--green)">★ ${m.rating}</span>`:''}</div>
-        <div class="ml-desc">${m.overview||''}</div>
-        <div class="ml-added">Added ${ago}</div>
-      </div>
-      <div class="list-acts">
-        <button class="la-btn" data-mk="${k}" onclick="event.stopPropagation();playMovie(_get(this.dataset.mk))" title="Play">▶</button>
-        <button class="la-btn del" onclick="event.stopPropagation();removeML(${m.id})" title="Remove">✕</button>
-      </div>
-    </div>`;
+    return XCard.row(m, {
+      onOpen: 'playMovie',
+      action,
+      subtitle: m.overview || '',
+      added: `Added ${timeAgo(m.addedAt)}`,
+    });
   }
-  return `<div class="ml-card" data-mk="${k}" onclick="playMovie(_get(this.dataset.mk))">
-    <div class="ml-thumb">
-      <img class="ml-img" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555&size=400'">
-      <span class="ml-type ${m.type||'movie'}">${m.type==='tv'?'TV':'MOVIE'}</span>
-      <div class="ml-ov">
-        <button class="ml-play" data-mk="${k}" onclick="event.stopPropagation();playMovie(_get(this.dataset.mk))">▶</button>
-        <button class="ml-del" onclick="event.stopPropagation();removeML(${m.id})">✕</button>
-      </div>
-    </div>
-    <div class="ml-info">
-      <div class="ml-name">${m.title}</div>
-      <div class="ml-meta"><span>${m.year||''}</span>${m.rating?`<span>·</span><span style="color:var(--green)">★ ${m.rating}</span>`:''}</div>
-    </div>
-  </div>`;
+  return XCard.poster(m, { onOpen: 'playMovie', action });
 }
 
 async function removeML(movieId) {
@@ -497,63 +430,34 @@ async function loadCW() {
   } else cwDoneSec.style.display = 'none';
 }
 
+// Thin delegate to the shared XCard component (see xverse-config.js).
+// Same cwCardHTML(m, isDone) signature as before. Keeps the richer
+// TV season/episode resume + "watched Xd ago" subtitle behavior that
+// this page had (XCard.cw() supports both via its `subtitle` override).
 function cwCardHTML(m, isDone = false) {
   const dur      = Number(m.duration) || 0;
   const prog     = Number(m.progress) || 0;
-  const rawPct   = dur > 0 ? (prog / dur) * 100 : 0;
-  const pct      = Math.min(100, Math.max(rawPct > 0 ? 3 : 0, rawPct));
   const minsLeft = dur > 0 ? Math.max(0, Math.round((dur - prog) / 60)) : 0;
   const ago      = timeAgo(m.updatedAt);
   const isTV     = m.type === 'tv';
-
-  // For TV shows: resume from last watched season/episode
   const lastS    = m.lastSeason  || 1;
   const lastE    = m.lastEpisode || 1;
 
-  // Build subtitle: "S2 E5 · Continue" for TV, "45m left" for movies
-  let subText;
+  let subtitle;
   if (isDone) {
-    subText = isTV
-      ? `S${lastS} E${lastE} · Watched ${ago}`
-      : `Watched ${ago}`;
+    subtitle = isTV ? `S${lastS} E${lastE} · Watched ${ago}` : `Watched ${ago}`;
   } else {
-    subText = isTV
+    subtitle = isTV
       ? `S${lastS} E${lastE} · Continue · ${ago}`
       : (minsLeft > 0 ? `${minsLeft}m left · ${ago}` : `Continue · ${ago}`);
   }
 
-  // Registry-based onclick — no JSON-in-attribute crashes for special chars
-  const k = _reg(m);
-  const onClickPlay = isTV
-    ? `playMovie(_get(this.dataset.mk),${lastS},${lastE})`
-    : `playMovie(_get(this.dataset.mk))`;
-
-  return `<div class="cw-card" data-mk="${k}" onclick="${onClickPlay}">
-    <div class="cw-thumb-w">
-      <img class="cw-img"
-        src="${m.backdrop_url || m.poster_url || ''}"
-        alt="${m.title}"
-        loading="lazy"
-        onerror="this.src='${m.poster_url || ''}'">
-      <div class="cw-play-ov">
-        <div style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;color:#000;font-size:.95rem">▶</div>
-      </div>
-      <div class="cw-prog-bar">
-        <div class="cw-prog-fill" style="width:${pct}%"></div>
-      </div>
-      ${isDone
-        ? `<div class="cw-time" style="color:var(--green)">✓ Done</div>`
-        : (!isTV && minsLeft > 0 ? `<div class="cw-time">${minsLeft}m left</div>` : '')}
-      ${isTV && !isDone
-        ? `<div class="cw-time">S${lastS} E${lastE}</div>`
-        : ''}
-      <button class="cw-rem" data-mk="${k}" onclick="event.stopPropagation();removeCWItem(_get(this.dataset.mk).id)" title="Remove">✕</button>
-    </div>
-    <div class="cw-info">
-      <div class="cw-title">${m.title}</div>
-      <div class="cw-sub">${subText}</div>
-    </div>
-  </div>`;
+  return XCard.cw(m, {
+    onPlay: 'playMovie',
+    onRemove: 'removeCWItem',
+    isDone,
+    subtitle,
+  });
 }
 
 async function removeCWItem(movieId) {
