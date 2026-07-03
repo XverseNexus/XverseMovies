@@ -101,33 +101,10 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;ali
 /* CARD GRID */
 .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px;margin-bottom:30px}
 .cgrid.lm{grid-template-columns:1fr;gap:5px}
-.card{border-radius:5px;overflow:hidden;background:var(--card);border:1px solid var(--border);cursor:pointer;transition:transform .22s,border-color .22s,box-shadow .22s;position:relative}
-.card:hover{transform:scale(1.06);border-color:rgba(255,255,255,.25);box-shadow:0 7px 28px rgba(0,0,0,.65);z-index:3}
-.card.lc{display:flex;align-items:center;transform:none!important;transition:background .2s,border-color .2s;border-radius:6px}
-.card.lc:hover{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.16);box-shadow:none}
-.cth{position:relative;aspect-ratio:2/3;overflow:hidden}
-.card.lc .cth{width:62px;height:93px;flex-shrink:0;aspect-ratio:unset}
-.ci{width:100%;height:100%;object-fit:cover;background:#222;display:block;transition:filter .22s}
-.card:hover .ci{filter:brightness(.55)}
-.card.lc:hover .ci{filter:brightness(.8)}
-.cov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;opacity:0;transition:opacity .2s;background:rgba(0,0,0,.36)}
-.card:hover .cov,.card.lc:hover .cov{opacity:1}
-.card.lc .cov{flex-direction:row}
-.cpl{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.92);border:none;color:#000;font-size:.88rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s;flex-shrink:0}
-.cpl:hover{transform:scale(1.1)}
-.cad{width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.55);border:1.5px solid rgba(255,255,255,.4);color:#fff;font-size:.78rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
-.cad:hover{background:rgba(229,9,20,.36);border-color:var(--red)}
-.ctyp{position:absolute;top:5px;left:5px;font-size:.54rem;font-weight:800;padding:2px 5px;border-radius:3px;letter-spacing:.8px}
-.ctyp.movie{background:rgba(229,9,20,.8);color:#fff}
-.ctyp.tv{background:rgba(33,150,243,.8);color:#fff}
-.crat{position:absolute;top:5px;right:5px;background:rgba(0,0,0,.7);color:var(--green);font-size:.58rem;font-weight:700;padding:2px 5px;border-radius:3px;opacity:0;transition:opacity .2s}
-.card:hover .crat{opacity:1}
-.cif{padding:7px 8px 9px}
-.card.lc .cif{flex:1;padding:9px 13px;min-width:0}
-.cn{font-size:.78rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
-.card.lc .cn{font-size:.88rem;white-space:normal;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
-.cm{font-size:.64rem;color:var(--muted);display:flex;gap:4px;align-items:center}
-.card.lc .cm{font-size:.72rem}
+/* Poster/list card styling moved to the shared XCard component
+   (xverse-config.js → XCard.injectStyles()) — see .xc-card / .xc-row.
+   .t10c/.t10n/.t10p below stay: still used by the New & Popular
+   section's own markup, separate from buildT10(). */
 .lacts{display:flex;gap:5px;align-items:center;padding:0 11px;flex-shrink:0}
 .lb{background:rgba(255,255,255,.07);border:1px solid var(--border);color:rgba(255,255,255,.66);width:27px;height:27px;border-radius:50%;cursor:pointer;font-size:.74rem;display:flex;align-items:center;justify-content:center;transition:all .2s}
 .lb:hover{background:rgba(255,255,255,.13);color:#fff}
@@ -507,44 +484,25 @@ function skelG(n) {
 }
 
 // ── CARD HTML ─────────────────────────────────────────────────
+// Thin delegate to the shared XCard component (see xverse-config.js).
+// Same cHTML(m, isList) signature as before so every call site
+// (renderTV, renderMov, renderNP, ...) needs no other changes.
+// play(m) already redirects TV titles to the modal internally,
+// so a single onPlay handler covers both movies and TV.
 function cHTML(m, isList) {
-  var k = _reg(m);
-  var rat = m.rating || m.vote_average || '';
-  var isTV = m.type === 'tv', tvF = isTV ? '1' : '0';
-  var inML = ML.has(m.id), mlLbl = inML ? '&#10003;' : '+';
-  var img = m.poster_url || '', title = m.title || '';
-  var year = m.year || '', typ = m.type || 'movie';
-  var ratH = rat ? '<span class="crat">&#9733; '+rat+'</span>' : '';
-  var ratC = rat ? '<span style="color:var(--green)">&#9733; '+rat+'</span>' : '';
-  if (isList) {
-    return '<div class="card lc" data-mk="'+k+'" onclick="openMod(_get(this.dataset.mk))">'
-      +'<div class="cth"><img class="ci" src="'+img+'" alt="" loading="lazy">'
-      +'<div class="cov"><button class="cpl" data-mk="'+k+'" data-tv="'+tvF+'" onclick="event.stopPropagation();_pc(this)">&#9654;</button></div></div>'
-      +'<div class="cif"><div class="cn">'+title+'</div><div class="cm"><span>'+year+'</span>'+ratC+'</div></div>'
-      +'<div class="lacts">'
-      +'<button class="lb" data-mk="'+k+'" data-tv="'+tvF+'" onclick="event.stopPropagation();_pc(this)">&#9654;</button>'
-      +'<button class="lb" data-mk="'+k+'" onclick="event.stopPropagation();_ac(this)">'+mlLbl+'</button>'
-      +'</div></div>';
-  }
-  return '<div class="card" data-mk="'+k+'" onclick="openMod(_get(this.dataset.mk))">'
-    +'<div class="cth"><img class="ci" src="'+img+'" alt="" loading="lazy">'
-    +'<span class="ctyp '+typ+'">'+(isTV?'TV':'MOVIE')+'</span>'+ratH
-    +'<div class="cov">'
-    +'<button class="cpl" data-mk="'+k+'" data-tv="'+tvF+'" onclick="event.stopPropagation();_pc(this)">&#9654;</button>'
-    +'<button class="cad" data-mk="'+k+'" onclick="event.stopPropagation();_ac(this)">'+mlLbl+'</button>'
-    +'</div></div>'
-    +'<div class="cif"><div class="cn">'+title+'</div><div class="cm"><span>'+year+'</span></div></div>'
-    +'</div>';
+  var opts = {
+    onOpen: 'openMod',
+    onPlay: 'play',
+    action: { type: 'add', inList: ML.has(m.id), onToggle: 'addML' },
+  };
+  return isList ? XCard.row(m, opts) : XCard.poster(m, opts);
 }
 
 // ── TOP 10 ────────────────────────────────────────────────────
 function buildT10(elId, items) {
   var h = '';
   for (var i = 0; i < items.length; i++) {
-    var m = items[i], k = _reg(m);
-    h += '<div class="t10c" data-mk="'+k+'" onclick="openMod(_get(this.dataset.mk))">'
-       + '<div class="t10n">'+(i+1)+'</div>'
-       + '<img class="t10p" src="'+(m.poster_url||'')+'" alt="" loading="lazy"></div>';
+    h += XCard.top10(items[i], i, { onOpen: 'openMod' });
   }
   var el = document.getElementById(elId);
   if (el) el.innerHTML = h;
