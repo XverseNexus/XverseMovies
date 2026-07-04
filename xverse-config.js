@@ -791,8 +791,88 @@ const XCard = {
 .xc-t10:hover .xc-t10-num{-webkit-text-stroke-color:rgba(255,255,255,.42)}
 .xc-t10-img{width:100px;height:146px;border-radius:4px;object-fit:cover;background:#222;z-index:2;position:relative;border:1px solid var(--border)}
 @media(max-width:640px){.xc-t10-num{font-size:5.5rem}.xc-t10-img{width:80px;height:116px}}
+
+/* Hover-preview trailer overlay — poster cards only (see initHoverPreview) */
+.xc-img{z-index:0;position:relative}
+.xc-overlay{z-index:3}
+.xc-type,.xc-rating{z-index:4}
+.xc-preview-frame{position:absolute;inset:0;width:100%;height:100%;border:0;z-index:1;opacity:0;transition:opacity .4s ease;background:#000;pointer-events:none}
+.xc-preview-frame.show{opacity:1}
     `;
     document.head.appendChild(s);
+    XCard.initHoverPreview();
+  },
+
+  // ── HOVER-PREVIEW TRAILER (Netflix-style) ──────────────────────
+  // Hover a poster card for 3s → muted TMDB/YouTube trailer plays
+  // inline over the poster. Scoped to grid poster cards only
+  // (.xc-card:not(.xc-row)) — row/list cards and the small
+  // continue-watching thumb are too small for a meaningful preview.
+  _hoverPreviewInit: false,
+  _trailerCache: {},
+
+  initHoverPreview() {
+    if (XCard._hoverPreviewInit) return;
+    XCard._hoverPreviewInit = true;
+
+    document.addEventListener('mouseover', (e) => {
+      const card = e.target.closest('.xc-card:not(.xc-row)');
+      if (!card || card.contains(e.relatedTarget)) return;
+      clearTimeout(card._hoverT);
+      card._hoverT = setTimeout(() => XCard._showPreview(card), 3000);
+    });
+
+    document.addEventListener('mouseout', (e) => {
+      const card = e.target.closest('.xc-card:not(.xc-row)');
+      if (!card || card.contains(e.relatedTarget)) return;
+      clearTimeout(card._hoverT);
+      XCard._hidePreview(card);
+    });
+  },
+
+  async _showPreview(card) {
+    const m = typeof _get === 'function' ? _get(card.dataset.mk) : null;
+    if (!m || !m.tmdb_id) return; // DB-only entries without a TMDB id have no trailer to fetch
+    const key = await XCard._getTrailerKey(m);
+    if (!key || !card.matches(':hover')) return; // moved on while we were fetching
+    const thumb = card.querySelector('.xc-thumb');
+    if (!thumb) return;
+    let frame = thumb.querySelector('.xc-preview-frame');
+    if (!frame) {
+      frame = document.createElement('iframe');
+      frame.className = 'xc-preview-frame';
+      frame.setAttribute('allow', 'autoplay; encrypted-media');
+      frame.setAttribute('frameborder', '0');
+      thumb.appendChild(frame);
+    }
+    frame.src = `https://www.youtube.com/embed/${key}?autoplay=1&mute=1&controls=0&loop=1&playlist=${key}&modestbranding=1&rel=0&playsinline=1`;
+    requestAnimationFrame(() => frame.classList.add('show'));
+  },
+
+  _hidePreview(card) {
+    const frame = card.querySelector('.xc-preview-frame');
+    if (!frame) return;
+    frame.classList.remove('show');
+    setTimeout(() => { if (frame.parentNode) { frame.src = ''; frame.remove(); } }, 400);
+  },
+
+  async _getTrailerKey(m) {
+    const cacheKey = `${m.type || 'movie'}_${m.tmdb_id}`;
+    if (XCard._trailerCache[cacheKey] !== undefined) return XCard._trailerCache[cacheKey];
+    try {
+      const data = m.type === 'tv' ? await TMDB.tvDetails(m.tmdb_id) : await TMDB.movieDetails(m.tmdb_id);
+      const vids = data?.videos?.results || [];
+      const vid = vids.find(v => v.site === 'YouTube' && v.type === 'Trailer' && v.official)
+               || vids.find(v => v.site === 'YouTube' && v.type === 'Trailer')
+               || vids.find(v => v.site === 'YouTube' && v.type === 'Teaser')
+               || null;
+      const key = vid ? vid.key : null;
+      XCard._trailerCache[cacheKey] = key;
+      return key;
+    } catch (e) {
+      XCard._trailerCache[cacheKey] = null;
+      return null;
+    }
   },
 
   _actionBtn(k, action, size /* 'overlay' | 'row' */) {
