@@ -3,7 +3,7 @@
 //  Handles: offline support, app shell caching, background sync
 // ═══════════════════════════════════════════════════════════
 
-const CACHE_NAME    = 'xverse-v8';
+const CACHE_NAME    = 'xverse-v9';
 const SHELL_TIMEOUT = 3000; // ms before falling back to cache
 
 // App shell — these files are cached on install
@@ -18,6 +18,7 @@ const APP_SHELL = [
   '/xverse-config.js',
   '/manifest.json',
   '/favicon.png',
+  '/og-image.png',
   'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&display=swap',
 ];
 
