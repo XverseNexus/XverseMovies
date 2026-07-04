@@ -796,7 +796,8 @@ const XCard = {
 .xc-img{z-index:0;position:relative}
 .xc-overlay{z-index:3}
 .xc-type,.xc-rating{z-index:4}
-.xc-preview-frame{position:absolute;inset:0;width:100%;height:100%;border:0;z-index:1;opacity:0;transition:opacity .4s ease;background:#000;pointer-events:none}
+.xc-preview-mount{position:absolute;inset:0;z-index:1}
+.xc-preview-frame{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;border:0;z-index:1;opacity:0;transition:opacity .4s ease;background:#000;pointer-events:none}
 .xc-preview-frame.show{opacity:1}
     `;
     document.head.appendChild(s);
@@ -828,20 +829,30 @@ const XCard = {
       clearTimeout(card._hoverT);
       XCard._hidePreview(card);
     });
+  },
 
-    // YouTube's embed posts a JSON message to the parent once actual
-    // playback starts (playerState 1 = playing). We use that signal to
-    // reveal the iframe — this is what hides the brief channel-logo /
-    // branding thumbnail YouTube shows while the player is still loading.
-    window.addEventListener('message', (e) => {
-      if (typeof e.data !== 'string' || e.data.indexOf('infoDelivery') === -1) return;
-      let data;
-      try { data = JSON.parse(e.data); } catch { return; }
-      if (data.event !== 'infoDelivery' || !data.info || data.info.playerState !== 1) return;
-      document.querySelectorAll('.xc-preview-frame').forEach(f => {
-        if (f.contentWindow === e.source) f.classList.add('show');
-      });
+  // Loads YouTube's official IFrame Player API once (not the raw embed
+  // postMessage protocol — that doesn't reliably tell us when the actual
+  // video starts vs. when YouTube's own channel/branding thumbnail is
+  // still showing). The API's onStateChange event is the accurate signal.
+  _ytApiPromise: null,
+  _loadYTApi() {
+    if (XCard._ytApiPromise) return XCard._ytApiPromise;
+    XCard._ytApiPromise = new Promise((resolve) => {
+      if (window.YT && window.YT.Player) { resolve(window.YT); return; }
+      const prevCb = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => {
+        if (typeof prevCb === 'function') prevCb();
+        resolve(window.YT);
+      };
+      if (!document.getElementById('yt-iframe-api')) {
+        const tag = document.createElement('script');
+        tag.id = 'yt-iframe-api';
+        tag.src = 'https://www.youtube.com/iframe_api';
+        document.head.appendChild(tag);
+      }
     });
+    return XCard._ytApiPromise;
   },
 
   async _showPreview(card) {
@@ -849,32 +860,66 @@ const XCard = {
     if (!m || !m.tmdb_id) return; // DB-only entries without a TMDB id have no trailer to fetch
     const key = await XCard._getTrailerKey(m);
     if (!key || !card.matches(':hover')) return; // moved on while we were fetching
+
+    const YT = await XCard._loadYTApi();
+    if (!card.matches(':hover')) return; // moved on while the API script loaded
+
+    // Reuse an existing player for this card (e.g. hovered again) instead
+    // of tearing down and recreating the iframe each time.
+    if (card._ytPlayer && typeof card._ytPlayer.loadVideoById === 'function') {
+      try {
+        const ifr = card._ytPlayer.getIframe();
+        if (ifr) ifr.classList.remove('show');
+        card._ytPlayer.loadVideoById(key);
+        return;
+      } catch (e) { /* player died — fall through and rebuild below */ }
+    }
+
     const thumb = card.querySelector('.xc-thumb');
     if (!thumb) return;
-    let frame = thumb.querySelector('.xc-preview-frame');
-    if (!frame) {
-      frame = document.createElement('iframe');
-      frame.className = 'xc-preview-frame';
-      frame.setAttribute('allow', 'autoplay; encrypted-media');
-      frame.setAttribute('frameborder', '0');
-      thumb.appendChild(frame);
+    let mount = thumb.querySelector('.xc-preview-mount');
+    if (!mount) {
+      mount = document.createElement('div');
+      mount.id = 'xcpm_' + Math.random().toString(36).slice(2);
+      mount.className = 'xc-preview-mount';
+      thumb.appendChild(mount);
     }
-    frame.classList.remove('show'); // stay hidden until the 'playing' message arrives
-    const origin = encodeURIComponent(location.origin);
-    frame.src = `https://www.youtube.com/embed/${key}?autoplay=1&mute=1&controls=0&loop=1&playlist=${key}&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3&disablekb=1&enablejsapi=1&origin=${origin}`;
-    // Safety net: some browsers/CSPs block the postMessage handshake.
-    // If we haven't heard "playing" after a few seconds, reveal it anyway
-    // rather than leaving the preview stuck on the static poster forever.
-    clearTimeout(frame._fallbackT);
-    frame._fallbackT = setTimeout(() => frame.classList.add('show'), 3500);
+
+    card._ytPlayer = new YT.Player(mount.id, {
+      videoId: key,
+      width: '100%',
+      height: '100%',
+      playerVars: {
+        autoplay: 1, mute: 1, controls: 0, loop: 1, playlist: key,
+        modestbranding: 1, rel: 0, playsinline: 1, iv_load_policy: 3, disablekb: 1,
+        origin: location.origin,
+      },
+      events: {
+        onReady: (e) => {
+          const ifr = e.target.getIframe();
+          ifr.classList.add('xc-preview-frame');
+          e.target.mute();
+          e.target.playVideo();
+        },
+        // This fires PLAYING (1) only once the video is genuinely
+        // rendering frames — after YouTube's own branding thumbnail
+        // is gone — which is what we want to reveal on top of the poster.
+        onStateChange: (e) => {
+          if (e.data === YT.PlayerState.PLAYING && card.matches(':hover')) {
+            e.target.getIframe().classList.add('show');
+          }
+        },
+      },
+    });
   },
 
   _hidePreview(card) {
-    const frame = card.querySelector('.xc-preview-frame');
-    if (!frame) return;
-    clearTimeout(frame._fallbackT);
-    frame.classList.remove('show');
-    setTimeout(() => { if (frame.parentNode) { frame.src = ''; frame.remove(); } }, 400);
+    if (!card._ytPlayer) return;
+    try {
+      const ifr = card._ytPlayer.getIframe();
+      if (ifr) ifr.classList.remove('show');
+      card._ytPlayer.stopVideo();
+    } catch (e) { /* player already gone — nothing to clean up */ }
   },
 
   async _getTrailerKey(m) {
