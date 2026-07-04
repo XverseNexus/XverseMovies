@@ -1357,6 +1357,97 @@ const XvNotif = {
 };
 
 // ─────────────────────────────────────────────────────────
+//  PASSWORD STRENGTH METER
+//  Attach to any password <input> — shows a 3-bar weak/medium/
+//  strong indicator underneath as the user types. Used on the
+//  signup form (index.html) and Settings → Change Password.
+//
+//  Usage:  PwdMeter.attach(document.getElementById('suPass'));
+// ─────────────────────────────────────────────────────────
+const PwdMeter = {
+  _injected: false,
+
+  injectStyles() {
+    if (PwdMeter._injected) return;
+    PwdMeter._injected = true;
+    const s = document.createElement('style');
+    s.id = 'pwdmeter-styles';
+    s.textContent = `
+.pwm{margin:6px 2px 2px;display:none}
+.pwm-bars{display:flex;gap:4px;margin-bottom:5px}
+.pwm-bar{height:4px;flex:1;border-radius:2px;background:rgba(255,255,255,.14);transition:background .25s ease}
+.pwm-bar.on.weak{background:#E50914}
+.pwm-bar.on.medium{background:#f5a623}
+.pwm-bar.on.strong{background:#2ecc71}
+.pwm-label{font-size:.7rem;font-weight:600;letter-spacing:.2px}
+.pwm-label.weak{color:#E50914}
+.pwm-label.medium{color:#f5a623}
+.pwm-label.strong{color:#2ecc71}
+    `;
+    document.head.appendChild(s);
+  },
+
+  // 0 = empty, 1 = weak, 2 = medium, 3 = strong
+  _score(pwd) {
+    if (!pwd) return 0;
+    let pts = 0;
+    if (pwd.length >= 6)  pts++;
+    if (pwd.length >= 10) pts++;
+    if (pwd.length >= 14) pts++;
+    if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) pts++;
+    if (/[0-9]/.test(pwd)) pts++;
+    if (/[^A-Za-z0-9]/.test(pwd)) pts++;
+    if (pts <= 2) return 1;
+    if (pts <= 4) return 2;
+    return 3;
+  },
+
+  attach(input) {
+    if (!input || input._pwmAttached) return;
+    input._pwmAttached = true;
+    PwdMeter.injectStyles();
+
+    const wrap = document.createElement('div');
+    wrap.className = 'pwm';
+    wrap.innerHTML = `
+      <div class="pwm-bars">
+        <div class="pwm-bar" data-i="1"></div>
+        <div class="pwm-bar" data-i="2"></div>
+        <div class="pwm-bar" data-i="3"></div>
+      </div>
+      <div class="pwm-label"></div>`;
+    // Netflix-style floating-label inputs (index.html's `.field`) position
+    // the <label> absolutely and center it using the wrapper's height —
+    // inserting the meter directly after the input would grow that
+    // wrapper's height as the meter toggles and throw the label off.
+    // Insert after the whole `.field` wrapper instead when present.
+    const anchor = input.closest('.field') || input;
+    anchor.insertAdjacentElement('afterend', wrap);
+
+    const bars  = wrap.querySelectorAll('.pwm-bar');
+    const label = wrap.querySelector('.pwm-label');
+    const levels = {
+      1: ['weak',   'Weak password'],
+      2: ['medium', 'Medium strength'],
+      3: ['strong', 'Strong password'],
+    };
+
+    const update = () => {
+      const score = PwdMeter._score(input.value);
+      if (score === 0) { wrap.style.display = 'none'; return; }
+      wrap.style.display = 'block';
+      const [cls, text] = levels[score];
+      bars.forEach((b, idx) => { b.className = 'pwm-bar' + (idx < score ? ` on ${cls}` : ''); });
+      label.className = 'pwm-label ' + cls;
+      label.textContent = text;
+    };
+
+    input.addEventListener('input', update);
+    update();
+  },
+};
+
+// ─────────────────────────────────────────────────────────
 //  SERVICE WORKER UPDATE HANDLER
 //  When a new service worker activates, reload the page so
 //  fresh files (including this config) are used immediately.
