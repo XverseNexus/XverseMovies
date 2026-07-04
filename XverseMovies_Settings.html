@@ -451,6 +451,7 @@ const PLAN_DATA  = [
   buildNotifPanel();
   buildMobNav();
   loadActivity();
+  PwdMeter.attach(document.getElementById('newPass'));
 
   // Hash-based panel — #notifications (old link) and #notifs both work
   const hash = location.hash.replace('#','');
