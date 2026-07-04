@@ -796,9 +796,10 @@ const XCard = {
 .xc-img{z-index:0;position:relative}
 .xc-overlay{z-index:3}
 .xc-type,.xc-rating{z-index:4}
-.xc-preview-mount{position:absolute;inset:0;z-index:1}
-.xc-preview-frame{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;border:0;z-index:1;opacity:0;transition:opacity .4s ease;background:#000;pointer-events:none}
-.xc-preview-frame.show{opacity:1}
+.xc-preview-wrap{position:absolute;inset:0;z-index:1;opacity:0;transition:opacity .4s ease;pointer-events:none;background:#000;overflow:hidden}
+.xc-preview-wrap.show{opacity:1}
+.xc-preview-mount{position:absolute;inset:0;width:100%;height:100%}
+.xc-preview-mount iframe{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;border:0}
     `;
     document.head.appendChild(s);
     XCard.initHoverPreview();
@@ -868,8 +869,7 @@ const XCard = {
     // of tearing down and recreating the iframe each time.
     if (card._ytPlayer && typeof card._ytPlayer.loadVideoById === 'function') {
       try {
-        const ifr = card._ytPlayer.getIframe();
-        if (ifr) ifr.classList.remove('show');
+        if (card._ytWrap) card._ytWrap.classList.remove('show');
         card._ytPlayer.loadVideoById(key);
         return;
       } catch (e) { /* player died — fall through and rebuild below */ }
@@ -877,13 +877,26 @@ const XCard = {
 
     const thumb = card.querySelector('.xc-thumb');
     if (!thumb) return;
-    let mount = thumb.querySelector('.xc-preview-mount');
-    if (!mount) {
+
+    // The wrap is a plain div we fully control (opacity stays 0 until we
+    // say otherwise). YT.Player replaces `mount` with its own iframe, and
+    // that iframe briefly shows YouTube's own channel/branding cover page
+    // before the real video frames render — since that all happens INSIDE
+    // the wrap while it's still opacity:0, the user never sees it.
+    let wrap = thumb.querySelector('.xc-preview-wrap');
+    let mount;
+    if (!wrap) {
+      wrap = document.createElement('div');
+      wrap.className = 'xc-preview-wrap';
       mount = document.createElement('div');
       mount.id = 'xcpm_' + Math.random().toString(36).slice(2);
       mount.className = 'xc-preview-mount';
-      thumb.appendChild(mount);
+      wrap.appendChild(mount);
+      thumb.appendChild(wrap);
+    } else {
+      mount = wrap.querySelector('.xc-preview-mount');
     }
+    card._ytWrap = wrap;
 
     card._ytPlayer = new YT.Player(mount.id, {
       videoId: key,
@@ -896,17 +909,15 @@ const XCard = {
       },
       events: {
         onReady: (e) => {
-          const ifr = e.target.getIframe();
-          ifr.classList.add('xc-preview-frame');
           e.target.mute();
           e.target.playVideo();
         },
-        // This fires PLAYING (1) only once the video is genuinely
-        // rendering frames — after YouTube's own branding thumbnail
-        // is gone — which is what we want to reveal on top of the poster.
+        // Fires PLAYING (1) only once the video is genuinely rendering
+        // frames. That's our cue to reveal the (already-loaded) wrapper —
+        // whatever YouTube showed inside it before this point stays hidden.
         onStateChange: (e) => {
           if (e.data === YT.PlayerState.PLAYING && card.matches(':hover')) {
-            e.target.getIframe().classList.add('show');
+            card._ytWrap && card._ytWrap.classList.add('show');
           }
         },
       },
@@ -914,12 +925,9 @@ const XCard = {
   },
 
   _hidePreview(card) {
+    if (card._ytWrap) card._ytWrap.classList.remove('show');
     if (!card._ytPlayer) return;
-    try {
-      const ifr = card._ytPlayer.getIframe();
-      if (ifr) ifr.classList.remove('show');
-      card._ytPlayer.stopVideo();
-    } catch (e) { /* player already gone — nothing to clean up */ }
+    try { card._ytPlayer.stopVideo(); } catch (e) { /* player already gone */ }
   },
 
   async _getTrailerKey(m) {
