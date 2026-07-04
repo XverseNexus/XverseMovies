@@ -53,10 +53,25 @@
       /* Shadows */
       --shadow-card: 0 8px 32px rgba(0,0,0,.7);
       --shadow-sm: 0 2px 8px rgba(0,0,0,.4);
+      /* Breakpoint scale (Task 6) — reference values used consistently across
+         @media queries site-wide. CSS vars can't be used inside @media
+         conditions, so this is the documented source of truth: use these
+         literal px values in @media rules instead of ad-hoc numbers.
+           --bp-xs   480px  → small phones
+           --bp-sm   640px  → phones / mobile nav switch
+           --bp-md  1024px  → tablets (portrait/landscape)
+           --bp-lg  1440px  → laptops / small desktops
+           --bp-xl  1920px  → large desktop
+         */
+      /* Site-wide content gutter — caps main content width on ultra-wide
+         monitors (~1900px, like Netflix) instead of stretching edge-to-edge.
+         Below that width it behaves exactly like the old flat 4% padding. */
+      --content-max: 1900px;
+      --content-pad: max(4%, calc((100% - var(--content-max)) / 2));
     }
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-height:100vh;overflow-x:hidden}
-nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;align-items:center;padding:0 4%;gap:24px;background:rgba(8,8,8,.97);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;align-items:center;padding:0 var(--content-pad);gap:24px;background:rgba(8,8,8,.97);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
 .logo{font-family:'Bebas Neue',cursive;font-size:2rem;color:var(--red);letter-spacing:2px;text-decoration:none;flex-shrink:0}
 .logo span{color:#fff}
 .nav-links{display:flex;gap:2px;list-style:none}
@@ -69,7 +84,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;ali
 .nav-avatar img{width:100%;height:100%;object-fit:cover}
 .nav-bell{background:none;border:none;color:rgba(255,255,255,.72);cursor:pointer;width:34px;height:34px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.95rem;transition:all .2s;position:relative;flex-shrink:0}
 .nav-bell:hover{background:rgba(255,255,255,.09);color:#fff}
-main{padding:88px 4% 60px}
+main{padding:88px var(--content-pad) 60px}
 /* TABS */
 .tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:28px}
 .tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-size:.9rem;font-weight:600;padding:12px 20px;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s;margin-bottom:-1px;white-space:nowrap;letter-spacing:.3px}
@@ -80,7 +95,7 @@ main{padding:88px 4% 60px}
 .panel.active{display:block;animation:fi .2s ease}
 @keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .panel-hd{margin-bottom:20px}
-.panel-title{font-family:'Bebas Neue',cursive;font-size:2rem;color:#fff;letter-spacing:2px;margin-bottom:4px}
+.panel-title{font-family:'Bebas Neue',cursive;font-size:clamp(1.6rem,3.5vw,2.4rem);color:#fff;letter-spacing:2px;margin-bottom:4px}
 .panel-meta{font-size:.84rem;color:var(--muted);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .meta-chip{background:rgba(255,255,255,.07);border:1px solid var(--border);padding:3px 12px;border-radius:20px;font-size:.75rem;color:rgba(255,255,255,.65)}
 /* STATS */

@@ -51,6 +51,21 @@
       /* Shadows */
       --shadow-card: 0 8px 32px rgba(0,0,0,.7);
       --shadow-sm: 0 2px 8px rgba(0,0,0,.4);
+      /* Breakpoint scale (Task 6) — reference values used consistently across
+         @media queries site-wide. CSS vars can't be used inside @media
+         conditions, so this is the documented source of truth: use these
+         literal px values in @media rules instead of ad-hoc numbers.
+           --bp-xs   480px  → small phones
+           --bp-sm   640px  → phones / mobile nav switch
+           --bp-md  1024px  → tablets (portrait/landscape)
+           --bp-lg  1440px  → laptops / small desktops
+           --bp-xl  1920px  → large desktop
+         */
+      /* Site-wide content gutter — caps main content width on ultra-wide
+         monitors (~1900px, like Netflix) instead of stretching edge-to-edge.
+         Below that width it behaves exactly like the old flat 4% padding. */
+      --content-max: 1900px;
+      --content-pad: max(4%, calc((100% - var(--content-max)) / 2));
     }
 html,body{height:100%;font-family:'Barlow',sans-serif;background:var(--bg);color:#e5e5e5;overflow-x:hidden}
 .bg-wrap{position:fixed;inset:0;z-index:0;overflow:hidden;background:#000}
@@ -62,7 +77,7 @@ html,body{height:100%;font-family:'Barlow',sans-serif;background:var(--bg);color
 .bg-vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 40%,transparent 35%,rgba(0,0,0,.55) 100%);animation:bgPulse 10s ease-in-out infinite}
 @keyframes bgPulse{0%,100%{opacity:.65}50%{opacity:1}}
 @media(prefers-reduced-motion:reduce){.bg-img.active.kb{animation:none}.bg-vignette{animation:none}}
-nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 4%;height:72px}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 var(--content-pad);height:72px}
 .logo{font-family:'Bebas Neue',cursive;font-size:2.4rem;color:var(--red);letter-spacing:2px;cursor:pointer;user-select:none}
 .logo span{color:#fff}
 .page{position:relative;z-index:10;min-height:100vh;display:none;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px 40px}

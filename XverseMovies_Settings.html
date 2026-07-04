@@ -53,6 +53,21 @@
       /* Shadows */
       --shadow-card: 0 8px 32px rgba(0,0,0,.7);
       --shadow-sm: 0 2px 8px rgba(0,0,0,.4);
+      /* Breakpoint scale (Task 6) — reference values used consistently across
+         @media queries site-wide. CSS vars can't be used inside @media
+         conditions, so this is the documented source of truth: use these
+         literal px values in @media rules instead of ad-hoc numbers.
+           --bp-xs   480px  → small phones
+           --bp-sm   640px  → phones / mobile nav switch
+           --bp-md  1024px  → tablets (portrait/landscape)
+           --bp-lg  1440px  → laptops / small desktops
+           --bp-xl  1920px  → large desktop
+         */
+      /* Site-wide content gutter — caps main content width on ultra-wide
+         monitors (~1900px, like Netflix) instead of stretching edge-to-edge.
+         Below that width it behaves exactly like the old flat 4% padding. */
+      --content-max: 1900px;
+      --content-pad: max(4%, calc((100% - var(--content-max)) / 2));
     }
 html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;overflow-x:hidden}
 
@@ -70,7 +85,7 @@ html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'B
 .xv-confirm-acts .btn-cancel:hover{background:rgba(255,255,255,.06);color:#fff}
 .xv-confirm-acts .btn-confirm{background:transparent;color:var(--red)}
 .xv-confirm-acts .btn-confirm:hover{background:rgba(229,9,20,.12)}
-nav{position:fixed;top:0;left:0;right:0;z-index:200;height:60px;display:flex;align-items:center;padding:0 4%;background:rgba(8,8,8,.97);border-bottom:1px solid var(--border);backdrop-filter:blur(10px)}
+nav{position:fixed;top:0;left:0;right:0;z-index:200;height:60px;display:flex;align-items:center;padding:0 var(--content-pad);background:rgba(8,8,8,.97);border-bottom:1px solid var(--border);backdrop-filter:blur(10px)}
 .logo{font-family:'Bebas Neue',cursive;font-size:1.8rem;color:var(--red);letter-spacing:2px;text-decoration:none;flex-shrink:0;margin-right:20px}
 .logo span{color:#fff}
 .nav-r{margin-left:auto;display:flex;align-items:center;gap:10px}
@@ -93,11 +108,11 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:60px;display:flex;ali
 .sb-ico{width:17px;text-align:center;font-size:.95rem;flex-shrink:0}
 .sb-badge{margin-left:auto;background:var(--red);color:#fff;font-size:.58rem;font-weight:800;min-width:17px;height:17px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px}
 /* MAIN */
-.main{flex:1;padding:28px 4% 60px;min-width:0}
+.main{flex:1;padding:28px var(--content-pad) 60px;min-width:0}
 .panel{display:none}
 .panel.active{display:block;animation:fi .2s ease}
 @keyframes fi{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
-.ptit{font-family:'Bebas Neue',cursive;font-size:1.7rem;color:#fff;letter-spacing:1.5px;margin-bottom:4px}
+.ptit{font-family:'Bebas Neue',cursive;font-size:clamp(1.3rem,3vw,2rem);color:#fff;letter-spacing:1.5px;margin-bottom:4px}
 .psub{font-size:.82rem;color:var(--muted);margin-bottom:24px}
 /* SECTION CARD */
 .sc{background:var(--card);border:1px solid var(--border);border-radius:9px;margin-bottom:14px;overflow:hidden}
@@ -196,11 +211,11 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:60px;display:flex;ali
 .dz-title{font-size:.86rem;font-weight:700;color:#ff6b6b;margin-bottom:5px;display:flex;align-items:center;gap:7px}
 .dz-desc{font-size:.78rem;color:rgba(255,255,255,.44);margin-bottom:14px;line-height:1.6}
 /* MOBILE NAV */
-.mob-nav{display:none;gap:4px;padding:11px 4%;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border);background:var(--bg2)}
+.mob-nav{display:none;gap:4px;padding:11px var(--content-pad);overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border);background:var(--bg2)}
 .mob-nav::-webkit-scrollbar{display:none}
 .mob-btn{background:rgba(255,255,255,.07);border:1px solid var(--border);color:rgba(255,255,255,.7);padding:6px 14px;border-radius:20px;font-size:.74rem;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif;white-space:nowrap;transition:all .2s;flex-shrink:0}
 .mob-btn.on{background:#fff;color:#000;border-color:#fff}
-@media(max-width:768px){.sb{display:none}.mob-nav{display:flex}.main{padding:20px 4% 40px}.plan-g{grid-template-columns:1fr 1fr}.fgrid{grid-template-columns:1fr}
+@media(max-width:768px){.sb{display:none}.mob-nav{display:flex}.main{padding:20px var(--content-pad) 40px}.plan-g{grid-template-columns:1fr 1fr}.fgrid{grid-template-columns:1fr}
   .main{padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))!important}}
 /* ── MOBILE BOTTOM NAV ─────────────────────────────────── */
 .btm-nav{display:none}

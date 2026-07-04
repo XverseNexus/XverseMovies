@@ -53,6 +53,21 @@
       /* Shadows */
       --shadow-card: 0 8px 32px rgba(0,0,0,.7);
       --shadow-sm: 0 2px 8px rgba(0,0,0,.4);
+      /* Breakpoint scale (Task 6) — reference values used consistently across
+         @media queries site-wide. CSS vars can't be used inside @media
+         conditions, so this is the documented source of truth: use these
+         literal px values in @media rules instead of ad-hoc numbers.
+           --bp-xs   480px  → small phones
+           --bp-sm   640px  → phones / mobile nav switch
+           --bp-md  1024px  → tablets (portrait/landscape)
+           --bp-lg  1440px  → laptops / small desktops
+           --bp-xl  1920px  → large desktop
+         */
+      /* Site-wide content gutter — caps main content width on ultra-wide
+         monitors (~1900px, like Netflix) instead of stretching edge-to-edge.
+         Below that width it behaves exactly like the old flat 4% padding. */
+      --content-max: 1900px;
+      --content-pad: max(4%, calc((100% - var(--content-max)) / 2));
     }
 html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;overflow-x:hidden}
 nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}

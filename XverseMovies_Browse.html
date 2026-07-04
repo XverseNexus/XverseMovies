@@ -53,10 +53,25 @@
       /* Shadows */
       --shadow-card: 0 8px 32px rgba(0,0,0,.7);
       --shadow-sm: 0 2px 8px rgba(0,0,0,.4);
+      /* Breakpoint scale (Task 6) — reference values used consistently across
+         @media queries site-wide. CSS vars can't be used inside @media
+         conditions, so this is the documented source of truth: use these
+         literal px values in @media rules instead of ad-hoc numbers.
+           --bp-xs   480px  → small phones
+           --bp-sm   640px  → phones / mobile nav switch
+           --bp-md  1024px  → tablets (portrait/landscape)
+           --bp-lg  1440px  → laptops / small desktops
+           --bp-xl  1920px  → large desktop
+         */
+      /* Site-wide content gutter — caps main content width on ultra-wide
+         monitors (~1900px, like Netflix) instead of stretching edge-to-edge.
+         Below that width it behaves exactly like the old flat 4% padding. */
+      --content-max: 1900px;
+      --content-pad: max(4%, calc((100% - var(--content-max)) / 2));
     }
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-height:100vh;overflow-x:hidden}
-nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;align-items:center;padding:0 4%;gap:0;background:rgba(8,8,8,.97);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;align-items:center;padding:0 var(--content-pad);gap:0;background:rgba(8,8,8,.97);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
 .logo{font-family:'Bebas Neue',cursive;font-size:2rem;color:var(--red);letter-spacing:2px;margin-right:28px;cursor:pointer;text-decoration:none;flex-shrink:0}
 .logo span{color:#fff}
 .nav-links{display:flex;gap:2px;list-style:none}
@@ -71,7 +86,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;ali
 .nav-bell:hover{background:rgba(255,255,255,.09);color:#fff}
 #pageWrap{padding-top:66px}
 /* PAGE TABS */
-.pg-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);padding:0 4%;background:var(--bg);position:sticky;top:66px;z-index:100;overflow-x:auto;scrollbar-width:none}
+.pg-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);padding:0 var(--content-pad);background:var(--bg);position:sticky;top:66px;z-index:100;overflow-x:auto;scrollbar-width:none}
 .pg-tabs::-webkit-scrollbar{display:none}
 .ptab{background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-size:.88rem;font-weight:600;padding:14px 18px;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s;margin-bottom:-1px;white-space:nowrap}
 .ptab:hover{color:var(--text)}
@@ -80,7 +95,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;ali
 .pg-hero{position:relative;height:390px;overflow:hidden}
 .h-bg{position:absolute;inset:0;background-size:cover;background-position:center 20%}
 .h-grad{position:absolute;inset:0;background:linear-gradient(to right,rgba(0,0,0,.88) 0%,rgba(0,0,0,.3) 55%,transparent 100%),linear-gradient(to top,rgba(20,20,20,1) 0%,transparent 45%)}
-.h-c{position:relative;z-index:2;padding:0 4%;display:flex;flex-direction:column;justify-content:flex-end;height:100%;padding-bottom:28px}
+.h-c{position:relative;z-index:2;padding:0 var(--content-pad);display:flex;flex-direction:column;justify-content:flex-end;height:100%;padding-bottom:28px}
 .h-badge{display:inline-flex;align-items:center;background:rgba(229,9,20,.88);color:#fff;font-size:.6rem;font-weight:800;padding:3px 10px;border-radius:3px;letter-spacing:1.5px;margin-bottom:11px;width:fit-content}
 .h-title{font-family:'Bebas Neue',cursive;font-size:clamp(2rem,4.5vw,3.5rem);color:#fff;letter-spacing:2px;line-height:1;margin-bottom:9px}
 .h-meta{display:flex;align-items:center;gap:11px;margin-bottom:9px;flex-wrap:wrap;font-size:.8rem}
@@ -93,13 +108,13 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;ali
 .btn-i{background:rgba(109,109,110,.65);color:#fff;border:none;padding:9px 18px;font-size:.88rem;font-weight:700;border-radius:4px;cursor:pointer;font-family:'Barlow',sans-serif;backdrop-filter:blur(4px);transition:background .2s}
 .btn-i:hover{background:rgba(109,109,110,.88)}
 /* GENRE PILLS */
-.gpstrip{display:flex;gap:7px;padding:14px 4%;overflow-x:auto;scrollbar-width:none}
+.gpstrip{display:flex;gap:7px;padding:14px var(--content-pad);overflow-x:auto;scrollbar-width:none}
 .gpstrip::-webkit-scrollbar{display:none}
 .gp{background:rgba(255,255,255,.07);border:1px solid var(--border);color:rgba(255,255,255,.7);padding:6px 15px;border-radius:20px;font-size:.76rem;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s;white-space:nowrap;flex-shrink:0}
 .gp:hover{background:rgba(255,255,255,.13);color:#fff}
 .gp.on{background:#fff;color:#000;border-color:#fff}
 /* FILTER ROW */
-.frow{display:flex;align-items:center;gap:8px;padding:0 4% 14px;flex-wrap:wrap}
+.frow{display:flex;align-items:center;gap:8px;padding:0 var(--content-pad) 14px;flex-wrap:wrap}
 .flbl{font-size:.7rem;color:var(--muted);font-weight:600;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap}
 .fsel{background:rgba(255,255,255,.07);border:1px solid var(--border);color:rgba(255,255,255,.76);padding:6px 12px;border-radius:6px;font-size:.76rem;font-family:'Barlow',sans-serif;cursor:pointer;outline:none}
 .fsel option{background:#1c1c1c}
@@ -109,7 +124,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;ali
 .vb{background:none;border:1px solid var(--border);color:var(--muted);width:28px;height:28px;border-radius:4px;cursor:pointer;font-size:.8rem;display:flex;align-items:center;justify-content:center;transition:all .2s}
 .vb.on,.vb:hover{background:rgba(255,255,255,.09);color:#fff;border-color:rgba(255,255,255,.2)}
 /* CONTENT */
-.cont{padding:0 4% 60px}
+.cont{padding:0 var(--content-pad) 60px}
 .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
 .st{font-size:1.04rem;font-weight:700;color:#fff}
 .sb{background:rgba(229,9,20,.14);color:var(--red);font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:3px;margin-left:6px;letter-spacing:.5px}
@@ -262,14 +277,14 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;ali
 
   <!-- NEW & POPULAR -->
   <div class="bpg" id="pg-new">
-    <div style="padding:82px 4% 0"><div style="font-family:'Bebas Neue',cursive;font-size:2rem;color:#fff;letter-spacing:2px;margin-bottom:3px">New & Popular</div><div style="font-size:.82rem;color:var(--muted);margin-bottom:16px">Coming soon aur sabka favourite</div></div>
+    <div style="padding:82px var(--content-pad) 0"><div style="font-family:'Bebas Neue',cursive;font-size:clamp(1.6rem,4vw,2.5rem);color:#fff;letter-spacing:2px;margin-bottom:3px">New & Popular</div><div style="font-size:.82rem;color:var(--muted);margin-bottom:16px">Coming soon aur sabka favourite</div></div>
     <div class="pg-tabs" style="position:static;margin:0"><button class="ptab active" onclick="npSwitch('watching',this)">Everyone's Watching</button><button class="ptab" onclick="npSwitch('top10',this)">Top 10</button><button class="ptab" onclick="npSwitch('new',this)">New Arrivals</button></div>
     <div class="cont" style="padding-top:20px" id="npCont"></div>
   </div>
 
   <!-- LANGUAGES -->
   <div class="bpg" id="pg-languages">
-    <div style="padding:82px 4% 0"><div style="font-family:'Bebas Neue',cursive;font-size:2rem;color:#fff;letter-spacing:2px;margin-bottom:3px">Browse by Language</div><div style="font-size:.82rem;color:var(--muted);margin-bottom:22px">Apni bhasha mein content dhundho</div></div>
+    <div style="padding:82px var(--content-pad) 0"><div style="font-family:'Bebas Neue',cursive;font-size:clamp(1.6rem,4vw,2.5rem);color:#fff;letter-spacing:2px;margin-bottom:3px">Browse by Language</div><div style="font-size:.82rem;color:var(--muted);margin-bottom:22px">Apni bhasha mein content dhundho</div></div>
     <div class="cont"><div class="lgg" id="langG"></div></div>
   </div>
 </div>

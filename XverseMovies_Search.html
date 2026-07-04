@@ -52,6 +52,21 @@
       /* Shadows */
       --shadow-card: 0 8px 32px rgba(0,0,0,.7);
       --shadow-sm: 0 2px 8px rgba(0,0,0,.4);
+      /* Breakpoint scale (Task 6) — reference values used consistently across
+         @media queries site-wide. CSS vars can't be used inside @media
+         conditions, so this is the documented source of truth: use these
+         literal px values in @media rules instead of ad-hoc numbers.
+           --bp-xs   480px  → small phones
+           --bp-sm   640px  → phones / mobile nav switch
+           --bp-md  1024px  → tablets (portrait/landscape)
+           --bp-lg  1440px  → laptops / small desktops
+           --bp-xl  1920px  → large desktop
+         */
+      /* Site-wide content gutter — caps main content width on ultra-wide
+         monitors (~1900px, like Netflix) instead of stretching edge-to-edge.
+         Below that width it behaves exactly like the old flat 4% padding. */
+      --content-max: 1900px;
+      --content-pad: max(4%, calc((100% - var(--content-max)) / 2));
     }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html{scroll-behavior:smooth}
@@ -61,7 +76,7 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
 #mainNav{
   position:fixed;top:0;left:0;right:0;z-index:200;
   display:flex;align-items:center;gap:20px;
-  padding:0 4%;height:64px;
+  padding:0 var(--content-pad);height:64px;
   background:linear-gradient(to bottom,rgba(0,0,0,.9) 0%,transparent 100%);
   backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
   transition:background .3s;
@@ -83,7 +98,7 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
 
 /* ── SEARCH BAR ──────────────────────────────────────── */
 #searchSection{
-  padding:90px 4% 0;
+  padding:90px var(--content-pad) 0;
   position:sticky;top:64px;z-index:100;
   background:var(--bg);
   padding-bottom:0;
@@ -136,7 +151,7 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
 .ftab.on{background:var(--red);border-color:var(--red);color:#fff}
 
 /* ── MAIN CONTENT ────────────────────────────────────── */
-#mainContent{padding:20px 4% calc(72px + env(safe-area-inset-bottom,0px))}
+#mainContent{padding:20px var(--content-pad) calc(72px + env(safe-area-inset-bottom,0px))}
 
 /* ── TRENDING (shown before search) ─────────────────── */
 #trendingSection{display:block}
