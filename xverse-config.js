@@ -828,6 +828,20 @@ const XCard = {
       clearTimeout(card._hoverT);
       XCard._hidePreview(card);
     });
+
+    // YouTube's embed posts a JSON message to the parent once actual
+    // playback starts (playerState 1 = playing). We use that signal to
+    // reveal the iframe — this is what hides the brief channel-logo /
+    // branding thumbnail YouTube shows while the player is still loading.
+    window.addEventListener('message', (e) => {
+      if (typeof e.data !== 'string' || e.data.indexOf('infoDelivery') === -1) return;
+      let data;
+      try { data = JSON.parse(e.data); } catch { return; }
+      if (data.event !== 'infoDelivery' || !data.info || data.info.playerState !== 1) return;
+      document.querySelectorAll('.xc-preview-frame').forEach(f => {
+        if (f.contentWindow === e.source) f.classList.add('show');
+      });
+    });
   },
 
   async _showPreview(card) {
@@ -845,13 +859,20 @@ const XCard = {
       frame.setAttribute('frameborder', '0');
       thumb.appendChild(frame);
     }
-    frame.src = `https://www.youtube.com/embed/${key}?autoplay=1&mute=1&controls=0&loop=1&playlist=${key}&modestbranding=1&rel=0&playsinline=1`;
-    requestAnimationFrame(() => frame.classList.add('show'));
+    frame.classList.remove('show'); // stay hidden until the 'playing' message arrives
+    const origin = encodeURIComponent(location.origin);
+    frame.src = `https://www.youtube.com/embed/${key}?autoplay=1&mute=1&controls=0&loop=1&playlist=${key}&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3&disablekb=1&enablejsapi=1&origin=${origin}`;
+    // Safety net: some browsers/CSPs block the postMessage handshake.
+    // If we haven't heard "playing" after a few seconds, reveal it anyway
+    // rather than leaving the preview stuck on the static poster forever.
+    clearTimeout(frame._fallbackT);
+    frame._fallbackT = setTimeout(() => frame.classList.add('show'), 3500);
   },
 
   _hidePreview(card) {
     const frame = card.querySelector('.xc-preview-frame');
     if (!frame) return;
+    clearTimeout(frame._fallbackT);
     frame.classList.remove('show');
     setTimeout(() => { if (frame.parentNode) { frame.src = ''; frame.remove(); } }, 400);
   },
