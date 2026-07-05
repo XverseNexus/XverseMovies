@@ -135,6 +135,13 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;ali
      grid doesn't look sparse on a tablet-width screen. */
   .cgrid{grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:8px}
 }
+@media(min-width:1440px){
+  /* Large desktop (Task 9): cards grow, not just column count */
+  .cgrid{grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px}
+}
+@media(min-width:1920px){
+  .cgrid{grid-template-columns:repeat(auto-fill,minmax(184px,1fr));gap:12px}
+}
 .cgrid.lm{grid-template-columns:1fr;gap:5px}
 /* Poster/list card styling moved to the shared XCard component
    (xverse-config.js → XCard.injectStyles()) — see .xc-card / .xc-row.

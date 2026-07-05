@@ -104,6 +104,9 @@ main{padding:88px var(--content-pad) 60px}
   /* Tablet (Task 7) */
   .stats{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
 }
+@media(min-width:1440px){
+  .stats{grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:12px}
+}
 .stat{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px 16px;transition:border-color .2s}
 .stat:hover{border-color:rgba(255,255,255,.18)}
 .stat-n{font-family:'Bebas Neue',cursive;font-size:1.9rem;color:#fff;line-height:1}
@@ -124,6 +127,12 @@ main{padding:88px var(--content-pad) 60px}
 .ml-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px}
 @media(max-width:1024px) and (min-width:641px){
   .ml-grid{grid-template-columns:repeat(auto-fill,minmax(136px,1fr));gap:9px}
+}
+@media(min-width:1440px){
+  .ml-grid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:11px}
+}
+@media(min-width:1920px){
+  .ml-grid{grid-template-columns:repeat(auto-fill,minmax(186px,1fr));gap:13px}
 }
 .ml-grid.list{grid-template-columns:1fr;gap:6px}
 /* CARD / CW CARDS — moved to the shared XCard component

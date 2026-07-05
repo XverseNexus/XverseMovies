@@ -801,6 +801,23 @@ const XCard = {
   .xc-t10-img{width:90px;height:131px}
 }
 
+/* Large desktop & ultra-wide (Task 9) — Netflix doesn't just add more
+   columns on a bigger monitor, the cards themselves grow a bit too.
+   Two tiers: laptops/small desktops stay at the 155px base above,
+   1440px+ steps up, 1920px+ (large/ultra-wide monitors) steps up again. */
+@media(min-width:1440px){
+  .cards-scroll .xc-card{width:172px}
+  .xc-cw{width:242px}
+  .xc-t10-num{font-size:7.6rem}
+  .xc-t10-img{width:112px;height:164px}
+}
+@media(min-width:1920px){
+  .cards-scroll .xc-card{width:188px}
+  .xc-cw{width:262px}
+  .xc-t10-num{font-size:8.4rem}
+  .xc-t10-img{width:122px;height:178px}
+}
+
 /* Keyboard / TV-remote navigation (Task 8) — cards are plain <div>s with
    onclick, so they need tabindex + a visible focus state to be usable
    without a mouse (Tab key, or a Smart TV remote's D-pad). */
