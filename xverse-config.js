@@ -743,8 +743,7 @@ const XCard = {
 .xc-remove-btn:hover{background:rgba(229,9,20,.75);border-color:var(--red)}
 .xc-type{position:absolute;top:6px;left:6px;font-size:.57rem;font-weight:800;padding:2px 6px;border-radius:3px;letter-spacing:.8px;background:rgba(0,0,0,.7);color:#fff}
 .xc-type.tv{color:var(--green)}
-.xc-rating{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.7);color:var(--green);font-size:.6rem;font-weight:700;padding:2px 6px;border-radius:3px;opacity:0;transition:opacity .2s}
-.xc-card:hover .xc-rating{opacity:1}
+.xc-rating{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.7);color:var(--green);font-size:.6rem;font-weight:700;padding:2px 6px;border-radius:3px}
 .xc-info{padding:8px 9px 10px}
 .xc-name{font-size:.8rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
 .xc-meta{font-size:.66rem;color:var(--muted);display:flex;gap:5px;align-items:center}
@@ -802,6 +801,28 @@ const XCard = {
   .xc-t10-img{width:90px;height:131px}
 }
 
+/* Keyboard / TV-remote navigation (Task 8) — cards are plain <div>s with
+   onclick, so they need tabindex + a visible focus state to be usable
+   without a mouse (Tab key, or a Smart TV remote's D-pad). */
+.xc-card:focus-visible,.xc-cw:focus-visible,.xc-t10:focus-visible{
+  outline:3px solid var(--red);outline-offset:2px;
+}
+.xc-play:focus-visible,.xc-add:focus-visible,.xc-remove-btn:focus-visible,.xc-la-btn:focus-visible,.xc-cw-remove:focus-visible{
+  outline:2px solid #fff;outline-offset:2px;
+}
+.xc-card:focus-visible{transform:translateY(-2px);border-color:rgba(255,255,255,.22)}
+.xc-cw:focus-visible{transform:scale(1.04);border-color:rgba(255,255,255,.28)}
+
+/* Respect reduced-motion preference — disable the hover zoom/scale and
+   never start the autoplay trailer preview (motion is exactly what
+   these users have asked to avoid). Static poster + click still works. */
+@media (prefers-reduced-motion: reduce){
+  .xc-card,.xc-img,.xc-overlay,.xc-cw,.xc-cw-img,.xc-cw-playov,.xc-t10,.xc-t10-num,.xc-preview-wrap{transition:none!important}
+  .xc-card:hover,.xc-card:focus-visible{transform:none}
+  .xc-cw:hover,.xc-cw:focus-visible{transform:none}
+  .xc-t10:hover{transform:none}
+}
+
 /* Hover-preview trailer overlay — poster cards only (see initHoverPreview) */
 .xc-img{z-index:0;position:relative}
 .xc-overlay{z-index:3}
@@ -828,6 +849,9 @@ const XCard = {
     XCard._hoverPreviewInit = true;
 
     document.addEventListener('mouseover', (e) => {
+      // Motion (an autoplaying trailer) is exactly what a reduced-motion
+      // preference asks us to avoid — don't even start the timer.
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       const card = e.target.closest('.xc-card:not(.xc-row)');
       if (!card || card.contains(e.relatedTarget)) return;
       clearTimeout(card._hoverT);
@@ -959,6 +983,15 @@ const XCard = {
     }
   },
 
+  // Keyboard/TV-remote accessibility (Task 8): every XCard div is a
+  // click target but not natively focusable/activatable without a mouse.
+  // This returns the shared attributes that fix that — Tab-focusable,
+  // announced as a button, and Enter/Space triggers the same onclick.
+  _a11yAttrs(title) {
+    const label = String(title || 'Open title').replace(/"/g, '&quot;');
+    return `tabindex="0" role="button" aria-label="${label}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"`;
+  },
+
   _actionBtn(k, action, size /* 'overlay' | 'row' */) {
     if (!action || action.type === 'none') return '';
     const cls = size === 'row' ? 'xc-la-btn' : 'xc-add';
@@ -981,7 +1014,7 @@ const XCard = {
     const isTV   = m.type === 'tv';
     const rat    = m.rating || m.vote_average || '';
     const playFn = onPlay || onOpen;
-    return `<div class="xc-card" data-mk="${k}" onclick="${onOpen}(_get(this.dataset.mk))">
+    return `<div class="xc-card" data-mk="${k}" ${XCard._a11yAttrs(m.title)} onclick="${onOpen}(_get(this.dataset.mk))">
       <div class="xc-thumb">
         <img class="xc-img" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555&size=400'">
         ${showBadge ? `<span class="xc-type ${m.type||'movie'}">${isTV?'TV':'MOVIE'}</span>` : ''}
@@ -1005,7 +1038,7 @@ const XCard = {
     const k      = _reg(m);
     const rat    = m.rating || m.vote_average || '';
     const playFn = onPlay || onOpen;
-    return `<div class="xc-card xc-row" data-mk="${k}" onclick="${onOpen}(_get(this.dataset.mk))">
+    return `<div class="xc-card xc-row" data-mk="${k}" ${XCard._a11yAttrs(m.title)} onclick="${onOpen}(_get(this.dataset.mk))">
       <div class="xc-thumb">
         <img class="xc-img" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555'">
         <div class="xc-overlay"><button class="xc-play" data-mk="${k}" onclick="event.stopPropagation();${playFn}(_get(this.dataset.mk))">▶</button></div>
@@ -1046,7 +1079,7 @@ const XCard = {
       ? `${onPlay}(_get(this.dataset.mk),${lastS},${lastE})`
       : `${onPlay}(_get(this.dataset.mk))`;
     const sub = subtitle !== null ? subtitle : (isDone ? 'Watched' : (isTV ? `S${lastS} E${lastE} · Continue` : 'Continue watching'));
-    return `<div class="xc-cw" data-mk="${k}" onclick="${onClickPlay}">
+    return `<div class="xc-cw" data-mk="${k}" ${XCard._a11yAttrs(m.title)} onclick="${onClickPlay}">
       <div class="xc-cw-thumb">
         <img class="xc-cw-img" src="${m.backdrop_url||m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='${m.poster_url||''}'">
         <div class="xc-cw-playov"><div class="xc-cw-playbtn">▶</div></div>
@@ -1066,7 +1099,7 @@ const XCard = {
     XCard.injectStyles();
     const { onOpen = 'openModal' } = opts;
     const k = _reg(m);
-    return `<div class="xc-t10" data-mk="${k}" onclick="${onOpen}(_get(this.dataset.mk))">
+    return `<div class="xc-t10" data-mk="${k}" ${XCard._a11yAttrs(m.title)} onclick="${onOpen}(_get(this.dataset.mk))">
       <div class="xc-t10-num">${i+1}</div>
       <img class="xc-t10-img" src="${m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.title)}&background=222&color=555&size=200'">
     </div>`;
