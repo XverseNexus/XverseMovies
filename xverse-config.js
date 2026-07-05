@@ -848,9 +848,101 @@ const XCard = {
 .xc-preview-wrap.show{opacity:1}
 .xc-preview-mount{position:absolute;inset:0;width:100%;height:100%}
 .xc-preview-mount iframe{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;border:0}
+
+/* Smart TV / 10-foot UI (Task 10) — applied only when `.tv-mode` is
+   detected on <html> (see XCard.detectTVMode). A remote's D-pad focus
+   needs to be obvious from couch distance, so the focused card visibly
+   "pops" — bigger scale-up and thicker outline than the desktop
+   keyboard-focus ring from Task 8, plus larger base text for readability. */
+html.tv-mode{font-size:110%}
+html.tv-mode .xc-card:focus-visible,html.tv-mode .xc-cw:focus-visible,html.tv-mode .xc-t10:focus-visible{
+  outline-width:4px;outline-offset:4px;transform:scale(1.12);z-index:5;
+  box-shadow:0 12px 40px rgba(0,0,0,.8);
+}
+html.tv-mode .xc-name,html.tv-mode .xc-cw-title{font-size:1.05em}
+html.tv-mode .xc-play,html.tv-mode .xc-add,html.tv-mode .xc-remove-btn,html.tv-mode .xc-la-btn{transform:scale(1.15)}
     `;
     document.head.appendChild(s);
+    XCard.detectTVMode();
     XCard.initHoverPreview();
+    XCard.initTVNav();
+  },
+
+  // Smart TV browsers (Tizen, webOS, Android TV/Google TV, Fire TV,
+  // HbbTV) identify themselves in the user agent — screen size alone
+  // isn't reliable since a TV can report the same viewport as a large
+  // monitor. When detected, add `.tv-mode` to <html> for the CSS above.
+  detectTVMode() {
+    try {
+      const ua = navigator.userAgent || '';
+      const isTV = /\b(Tizen|SMART-TV|SmartTV|WebOS|Web0S|GoogleTV|Google TV|AFT[A-Z]|AppleTV|HbbTV|CrKey|VIDAA|BRAVIA|NetCast)\b/i.test(ua);
+      if (isTV) document.documentElement.classList.add('tv-mode');
+    } catch (e) { /* navigator unavailable — ignore */ }
+  },
+
+  // D-pad / arrow-key spatial navigation (Task 10) — Tab already moves
+  // focus in DOM order (works fine for a keyboard), but a TV remote's
+  // D-pad sends arrow keys and expects "move to the nearest card in
+  // that direction", not "next in the DOM". This makes ArrowLeft/Right/
+  // Up/Down jump between cards geometrically, on any device — it's a
+  // plain keydown handler, so it works the same whether the keys came
+  // from an actual remote or a keyboard.
+  _tvNavInit: false,
+  initTVNav() {
+    if (XCard._tvNavInit) return;
+    XCard._tvNavInit = true;
+
+    const SELECTOR = '.xc-card,.xc-cw,.xc-t10';
+
+    document.addEventListener('keydown', (e) => {
+      const dirs = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' };
+      const dir = dirs[e.key];
+      if (!dir) return;
+      const current = document.activeElement;
+      if (!current || !current.matches || !current.matches(SELECTOR)) return;
+
+      const next = XCard._findNearestCard(current, dir, SELECTOR);
+      if (next) {
+        e.preventDefault();
+        next.focus();
+        if (next.scrollIntoView) next.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+      }
+    });
+  },
+
+  _findNearestCard(current, dir, selector) {
+    const curRect = current.getBoundingClientRect();
+    const cx = curRect.left + curRect.width / 2;
+    const cy = curRect.top + curRect.height / 2;
+
+    let best = null;
+    let bestScore = Infinity;
+
+    document.querySelectorAll(selector).forEach((el) => {
+      if (el === current) return;
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) return; // hidden/off-screen
+      const ex = r.left + r.width / 2;
+      const ey = r.top + r.height / 2;
+      const dx = ex - cx;
+      const dy = ey - cy;
+
+      // Only consider candidates actually in the requested direction,
+      // then score by primary-axis distance (main direction of travel)
+      // plus a penalty for drifting off the cross-axis — this keeps
+      // "next card in the row" preferred over "a card two rows down".
+      let inDirection = false, primary = 0, cross = 0;
+      if (dir === 'left')  { inDirection = dx < -1; primary = -dx; cross = Math.abs(dy); }
+      if (dir === 'right') { inDirection = dx > 1;  primary = dx;  cross = Math.abs(dy); }
+      if (dir === 'up')    { inDirection = dy < -1; primary = -dy; cross = Math.abs(dx); }
+      if (dir === 'down')  { inDirection = dy > 1;  primary = dy;  cross = Math.abs(dx); }
+      if (!inDirection) return;
+
+      const score = primary + cross * 2; // cross-axis drift weighted higher
+      if (score < bestScore) { bestScore = score; best = el; }
+    });
+
+    return best;
   },
 
   // ── HOVER-PREVIEW TRAILER (Netflix-style) ──────────────────────
