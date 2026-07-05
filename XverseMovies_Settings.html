@@ -215,7 +215,16 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:60px;display:flex;ali
 .mob-nav::-webkit-scrollbar{display:none}
 .mob-btn{background:rgba(255,255,255,.07);border:1px solid var(--border);color:rgba(255,255,255,.7);padding:6px 14px;border-radius:20px;font-size:.74rem;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif;white-space:nowrap;transition:all .2s;flex-shrink:0}
 .mob-btn.on{background:#fff;color:#000;border-color:#fff}
-@media(max-width:768px){.sb{display:none}.mob-nav{display:flex}.main{padding:20px var(--content-pad) 40px}.plan-g{grid-template-columns:1fr 1fr}.fgrid{grid-template-columns:1fr}
+/* Tablet (641–1024px, Task 7): keep the sidebar — just narrower —
+   instead of collapsing straight to the phone layout. Forms go
+   single-column since there's less room than full desktop, but
+   the sidebar nav (unlike on phones) stays visible. */
+@media(max-width:1024px) and (min-width:641px){
+  .sb{width:180px}
+  .fgrid{grid-template-columns:1fr}
+  .plan-g{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:640px){.sb{display:none}.mob-nav{display:flex}.main{padding:20px var(--content-pad) 40px}.plan-g{grid-template-columns:1fr 1fr}.fgrid{grid-template-columns:1fr}
   .main{padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))!important}}
 /* ── MOBILE BOTTOM NAV ─────────────────────────────────── */
 .btm-nav{display:none}

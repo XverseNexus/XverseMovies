@@ -130,6 +130,11 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;ali
 .sb{background:rgba(229,9,20,.14);color:var(--red);font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:3px;margin-left:6px;letter-spacing:.5px}
 /* CARD GRID */
 .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px;margin-bottom:30px}
+@media(max-width:1024px) and (min-width:641px){
+  /* Tablet (Task 7): a bit tighter than desktop's 150px minimum so the
+     grid doesn't look sparse on a tablet-width screen. */
+  .cgrid{grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:8px}
+}
 .cgrid.lm{grid-template-columns:1fr;gap:5px}
 /* Poster/list card styling moved to the shared XCard component
    (xverse-config.js → XCard.injectStyles()) — see .xc-card / .xc-row.

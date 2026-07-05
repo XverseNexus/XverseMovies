@@ -792,6 +792,16 @@ const XCard = {
 .xc-t10-img{width:100px;height:146px;border-radius:4px;object-fit:cover;background:#222;z-index:2;position:relative;border:1px solid var(--border)}
 @media(max-width:640px){.xc-t10-num{font-size:5.5rem}.xc-t10-img{width:80px;height:116px}}
 
+/* Tablet (641–1024px, Task 7): card sizes tuned between the mobile
+   and desktop values instead of jumping straight from one to the
+   other — applies everywhere XCard is used (Home, Browse, My List). */
+@media(max-width:1024px) and (min-width:641px){
+  .cards-scroll .xc-card{width:138px}
+  .xc-cw{width:195px}
+  .xc-t10-num{font-size:6rem}
+  .xc-t10-img{width:90px;height:131px}
+}
+
 /* Hover-preview trailer overlay — poster cards only (see initHoverPreview) */
 .xc-img{z-index:0;position:relative}
 .xc-overlay{z-index:3}

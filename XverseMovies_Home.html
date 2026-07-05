@@ -100,6 +100,12 @@ nav.solid{background:rgba(8,8,8,.97);backdrop-filter:blur(10px);border-bottom:1p
 
 /* ── HERO ── */
 .hero{position:relative;height:95vh;min-height:500px;overflow:hidden}
+@media(max-width:1024px) and (min-width:641px){
+  /* Tablet (Task 7): 95vh dominates a tablet screen far more than a
+     desktop monitor — bring it down closer to what Netflix's own
+     tablet layout uses. */
+  .hero{height:68vh;min-height:440px}
+}
 .hero-bg{position:absolute;inset:0;background-size:cover;background-position:center 20%;transition:background-image .8s}
 .hero-grad{position:absolute;inset:0;background:linear-gradient(to right,rgba(0,0,0,.88) 0%,rgba(0,0,0,.4) 50%,transparent 100%),linear-gradient(to top,rgba(20,20,20,1) 0%,transparent 35%)}
 .hero-content{position:absolute;bottom:0;left:0;padding:0 var(--content-pad) 80px;max-width:560px;z-index:2}

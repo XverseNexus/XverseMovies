@@ -188,8 +188,18 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
   grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
   gap:10px;
 }
+/* ── TRENDING GRID (moved from inline style so the tablet
+   media query below can actually override it — inline style
+   attributes beat external CSS specificity otherwise) ── */
+.trending-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:36px}
+
 @media(max-width:480px){
   #resultsGrid{grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px}
+}
+@media(max-width:1024px) and (min-width:641px){
+  /* Tablet (Task 7) */
+  .cat-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+  #resultsGrid,.trending-grid{grid-template-columns:repeat(auto-fill,minmax(122px,1fr));gap:8px}
 }
 
 /* ── CARD ────────────────────────────────────────────── */
@@ -400,7 +410,7 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
   <!-- BEFORE SEARCH: trending + categories -->
   <div id="trendingSection">
     <div class="section-title">Popular on XverseMovies <span class="section-badge">TRENDING</span></div>
-    <div id="trendingGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:36px"></div>
+    <div id="trendingGrid" class="trending-grid"></div>
 
     <div class="section-title">Browse by Category</div>
     <div class="cat-grid" id="catGrid"></div>
