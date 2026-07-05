@@ -849,7 +849,7 @@ const XCard = {
 .xc-preview-mount{position:absolute;inset:0;width:100%;height:100%}
 .xc-preview-mount iframe{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;border:0}
 
-/* Smart TV / 10-foot UI (Task 10) — applied only when `.tv-mode` is
+/* Smart TV / 10-foot UI (Task 10) — applied only when '.tv-mode' is
    detected on <html> (see XCard.detectTVMode). A remote's D-pad focus
    needs to be obvious from couch distance, so the focused card visibly
    "pops" — bigger scale-up and thicker outline than the desktop
