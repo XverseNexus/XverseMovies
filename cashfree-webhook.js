@@ -68,8 +68,17 @@ function verifySignature(rawBody, timestamp, signature, secretKey) {
 }
 
 module.exports = async function handler(req, res) {
+  // Cashfree's dashboard "Test" button (and some monitoring pings)
+  // send a GET/HEAD first just to check the endpoint is reachable —
+  // it's not a real webhook delivery, so there's nothing to verify.
+  // Respond 200 so that check passes; only POST goes through full
+  // signature verification below.
+  if (req.method === 'GET' || req.method === 'HEAD') {
+    return res.status(200).json({ status: 'ok' });
+  }
+
   if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
+    res.setHeader('Allow', 'POST, GET, HEAD');
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
