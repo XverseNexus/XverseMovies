@@ -447,9 +447,16 @@ async function suStep3() {
 
   if (!uid) { _inSignupFlow = false; btn.textContent = 'Start Watching →'; btn.disabled = false; return; }
 
-  await Auth.updatePlan(uid, selectedPlan);
-  if (selectedPlan !== 'free' && XVERSE.PAYMENT[selectedPlan])
-    window.open(XVERSE.PAYMENT[selectedPlan] + '?uid=' + uid, '_blank');
+  // Don't grant the paid plan yet — that's the same bug we fixed in
+  // Settings.html (Task 11): this used to call Auth.updatePlan(uid,
+  // selectedPlan) here, BEFORE any payment happened, which handed out
+  // paid plans for free. Leave the profile on its default plan and
+  // remember what they intended to upgrade to; Home.html will send
+  // them to the real (Cashfree Orders API + webhook-verified) upgrade
+  // flow in Settings.html on their first load after signup.
+  if (selectedPlan !== 'free') {
+    localStorage.setItem('xv_pending_signup_plan', selectedPlan);
+  }
 
   // Wait briefly for DB trigger to create profile row
   await new Promise(r => setTimeout(r, 800));

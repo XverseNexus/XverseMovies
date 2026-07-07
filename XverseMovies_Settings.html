@@ -476,6 +476,16 @@ const PLAN_DATA  = [
   buildMobNav();
   loadActivity();
   PwdMeter.attach(document.getElementById('newPass'));
+  checkPendingPayment();
+
+  // Arrived here via a redirect asking us to start an upgrade (from
+  // signup selecting a paid plan, or Player.html's "upgrade to watch
+  // this" gate) — auto-trigger the real checkout flow once.
+  const upgradeParam = new URLSearchParams(location.search).get('upgrade');
+  if (upgradeParam) {
+    history.replaceState(null, '', location.pathname);
+    upgradePlan(upgradeParam);
+  }
 
   // Hash-based panel — #notifications (old link) and #notifs both work
   const hash = location.hash.replace('#','');
@@ -650,12 +660,88 @@ function buildPlanGrid() {
     </div>`).join('');
 }
 
-function upgradePlan(plan) {
+// ── PAYMENT (real fix — Cashfree Orders API + webhook) ──────────
+// upgradePlan() only ever STARTS a payment. The actual upgrade
+// happens server-side in api/cashfree-webhook.js once Cashfree
+// confirms the payment is genuinely PAID — this file never
+// upgrades anyone itself, it just asks our backend to create an
+// order and opens Cashfree's checkout for it.
+async function upgradePlan(plan) {
   if (plan === (userProfile?.plan||'free')) { showToast('✅ Tum already is plan pe ho!'); return; }
   if (plan === 'free') { showToast('ℹ️ Downgrade ke liye support se contact karo'); return; }
-  const link = XVERSE.PAYMENT[plan];
-  if (link && !link.includes('YOUR_')) window.open(link + '?uid=' + currentUser.id, '_blank');
-  else showToast('⚙️ Cashfree payment link setup karo — xverse-config.js mein');
+
+  try {
+    showToast('💳 Payment shuru kar rahe hain...');
+
+    const res = await fetch('/api/create-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        uid: currentUser.id,
+        plan,
+        email: currentUser.email,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.payment_session_id) {
+      showToast('⚙️ ' + (data.error || 'Payment start nahi ho paya — Cashfree keys check karo'));
+      return;
+    }
+
+    await loadCashfreeSDK();
+    const cashfree = window.Cashfree({ mode: XVERSE.CASHFREE_ENV || 'sandbox' });
+    cashfree.checkout({
+      paymentSessionId: data.payment_session_id,
+      redirectTarget: '_self', // same tab — Cashfree redirects back to return_url after payment
+    });
+  } catch (err) {
+    console.error('upgradePlan error:', err);
+    showToast('❌ Payment start nahi ho paya, dobara try karo');
+  }
+}
+
+let _cfSdkPromise = null;
+function loadCashfreeSDK() {
+  if (window.Cashfree) return Promise.resolve();
+  if (_cfSdkPromise) return _cfSdkPromise;
+  _cfSdkPromise = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+  return _cfSdkPromise;
+}
+
+// Called on page load — if we just came back from Cashfree checkout
+// (return_url includes ?order_id=...), the webhook may take a few
+// seconds to arrive and update Supabase. We just poll our own
+// profile a few times rather than trusting anything in the URL —
+// the URL param only tells us "an attempt happened", never "it
+// succeeded". If the plan hasn't changed after ~20s we stop and let
+// the normal page state stand; the webhook will still apply the
+// upgrade whenever it arrives.
+async function checkPendingPayment() {
+  const params = new URLSearchParams(location.search);
+  const orderId = params.get('order_id');
+  if (!orderId) return;
+
+  history.replaceState(null, '', location.pathname); // clean the URL
+  showToast('⏳ Payment verify ho raha hai...');
+
+  const planBefore = userProfile?.plan;
+  for (let i = 0; i < 8; i++) {
+    await new Promise(r => setTimeout(r, 2500));
+    userProfile = await Auth.getProfile(currentUser.id);
+    if (userProfile?.plan && userProfile.plan !== planBefore) {
+      buildPlanGrid();
+      loadSidebar();
+      showToast(`✅ ${XVERSE.PLANS[userProfile.plan]?.name || userProfile.plan} plan activate ho gaya!`);
+      return;
+    }
+  }
+  showToast('Payment verify ho raha hai — thodi der mein plan apne aap update ho jayega');
 }
 
 async function cancelMembership() {

@@ -12,12 +12,28 @@ const XVERSE = {
   TMDB_IMG:         'https://image.tmdb.org/t/p/',
   SITE_NAME:        'XverseMovies',
 
-  // Cashfree payment links — apne dashboard se update karo
-  PAYMENT: {
-    hd:  'https://payments.cashfree.com/forms/xversemovies-hd',   // ₹29
-    fhd: 'https://payments.cashfree.com/forms/xversemovies-fhd',  // ₹49
-    uhd: 'https://payments.cashfree.com/forms/xversemovies-4k',   // ₹99
-  },
+  // ── PAYMENTS (Task 11 — real fix) ──────────────────────────────
+  // Upgrades now go through Cashfree's Orders API + a verified
+  // webhook (api/create-order.js + api/cashfree-webhook.js), not a
+  // static Payment Link — this is what makes profiles.plan actually
+  // get updated after a real payment, tamper-resistant, instead of
+  // never updating at all (the old bug) or being trust-based
+  // (the earlier stopgap fix).
+  //
+  // Set these as VERCEL ENVIRONMENT VARIABLES (Project → Settings →
+  // Environment Variables) — never in this file, since this file is
+  // shipped to every visitor's browser:
+  //   CASHFREE_APP_ID, CASHFREE_SECRET_KEY, CASHFREE_ENV
+  //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SITE_URL
+  //
+  // Also required: Cashfree Dashboard → Developers → Webhooks →
+  // add https://xverse-movies.vercel.app/api/cashfree-webhook and
+  // subscribe it to Payment events.
+  //
+  // CASHFREE_ENV below is just the public "sandbox"/"production"
+  // flag so the frontend loads Cashfree's checkout SDK in the right
+  // mode — it is NOT a secret, unlike the server-side env vars above.
+  CASHFREE_ENV: 'sandbox', // switch to 'production' when going live
 
   PLANS: {
     free: { name:'Basic',       quality:'480p', price:'Free',   screens:1, order:0 },

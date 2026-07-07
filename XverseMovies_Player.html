@@ -1035,8 +1035,10 @@ function showPlanGate(reqPlan) {
 }
 
 function upgradePlan(plan) {
-  const link = XVERSE.PAYMENT[plan];
-  if (link) window.open(link, '_blank');
+  // Real checkout (Cashfree Orders API + verified webhook) lives in
+  // Settings.html — send the user there instead of duplicating that
+  // logic here. See xverse-config.js Task 11 notes.
+  window.location.href = 'XverseMovies_Settings.html?upgrade=' + encodeURIComponent(plan);
 }
 
 /* ─────────────────────────────────────────────────────────
