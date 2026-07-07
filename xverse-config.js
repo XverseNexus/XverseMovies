@@ -33,7 +33,7 @@ const XVERSE = {
   // CASHFREE_ENV below is just the public "sandbox"/"production"
   // flag so the frontend loads Cashfree's checkout SDK in the right
   // mode — it is NOT a secret, unlike the server-side env vars above.
-  CASHFREE_ENV: 'sandbox', // switch to 'production' when going live
+  CASHFREE_ENV: 'production', // must match the Vercel env var CASHFREE_ENV — both are 'production'
 
   PLANS: {
     free: { name:'Basic',       quality:'480p', price:'Free',   screens:1, order:0 },
