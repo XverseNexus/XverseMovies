@@ -190,6 +190,35 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to update plan' });
   }
 
+  // ── NOTIFICATION (Task 12) ────────────────────────────────────
+  // The bell/notification panel UI was already fully wired to
+  // Supabase (see xverse-config.js DB.getNotifications) — nothing
+  // in the codebase ever inserted a row, so it always showed empty.
+  // This is the first real notification producer: tell the user
+  // their upgrade went through. A failure here shouldn't fail the
+  // whole webhook — the plan is already upgraded, which is what
+  // actually matters — so this is best-effort and just logged.
+  const PLAN_NAMES = { hd: 'HD', fhd: 'Full HD', uhd: '4K Ultra HD' };
+  try {
+    await fetch(`${supabaseUrl}/rest/v1/notifications`, {
+      method: 'POST',
+      headers: {
+        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({
+        user_id: uid,
+        title: '🎉 Plan Upgraded!',
+        body: `Aapka plan ${PLAN_NAMES[plan] || plan} mein upgrade ho gaya hai. Enjoy karo!`,
+        is_read: false,
+      }),
+    });
+  } catch (err) {
+    console.error('cashfree-webhook: notification insert failed (non-fatal)', err);
+  }
+
   console.log(`✅ Plan upgraded: uid=${uid} → plan=${plan} (order ${orderId})`);
   return res.status(200).json({ received: true, upgraded: true, uid, plan });
 };
