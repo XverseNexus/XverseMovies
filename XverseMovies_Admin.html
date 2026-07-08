@@ -932,6 +932,22 @@ if (exists) {
 
     updateCounts();
 
+    // ── NOTIFICATION BROADCAST (Task 12) ──────────────────────
+    // Only notify for content that's actually visible right away —
+    // "inactive" (hidden) or "coming_soon" titles shouldn't ping
+    // everyone about something they can't watch yet.
+    if (data.status === 'active') {
+      fetch('/api/notify-new-movie', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: data.title,
+          type: data.type,
+          image_url: data.poster_url,
+        }),
+      }).catch(err => console.error('notify-new-movie call failed (non-fatal):', err));
+    }
+
     resetForm();
   }
 }
