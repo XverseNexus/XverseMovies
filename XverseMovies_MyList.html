@@ -236,7 +236,7 @@ main{padding:88px var(--content-pad) 60px}
     <div id="mlEmpty" class="empty" style="display:none">
       <div class="empty-ico">🎬</div>
       <div class="empty-title">Your list is empty</div>
-      <div class="empty-sub">Movies aur shows save karo yahan pe<br>taaki baad mein dekh sako.</div>
+      <div class="empty-sub">Save movies and shows here<br>to watch later.</div>
       <button class="btn-browse" onclick="location.href='XverseMovies_Browse.html'">Browse Content</button>
     </div>
     <div class="ml-grid" id="mlGrid"></div>
@@ -251,7 +251,7 @@ main{padding:88px var(--content-pad) 60px}
     <div id="cwEmpty" class="empty" style="display:none">
       <div class="empty-ico">▶️</div>
       <div class="empty-title">Nothing to continue yet</div>
-      <div class="empty-sub">Koi movie ya show start karo<br>aur yahan appear ho jayega.</div>
+      <div class="empty-sub">Start a movie or show<br>and it will appear here.</div>
       <button class="btn-browse" onclick="location.href='XverseMovies_Browse.html'">Start Watching</button>
     </div>
     <div id="cwSection" style="display:none">
@@ -279,7 +279,7 @@ main{padding:88px var(--content-pad) 60px}
     <div id="histEmpty" class="empty" style="display:none">
       <div class="empty-ico">🕐</div>
       <div class="empty-title">No watch history yet</div>
-      <div class="empty-sub">Jo movies aur shows tum watch karoge<br>wo yahan dikh jayega.</div>
+      <div class="empty-sub">Movies and shows you watch<br>will show up here.</div>
     </div>
     <div id="histContent"></div>
   </div>
@@ -514,7 +514,7 @@ async function removeCWItem(movieId) {
 }
 
 async function clearAllCW() {
-  if (!confirm('Sab Continue Watching clear karna hai?')) return;
+  if (!confirm('Clear all Continue Watching?')) return;
   const items = await DB.getContinueWatching(currentUser.id);
   await Promise.all(items.map(m => DB.removeContinueWatching(currentUser.id, m.id)));
   await loadCW();
@@ -563,7 +563,7 @@ async function loadHistory() {
 }
 
 async function clearHistory() {
-  if (!confirm('Poori watch history clear karna hai?')) return;
+  if (!confirm('Clear your entire watch history?')) return;
   await DB.clearHistory(currentUser.id);
   await loadHistory();
   showToast('🗑️ History cleared');

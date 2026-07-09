@@ -876,7 +876,7 @@ function loadVideo(m) {
   if (m.embed_working === false && !m.manual_embed) {
     document.getElementById('ldMsg').innerHTML =
       '⚠️ This video may be unavailable.<br>' +
-      '<span style="font-size:.72rem;color:#888">Admin panel mein custom embed set karo.</span>';
+      '<span style="font-size:.72rem;color:#888">Set a custom embed in the admin panel.</span>';
     document.getElementById('ldMsg').style.color = '#f5c518';
     if (!embedUrl) return;
   }
@@ -884,7 +884,7 @@ function loadVideo(m) {
   if (!embedUrl) {
     document.getElementById('ldMsg').innerHTML =
       '⚠️ Video URL not found.<br>' +
-      '<span style="font-size:.72rem;color:#888">Admin panel se embed URL set karo.</span>';
+      '<span style="font-size:.72rem;color:#888">Set the embed URL in the admin panel.</span>';
     document.getElementById('ldMsg').style.color = '#ff6b6b';
     return;
   }

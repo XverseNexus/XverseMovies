@@ -1313,10 +1313,10 @@ const XvNotif = {
                     padding:52px 20px;text-align:center">
           <div style="font-size:2.6rem;margin-bottom:14px;opacity:.25">🔔</div>
           <div style="font-size:.9rem;font-weight:700;color:rgba(255,255,255,.45);margin-bottom:6px">
-            ${this._tab === 'unread' ? 'Sab read ho gayi' : 'Abhi koi notification nahi'}
+            ${this._tab === 'unread' ? 'All caught up' : 'No notifications yet'}
           </div>
           <div style="font-size:.76rem;color:rgba(255,255,255,.25);line-height:1.55">
-            Nayi notifications yahan dikhegi
+            New notifications will show up here
           </div>
         </div>`;
       return;

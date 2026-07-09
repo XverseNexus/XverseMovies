@@ -266,7 +266,7 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
     <!-- ADD MOVIE -->
     <div class="panel" id="panel-add">
       <div class="ptit">Add Movie / Show</div>
-      <div class="psub">TMDB ID se automatic ya manual embed URL se add karo</div>
+      <div class="psub">Add automatically using a TMDB ID, or manually with an embed URL</div>
 
       <!-- TABS -->
       <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px">
@@ -277,12 +277,12 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
       <!-- AUTO TAB -->
       <div id="addSection-auto">
         <div class="fc">
-          <div class="fc-title"><div class="fc-ico">⚡</div> Auto Add — TMDB ID se</div>
+          <div class="fc-title"><div class="fc-ico">⚡</div> Auto Add — via TMDB ID</div>
           <div class="fg">
             <div class="fw">
               <label>TMDB ID *</label>
               <input type="number" id="tmdbId" placeholder="e.g. 155 (The Dark Knight)">
-              <div class="hint">themoviedb.org → Movie search karo → URL mein ID milegi e.g. /movie/155</div>
+              <div class="hint">Search on themoviedb.org → the ID is in the URL, e.g. /movie/155</div>
             </div>
             <div class="fw">
               <label>Content Type</label>
@@ -458,11 +458,11 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
     <!-- BULK IMPORT -->
     <div class="panel" id="panel-bulk">
       <div class="ptit">Bulk Import</div>
-      <div class="psub">JSON format mein multiple movies ek saath add karo</div>
+      <div class="psub">Add multiple movies at once using JSON format</div>
       <div class="fc">
         <div class="fc-title"><div class="fc-ico">📥</div> JSON Import</div>
         <div class="fw" style="margin-bottom:12px">
-          <label>JSON Array (ek array mein multiple movies)</label>
+          <label>JSON Array (multiple movies in one array)</label>
           <textarea class="bulk-ta" id="bulkJson" placeholder='[
   {
     "title": "Pathaan",
@@ -495,7 +495,7 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
     <!-- EXPORT -->
     <div class="panel" id="panel-export">
       <div class="ptit">Export Data</div>
-      <div class="psub">Supabase se sab movies export karo</div>
+      <div class="psub">Export all movies from Supabase</div>
       <div class="fc">
         <div class="fc-title"><div class="fc-ico">💾</div> Export Options</div>
         <div style="font-size:.84rem;color:rgba(255,255,255,.55);margin-bottom:18px;line-height:1.8">
@@ -511,12 +511,12 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
     <!-- MODERATORS — full admin only -->
     <div class="panel" id="panel-moderators">
       <div class="ptit">Moderators</div>
-      <div class="psub">Admin panel access manage karo — invite aur remove moderators</div>
+      <div class="psub">Manage admin panel access — invite and remove moderators</div>
 
       <div class="fc" style="margin-bottom:16px">
         <div class="fc-title"><div class="fc-ico">➕</div> Invite Moderator</div>
         <div style="font-size:.83rem;color:rgba(255,255,255,.55);margin-bottom:14px;line-height:1.6">
-          Email se kisi ko moderator access do. Unhe pehle se XverseMovies account hona chahiye.
+          Grant moderator access by email. They must already have an XverseMovies account.
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <input type="email" id="modEmail" class="fi" placeholder="Enter email address..."
@@ -537,13 +537,13 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
     <!-- UNAVAILABLE CHECKER -->
     <div class="panel" id="panel-unavailable">
       <div class="ptit">Check Unavailable</div>
-      <div class="psub">vidsrc pe kaunsi movies nahi chal rahi — detect karo aur fix karo</div>
+      <div class="psub">Detect and fix movies that aren't playing on vidsrc</div>
 
       <!-- ── SECTION 1: Check existing DB movies ── -->
       <div class="fc" style="margin-bottom:16px">
         <div class="fc-title"><div class="fc-ico">🔍</div> DB Movies — vidsrc Availability Check</div>
         <div style="font-size:.84rem;color:rgba(255,255,255,.6);margin-bottom:16px;line-height:1.7">
-          Tumhare DB ki sab active movies check karta hai. Jo nahi chal rahi unhe yahan se fix karo.
+          Checks all active movies in your DB. Fix any that aren't playing right from here.
         </div>
         <div class="brow" style="border-top:none;padding-top:0;margin-top:0;margin-bottom:16px">
           <button class="btn-add" id="checkBtn" onclick="checkUnavailable()">🔍 Check All My Movies</button>
@@ -562,8 +562,8 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
       <div class="fc">
         <div class="fc-title"><div class="fc-ico">🌐</div> TMDB Discovery — Check vidsrc Availability</div>
         <div style="font-size:.84rem;color:rgba(255,255,255,.6);margin-bottom:16px;line-height:1.7">
-          TMDB ki Trending / Popular movies check karo ki vidsrc pe available hain ya nahi.<br>
-          Jo available hain unhe ek click se apne DB mein add kar sako.
+          Checks TMDB's Trending / Popular movies to see if they're available on vidsrc.<br>
+          Add the available ones to your DB with a single click.
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
           <select id="tmdbDiscType" class="fsel" style="width:auto;padding:8px 12px">
@@ -646,7 +646,7 @@ window.addEventListener('load', async () => {
     document.body.innerHTML = `
       <div style="font-size:3rem">🔒</div>
       <div style="font-family:'Bebas Neue',cursive;font-size:2rem;color:#E50914;letter-spacing:2px">Access Denied</div>
-      <div style="color:rgba(255,255,255,.5);font-size:.88rem">Tumhare paas admin access nahi hai.</div>
+      <div style="color:rgba(255,255,255,.5);font-size:.88rem">You don't have admin access.</div>
       <a href="XverseMovies_Home.html" style="margin-top:8px;background:#E50914;color:#fff;padding:9px 24px;border-radius:5px;text-decoration:none;font-weight:700;font-size:.88rem">← Back to Home</a>`;
     return;
   }
@@ -740,7 +740,7 @@ function validateEmbedUrl(url) {
 async function generateAutoMovie() {
   const tmdbId = document.getElementById('tmdbId').value.trim();
   const type   = document.getElementById('autoType').value;
-  if (!tmdbId) { showToast('❌ TMDB ID daalo'); return; }
+  if (!tmdbId) { showToast('❌ Please enter a TMDB ID'); return; }
 
   showToast('⚡ Generating movie data...');
   try {
@@ -822,7 +822,7 @@ if (exists) {
 }
 
   if (!title) {
-    showToast('❌ Title daalo');
+    showToast('❌ Please enter a title');
     return;
   }
 
@@ -979,7 +979,7 @@ function testVideo() {
     || window.generatedEmbedUrl;
 
   if (!url) {
-    showToast('❌ Embed URL daalo ya Auto Generate karo');
+    showToast('❌ Please enter an embed URL or use Auto Generate');
     return;
   }
 
@@ -1028,7 +1028,7 @@ function buildSeriesEmbed() {
   const season  = document.getElementById('sSeason')?.value  || '1';
   const episode = document.getElementById('sEpisode')?.value || '1';
 
-  if (!tid) { showToast('❌ Pehle TMDB ID daalo'); return; }
+  if (!tid) { showToast('❌ Please enter a TMDB ID first'); return; }
 
   const url = `https://vidsrc.to/embed/tv/${tid}/${season}/${episode}`;
   const prev = document.getElementById('seriesEmbedPreview');
@@ -1048,10 +1048,10 @@ function buildSeriesEmbed() {
 async function autoFillManual() {
   const id   = document.getElementById('manualTmdbId')?.value.trim();
   const type = document.getElementById('manualType')?.value || 'movie';
-  if (!id) { showToast('❌ TMDB ID daalo'); return; }
+  if (!id) { showToast('❌ Please enter a TMDB ID'); return; }
   showToast('🔍 Fetching from TMDB...');
   const data = type === 'tv' ? await TMDB.tvDetails(id) : await TMDB.movieDetails(id);
-  if (!data || (!data.title && !data.name)) { showToast('❌ TMDB ID nahi mila'); return; }
+  if (!data || (!data.title && !data.name)) { showToast('❌ TMDB ID not found'); return; }
   fillFormFromTMDB(data, type);
 
   // Also auto-build embed for manual tab
@@ -1258,15 +1258,15 @@ function openVisualTest(movieId, embedUrl, title, onWorking, onBroken) {
       <div style="display:flex;gap:10px;margin-top:14px;justify-content:center">
         <button id="vtWorkBtn" style="background:rgba(70,211,105,.15);border:1px solid rgba(70,211,105,.4);
           color:var(--green);padding:10px 28px;border-radius:6px;cursor:pointer;font-size:.88rem;font-weight:700">
-          ✅ Chal rahi hai (Working)
+          ✅ Working
         </button>
         <button id="vtBrokenBtn" style="background:rgba(229,9,20,.12);border:1px solid rgba(229,9,20,.35);
           color:#ff6b6b;padding:10px 28px;border-radius:6px;cursor:pointer;font-size:.88rem;font-weight:700">
-          ❌ Nahi chal rahi (Broken)
+          ❌ Not Working (Broken)
         </button>
       </div>
       <div style="font-size:.72rem;color:rgba(255,255,255,.35);text-align:center;margin-top:8px">
-        Video load hone do (5-10 sec), phir decide karo
+        Let the video load (5-10 sec), then decide
       </div>
     </div>`;
 
@@ -1325,8 +1325,8 @@ async function checkUnavailable() {
       background:rgba(100,181,246,.08);border:1px solid rgba(100,181,246,.15);
       border-radius:6px;padding:10px 14px;line-height:1.6">
       💡 <strong style="color:#64b5f6">New approach:</strong>
-      Proxy se check karna blocked ho gaya tha (vidsrc proxy requests block karta hai).
-      Ab <strong>▶ Test</strong> se video seedha open hoga — dekhlo chalti hai ya nahi, phir mark karo.
+      Checking via proxy got blocked (vidsrc blocks proxy requests).
+      Now <strong>▶ Test</strong> will open the video directly — check if it plays, then mark it.
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
       <div style="background:rgba(70,211,105,.08);border:1px solid rgba(70,211,105,.2);border-radius:6px;padding:6px 12px;font-size:.78rem">
@@ -1422,7 +1422,7 @@ async function mcMarkBroken(movieId) {
   if (row) {
     row.style.borderColor = 'rgba(229,9,20,.3)';
     row.style.background  = 'rgba(229,9,20,.05)';
-    showToast('❌ Marked as broken — fix karo');
+  showToast('❌ Marked as broken — please fix');
   }
   // Refresh row to show fix input
   if (row && m) row.outerHTML = movieCheckRowHTML({ ...m, embed_working: false, last_checked: now });
@@ -1431,7 +1431,7 @@ async function mcMarkBroken(movieId) {
 async function mcSaveEmbed(movieId) {
   const input = document.getElementById('mcFix_' + movieId);
   const url   = input?.value.trim();
-  if (!url || !validateEmbedUrl(url)) { showToast('❌ Valid URL daalo'); return; }
+  if (!url || !validateEmbedUrl(url)) { showToast('❌ Please enter a valid URL'); return; }
   const source  = detectEmbedSource(url);
   const updates = { embed_url: url, embed_source: source, manual_embed: true,
     auto_embed: false, embed_working: true, last_checked: new Date().toISOString() };
@@ -1475,11 +1475,11 @@ async function discoverTMDB() {
   const isTV  = endpoint.includes('/tv/');
   const fresh = items.filter(m => !dbIds.has(m.id));
 
-  statusEl.textContent = `${fresh.length} new titles found — ▶ test karo, jo kaam kare add karo`;
+  statusEl.textContent = `${fresh.length} new titles found — ▶ test them, add the ones that work`;
 
   if (!fresh.length) {
     resEl.innerHTML = `<div style="padding:16px;text-align:center;color:var(--muted);font-size:.84rem">
-      Sab movies already tumhare DB mein hain!</div>`;
+      All movies are already in your DB!</div>`;
     return;
   }
 
@@ -1487,7 +1487,7 @@ async function discoverTMDB() {
     <div style="font-size:.78rem;color:rgba(255,255,255,.4);margin-bottom:12px;
       background:rgba(100,181,246,.06);border:1px solid rgba(100,181,246,.12);
       border-radius:6px;padding:8px 12px">
-      💡 ▶ Test dabao — vidsrc pe open hoga. Agar chalti hai tho <strong style="color:#64b5f6">＋ Add</strong> karo.
+      💡 Tap ▶ Test — it'll open on vidsrc. If it plays, tap <strong style="color:#64b5f6">＋ Add</strong>.
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px">
       ${fresh.slice(0, 20).map(m => {
@@ -1526,8 +1526,8 @@ async function discoverTMDB() {
 
 function discTest(tmdbId, type, testUrl, title) {
   openVisualTest(null, testUrl, title,
-    () => { showToast(`✅ Kaam kar rahi hai — ＋ Add karo`); },
-    () => { showToast(`❌ Nahi chal rahi — skip karo`); }
+    () => { showToast(`✅ It's working — tap ＋ Add`); },
+    () => { showToast(`❌ Not working — skip it`); }
   );
 }
 
@@ -1538,7 +1538,7 @@ async function quickAddFromTMDB(tmdbId, type, title) {
   const tmdbEl = document.getElementById('aTmdb');
   if (typeEl) typeEl.value = type;
   if (tmdbEl) { tmdbEl.value = tmdbId; await autoFillManual(); }
-  showToast(`✅ "${title}" form fill ho gaya — check karo aur add karo`);
+  showToast(`✅ "${title}" form filled — review and add it`);
 }
 function unavailRowHTML(r, color) {
   const m = r.movie;
@@ -1610,8 +1610,8 @@ function quickTestEmbed(movieId) {
 async function fixEmbedUrl(movieId) {
   const input = document.getElementById('fix_' + movieId);
   const url   = input?.value.trim();
-  if (!url)                          { showToast('❌ Embed URL daalo'); return; }
-  if (!validateEmbedUrl(url))        { showToast('❌ Valid URL daalo (https://...)'); return; }
+  if (!url)                          { showToast('❌ Please enter an embed URL'); return; }
+  if (!validateEmbedUrl(url))        { showToast('❌ Please enter a valid URL (https://...)'); return; }
 
   const source  = detectEmbedSource(url);
   const updates = {
@@ -1650,7 +1650,7 @@ async function inviteModerator() {
   msgEl.style.display = 'block';
 
   if (!email || !/\S+@\S+/.test(email)) {
-    msgEl.style.color = '#ff6b6b'; msgEl.textContent = '❌ Valid email daalo'; return;
+    msgEl.style.color = '#ff6b6b'; msgEl.textContent = '❌ Please enter a valid email'; return;
   }
 
   // Use RPC function — bypasses RLS (direct UPDATE fails due to profiles_update_own policy)
@@ -1682,7 +1682,7 @@ async function loadModerators() {
     .or('role.eq.moderator,is_admin.eq.true')
     .order('created_at');
   if (!data?.length) {
-    el.innerHTML = `<div style="font-size:.8rem;color:var(--muted);padding:12px 0">Koi moderator nahi hai abhi.</div>`;
+    el.innerHTML = `<div style="font-size:.8rem;color:var(--muted);padding:12px 0">No moderators yet.</div>`;
     return;
   }
   el.innerHTML = data.map(u => `
@@ -1718,7 +1718,7 @@ async function removeModerator(uid, name) {
     showToast('❌ ' + (error?.message || data?.error || 'Failed'));
     return;
   }
-  showToast(`✅ ${name} ka moderator access remove ho gaya`);
+  showToast(`✅ Removed ${name}'s moderator access`);
   loadModerators();
 }
 
@@ -1905,7 +1905,7 @@ async function saveEdit() {
   const embedVal = document.getElementById('eEmbed').value.trim();
 
   if (embedVal && !validateEmbedUrl(embedVal)) {
-    showToast('❌ Valid embed URL daalo (https://...)');
+  showToast('❌ Please enter a valid embed URL (https://...)');
     return;
   }
 
@@ -1991,7 +1991,7 @@ async function loadFeatured() {
   const { data } = await getSB().from('movies').select('*').eq('featured',true).eq('status','active');
   const items = data||[];
   const c = document.getElementById('featuredGrid');
-  if (!items.length) { c.innerHTML=`<div class="empty"><div class="empty-ico">⭐</div><div style="font-size:.84rem;color:var(--muted)">No featured content — Edit karo aur Featured = Yes karo</div></div>`; return; }
+  if (!items.length) { c.innerHTML=`<div class="empty"><div class="empty-ico">⭐</div><div style="font-size:.84rem;color:var(--muted)">No featured content — edit a title and set Featured = Yes</div></div>`; return; }
   c.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px">${items.map(m=>`
     <div style="background:var(--card);border:1px solid var(--border);border-radius:7px;overflow:hidden">
       <img src="${m.poster_url||'https://ui-avatars.com/api/?name='+encodeURIComponent(m.title)+'&background=333&color=666&size=400'}" style="width:100%;aspect-ratio:2/3;object-fit:cover;display:block;background:#222" onerror="this.src='https://ui-avatars.com/api/?name=X&background=222&color=444'">
@@ -2065,7 +2065,7 @@ async function bulkImport() {
   res.style.display = 'none';
   try {
     const arr = JSON.parse(raw);
-    if (!Array.isArray(arr)) throw new Error('Array chahiye — [ {...}, {...} ]');
+    if (!Array.isArray(arr)) throw new Error('Expected an array — [ {...}, {...} ]');
     const cleaned = arr.map(m => ({
       title:         m.title || 'Untitled',
       type:          m.type || 'movie',
@@ -2239,7 +2239,7 @@ async function loadTable(type) {
         <div class="empty-ico">${type === 'movies' ? '🎬' : '📺'}</div>
         <div style="font-size:.84rem;color:var(--muted)">
           No ${type === 'movies' ? 'movies' : 'TV shows'} added yet.<br>
-          <span style="font-size:.76rem">Add panel se add karo.</span>
+          <span style="font-size:.76rem">Add one from the Add panel.</span>
         </div>
       </div>`;
     return;

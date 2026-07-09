@@ -331,13 +331,13 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:60px;display:flex;ali
       <div class="sc open">
         <div class="sch" onclick="toggleSC(this)"><div class="schl"><div class="sch-ico">📧</div><div><div class="sch-tit">Email Notifications</div><div class="sch-sub">What emails to receive</div></div></div><span class="sch-chev">▼</span></div>
         <div class="scb">
-          <div class="trow"><div class="tinfo"><div class="tlbl">New Releases</div><div class="tdesc">New movies aur shows ke liye email</div></div><label class="tog"><input type="checkbox" checked onchange="saveToggle(this,'New releases')"><div class="tog-trk"></div><div class="tog-th"></div></label></div>
-          <div class="trow"><div class="tinfo"><div class="tlbl">Continue Watching Reminders</div><div class="tdesc">Unfinished shows ke liye reminder</div></div><label class="tog"><input type="checkbox" checked onchange="saveToggle(this,'Reminders')"><div class="tog-trk"></div><div class="tog-th"></div></label></div>
-          <div class="trow"><div class="tinfo"><div class="tlbl">Promotional Offers</div><div class="tdesc">Discount aur special offers</div></div><label class="tog"><input type="checkbox" onchange="saveToggle(this,'Promos')"><div class="tog-trk"></div><div class="tog-th"></div></label></div>
+          <div class="trow"><div class="tinfo"><div class="tlbl">New Releases</div><div class="tdesc">Emails about new movies and shows</div></div><label class="tog"><input type="checkbox" checked onchange="saveToggle(this,'New releases')"><div class="tog-trk"></div><div class="tog-th"></div></label></div>
+          <div class="trow"><div class="tinfo"><div class="tlbl">Continue Watching Reminders</div><div class="tdesc">Reminders for unfinished shows</div></div><label class="tog"><input type="checkbox" checked onchange="saveToggle(this,'Reminders')"><div class="tog-trk"></div><div class="tog-th"></div></label></div>
+          <div class="trow"><div class="tinfo"><div class="tlbl">Promotional Offers</div><div class="tdesc">Discounts and special offers</div></div><label class="tog"><input type="checkbox" onchange="saveToggle(this,'Promos')"><div class="tog-trk"></div><div class="tog-th"></div></label></div>
         </div>
       </div>
       <div class="sc open">
-        <div class="sch" onclick="toggleSC(this)"><div class="schl"><div class="sch-ico">📱</div><div><div class="sch-tit">Push Notifications</div><div class="sch-sub">In-app aur mobile alerts</div></div></div><span class="sch-chev">▼</span></div>
+        <div class="sch" onclick="toggleSC(this)"><div class="schl"><div class="sch-ico">📱</div><div><div class="sch-tit">Push Notifications</div><div class="sch-sub">In-app and mobile alerts</div></div></div><span class="sch-chev">▼</span></div>
         <div class="scb">
           <div class="trow"><div class="tinfo"><div class="tlbl">New Episodes</div><div class="tdesc">Tumhari shows ke nayi episodes ready hone pe</div></div><label class="tog"><input type="checkbox" checked onchange="saveToggle(this,'New episodes')"><div class="tog-trk"></div><div class="tog-th"></div></label></div>
           <div class="trow"><div class="tinfo"><div class="tlbl">Top 10 Updates</div><div class="tdesc">India mein kya trending hai daily</div></div><label class="tog"><input type="checkbox" checked onchange="saveToggle(this,'Top 10')"><div class="tog-trk"></div><div class="tog-th"></div></label></div>
@@ -348,13 +348,13 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:60px;display:flex;ali
     <!-- PLAYBACK -->
     <div class="panel" id="panel-playback">
       <div class="ptit">Playback & Video</div>
-      <div class="psub">Streaming quality aur autoplay settings</div>
+      <div class="psub">Streaming quality and autoplay settings</div>
       <div class="sc open">
-        <div class="sch" onclick="toggleSC(this)"><div class="schl"><div class="sch-ico">📺</div><div><div class="sch-tit">Video Quality</div><div class="sch-sub">Plan ke hisaab se available quality</div></div></div><span class="sch-chev">▼</span></div>
+        <div class="sch" onclick="toggleSC(this)"><div class="schl"><div class="sch-ico">📺</div><div><div class="sch-tit">Video Quality</div><div class="sch-sub">Available quality depends on your plan</div></div></div><span class="sch-chev">▼</span></div>
         <div class="scb">
           <div class="fgrid one"><div class="fwrap"><label class="flbl">Streaming Quality</label><select class="fsel" onchange="showToast('Quality set: '+this.value)"><option>Auto (Recommended)</option><option>4K Ultra HD</option><option selected>1080p Full HD</option><option>720p HD</option><option>480p</option></select></div></div>
-          <div class="trow"><div class="tinfo"><div class="tlbl">Autoplay Next Episode</div><div class="tdesc">Series mein automatically next episode play hoga</div></div><label class="tog"><input type="checkbox" checked onchange="saveToggle(this,'Autoplay')"><div class="tog-trk"></div><div class="tog-th"></div></label></div>
-          <div class="trow"><div class="tinfo"><div class="tlbl">Skip Intro Automatically</div><div class="tdesc">Opening sequences auto skip honge</div></div><label class="tog"><input type="checkbox" onchange="saveToggle(this,'Skip intro')"><div class="tog-trk"></div><div class="tog-th"></div></label></div>
+          <div class="trow"><div class="tinfo"><div class="tlbl">Autoplay Next Episode</div><div class="tdesc">Automatically play the next episode in a series</div></div><label class="tog"><input type="checkbox" checked onchange="saveToggle(this,'Autoplay')"><div class="tog-trk"></div><div class="tog-th"></div></label></div>
+          <div class="trow"><div class="tinfo"><div class="tlbl">Skip Intro Automatically</div><div class="tdesc">Auto-skip opening sequences</div></div><label class="tog"><input type="checkbox" onchange="saveToggle(this,'Skip intro')"><div class="tog-trk"></div><div class="tog-th"></div></label></div>
           <div class="brow"><button class="btn-save" onclick="showToast('✅ Playback settings saved!')">Save Settings</button></div>
         </div>
       </div>
@@ -363,9 +363,9 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:60px;display:flex;ali
     <!-- LANGUAGE -->
     <div class="panel" id="panel-language">
       <div class="ptit">Language</div>
-      <div class="psub">Display, audio aur subtitle preferences</div>
+      <div class="psub">Display, audio and subtitle preferences</div>
       <div class="sc open">
-        <div class="sch" onclick="toggleSC(this)"><div class="schl"><div class="sch-ico">🌐</div><div><div class="sch-tit">Language Settings</div><div class="sch-sub">Interface aur content language</div></div></div><span class="sch-chev">▼</span></div>
+        <div class="sch" onclick="toggleSC(this)"><div class="schl"><div class="sch-ico">🌐</div><div><div class="sch-tit">Language Settings</div><div class="sch-sub">Interface and content language</div></div></div><span class="sch-chev">▼</span></div>
         <div class="scb">
           <div class="fgrid"><div class="fwrap"><label class="flbl">Interface Language</label><select class="fsel"><option selected>English</option><option>हिंदी (Hindi)</option><option>தமிழ் (Tamil)</option><option>తెలుగు (Telugu)</option></select></div><div class="fwrap"><label class="flbl">Preferred Audio</label><select class="fsel"><option>Hindi</option><option>English</option><option>Telugu</option><option>Tamil</option></select></div></div>
           <div class="brow"><button class="btn-save" onclick="showToast('✅ Language saved!')">Save</button></div>
@@ -376,7 +376,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:60px;display:flex;ali
     <!-- PLAN -->
     <div class="panel" id="panel-plan">
       <div class="ptit">Plan & Billing</div>
-      <div class="psub">Subscription aur payment management</div>
+      <div class="psub">Subscription and payment management</div>
       <div class="plan-g" id="planGrid"></div>
       <div class="sc">
         <div class="sch" onclick="toggleSC(this)"><div class="schl"><div class="sch-ico">💳</div><div><div class="sch-tit">Payment Method</div><div class="sch-sub">UPI, Card, NetBanking</div></div></div><span class="sch-chev">▼</span></div>
@@ -400,19 +400,19 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:60px;display:flex;ali
     <!-- SECURITY -->
     <div class="panel" id="panel-security">
       <div class="ptit">Privacy & Security</div>
-      <div class="psub">Data aur account security</div>
+      <div class="psub">Data and account security</div>
       <div class="sc open">
-        <div class="sch" onclick="toggleSC(this)"><div class="schl"><div class="sch-ico">🔒</div><div><div class="sch-tit">Security Settings</div><div class="sch-sub">Auth aur privacy controls</div></div></div><span class="sch-chev">▼</span></div>
+        <div class="sch" onclick="toggleSC(this)"><div class="schl"><div class="sch-ico">🔒</div><div><div class="sch-tit">Security Settings</div><div class="sch-sub">Auth and privacy controls</div></div></div><span class="sch-chev">▼</span></div>
         <div class="scb">
-          <div class="trow"><div class="tinfo"><div class="tlbl">Personalized Recommendations</div><div class="tdesc">Watch history se suggestions improve hongi</div></div><label class="tog"><input type="checkbox" checked onchange="saveToggle(this,'Personalization')"><div class="tog-trk"></div><div class="tog-th"></div></label></div>
-          <div class="trow"><div class="tinfo"><div class="tlbl">Usage Analytics</div><div class="tdesc">Anonymous data share karo improvement ke liye</div></div><label class="tog"><input type="checkbox" onchange="saveToggle(this,'Analytics')"><div class="tog-trk"></div><div class="tog-th"></div></label></div>
+          <div class="trow"><div class="tinfo"><div class="tlbl">Personalized Recommendations</div><div class="tdesc">Improve suggestions using your watch history</div></div><label class="tog"><input type="checkbox" checked onchange="saveToggle(this,'Personalization')"><div class="tog-trk"></div><div class="tog-th"></div></label></div>
+          <div class="trow"><div class="tinfo"><div class="tlbl">Usage Analytics</div><div class="tdesc">Share anonymous data to help us improve</div></div><label class="tog"><input type="checkbox" onchange="saveToggle(this,'Analytics')"><div class="tog-trk"></div><div class="tog-th"></div></label></div>
         </div>
       </div>
       <div class="dz">
         <div class="dz-title">⚠️ Danger Zone</div>
-        <div class="dz-desc">Yeh actions permanent hain aur undo nahi ho sakti.</div>
+        <div class="dz-desc">These actions are permanent and cannot be undone.</div>
         <div style="display:flex;gap:9px;flex-wrap:wrap">
-          <button class="btn-dng" onclick="showToast('📧 Data export link email kiya gaya!')">Download My Data</button>
+          <button class="btn-dng" onclick="showToast('📧 Data export link sent to your email!')">Download My Data</button>
           <button class="btn-dng" onclick="deleteAccount()">Delete Account</button>
         </div>
       </div>
@@ -568,7 +568,7 @@ async function savePersonalInfo() {
   const ln    = document.getElementById('lName').value.trim();
   const phone = document.getElementById('accPhone').value.trim();
   const name  = [fn, ln].filter(Boolean).join(' ');
-  if (!name) { showToast('❌ Name daalo'); return; }
+  if (!name) { showToast('❌ Please enter a name'); return; }
 
   const updates = { name };
   if (phone) updates.phone = phone;
@@ -588,7 +588,7 @@ async function changePassword() {
   const np = document.getElementById('newPass').value;
   const cp = document.getElementById('confPass').value;
   if (!np || np.length < 6) { showToast('❌ Password min 6 chars'); return; }
-  if (np !== cp) { showToast('❌ Passwords match nahi karte'); return; }
+  if (np !== cp) { showToast('❌ Passwords do not match'); return; }
   const { error } = await getSB().auth.updateUser({ password: np });
   if (error) showToast('❌ ' + error.message);
   else { showToast('✅ Password updated!'); document.getElementById('newPass').value=''; document.getElementById('confPass').value=''; }
@@ -621,7 +621,7 @@ function buildViewerProfs() {
 async function addProfile() {
   const name  = document.getElementById('newProfName').value.trim();
   const isKids= document.getElementById('newProfKids').value === 'true';
-  if (!name) { showToast('❌ Profile naam daalo'); return; }
+  if (!name) { showToast('❌ Please enter a profile name'); return; }
   if (viewerProfs.length >= 5) { showToast('❌ Max 5 profiles allowed'); return; }
   const { error } = await DB.addViewerProfile(currentUser.id, name, null, isKids);
   if (error) { showToast('❌ ' + error.message); return; }
@@ -635,7 +635,7 @@ async function deleteProfile(id, name) {
   const ok = await xvConfirm({
     icon: '👤',
     title: 'Delete Profile',
-    message: `"${name}" profile delete karna chahte ho? Ye undo nahi hoga.`,
+    message: `Delete the "${name}" profile? This cannot be undone.`,
     confirmText: 'Delete',
     cancelText: 'Cancel',
     danger: true,
@@ -668,7 +668,7 @@ function buildPlanGrid() {
 // order and opens Cashfree's checkout for it.
 async function upgradePlan(plan) {
   if (plan === (userProfile?.plan||'free')) { showToast('✅ Tum already is plan pe ho!'); return; }
-  if (plan === 'free') { showToast('ℹ️ Downgrade ke liye support se contact karo'); return; }
+  if (plan === 'free') { showToast('ℹ️ Please contact support to downgrade'); return; }
 
   try {
     showToast('💳 Payment shuru kar rahe hain...');
@@ -684,7 +684,7 @@ async function upgradePlan(plan) {
     });
     const data = await res.json();
     if (!res.ok || !data.payment_session_id) {
-      showToast('⚙️ ' + (data.error || 'Payment start nahi ho paya — Cashfree keys check karo'));
+      showToast('⚙️ ' + (data.error || 'Could not start payment — check Cashfree keys'));
       return;
     }
 
@@ -696,7 +696,7 @@ async function upgradePlan(plan) {
     });
   } catch (err) {
     console.error('upgradePlan error:', err);
-    showToast('❌ Payment start nahi ho paya, dobara try karo');
+    showToast('❌ Could not start payment, please try again');
   }
 }
 
@@ -737,18 +737,18 @@ async function checkPendingPayment() {
     if (userProfile?.plan && userProfile.plan !== planBefore) {
       buildPlanGrid();
       loadSidebar();
-      showToast(`✅ ${XVERSE.PLANS[userProfile.plan]?.name || userProfile.plan} plan activate ho gaya!`);
+      showToast(`✅ ${XVERSE.PLANS[userProfile.plan]?.name || userProfile.plan} plan activated!`);
       return;
     }
   }
-  showToast('Payment verify ho raha hai — thodi der mein plan apne aap update ho jayega');
+  showToast('Verifying your payment — your plan will update automatically shortly');
 }
 
 async function cancelMembership() {
   const ok = await xvConfirm({
     icon: '💳',
     title: 'Cancel Membership',
-    message: 'Membership cancel karna hai? Tumhara plan free ho jayega.',
+    message: 'Cancel your membership? Your plan will move to Free.',
     confirmText: 'Cancel Plan',
     cancelText: 'Keep Plan',
     danger: true,
@@ -862,7 +862,7 @@ async function doSignOut() {
   const ok = await xvConfirm({
     icon: '🚪',
     title: 'Sign Out',
-    message: 'XverseMovies se sign out karna chahte ho?',
+    message: 'Sign out of XverseMovies?',
     confirmText: 'Sign Out',
     cancelText: 'Cancel',
   });
@@ -877,7 +877,7 @@ async function deleteAccount() {
   const ok1 = await xvConfirm({
     icon: '⚠️',
     title: 'Delete Account',
-    message: 'Ye action permanently tumhara account delete kar dega. Ye undo nahi hoga.',
+    message: 'This action will permanently delete your account. This cannot be undone.',
     confirmText: 'Delete Account',
     cancelText: 'Cancel',
     danger: true,
@@ -886,13 +886,13 @@ async function deleteAccount() {
   const ok2 = await xvConfirm({
     icon: '🗑️',
     title: 'Are You Sure?',
-    message: 'Sach mein delete karna hai? Tumhara sab data, My List, aur progress hamesha ke liye chali jayegi.',
+    message: 'Are you sure you want to delete? All your data, My List, and progress will be gone forever.',
     confirmText: 'Yes, Delete',
     cancelText: 'No, Keep It',
     danger: true,
   });
   if (!ok2) return;
-  showToast('Account deletion request bhej diya. Support se confirm hoga.');
+  showToast('Account deletion request sent. Support will confirm shortly.');
 }
 
 // ─────────────────────────────────────────

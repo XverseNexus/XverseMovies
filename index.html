@@ -244,7 +244,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
       <p style="font-size:.78rem;color:var(--muted);margin-bottom:18px">Step 3 of 3 — Confirm & Start</p>
       <div id="su3Summary" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:6px;padding:13px 15px;margin-bottom:16px;font-size:.82rem;color:rgba(255,255,255,.72);line-height:2"></div>
       <button class="btn-red" style="width:100%" id="su3Btn" onclick="suStep3()">Start Watching →</button>
-      <p style="font-size:.68rem;color:var(--muted);margin-top:10px;text-align:center;line-height:1.6">Paid plans ke liye secure Cashfree payment page khulegî.</p>
+      <p style="font-size:.68rem;color:var(--muted);margin-top:10px;text-align:center;line-height:1.6">The secure Cashfree payment page will open for paid plans.</p>
     </div>
   </div>
 </div>
@@ -395,7 +395,7 @@ async function googleSignIn() {
 async function emailLogin() {
   const email = document.getElementById('liEmail').value.trim();
   const pass  = document.getElementById('liPass').value;
-  if (!email || !pass) { showMsg('loginMsg','Email aur password daalo'); return; }
+  if (!email || !pass) { showMsg('loginMsg','Please enter your email and password'); return; }
   const btn = document.getElementById('loginBtn');
   btn.textContent='Signing in...'; btn.disabled=true;
   const { error } = await Auth.signIn(email, pass);
@@ -405,17 +405,17 @@ async function emailLogin() {
 // ── FORGOT ────────────────────────────────────────
 async function forgotPass() {
   const email = document.getElementById('liEmail').value.trim();
-  if (!email) { showMsg('loginMsg','Pehle email daalo'); return; }
+  if (!email) { showMsg('loginMsg','Please enter your email first'); return; }
   const { error } = await Auth.resetPassword(email);
   if (error) showMsg('loginMsg', error.message);
-  else showMsg('loginMsg','✅ Reset email bhej diya!', true);
+  else showMsg('loginMsg','✅ Reset email sent!', true);
 }
 
 // ── SIGNUP ────────────────────────────────────────
 function suStep1() {
   const name=document.getElementById('suName').value.trim(), email=document.getElementById('suEmail').value.trim(), pass=document.getElementById('suPass').value;
-  if (!name) { showMsg('su1Msg','Naam daalo'); return; }
-  if (!/\S+@\S+\.\S+/.test(email)) { showMsg('su1Msg','Valid email daalo'); return; }
+  if (!name) { showMsg('su1Msg','Please enter your name'); return; }
+  if (!/\S+@\S+\.\S+/.test(email)) { showMsg('su1Msg','Please enter a valid email'); return; }
   if (pass.length<6) { showMsg('su1Msg','Password min 6 chars'); return; }
   signupData={name,email,pass}; jumpStep(2);
 }
@@ -424,7 +424,7 @@ function selPlan(p) { selectedPlan=p; document.querySelectorAll('.plan-opt').for
 
 function suStep2() {
   const p=XVERSE.PLANS[selectedPlan];
-  document.getElementById('su3Summary').innerHTML=`<div>👤 <b>${signupData.name||'Google User'}</b></div><div>📧 ${signupData.email||'Google Account'}</div><div>💎 Plan: <b style="color:${selectedPlan==='free'?'var(--green)':'#E50914'}">${p.name} — ${p.price}</b></div><div>📺 ${p.quality} · ${p.screens} screen${p.screens>1?'s':''}</div>${selectedPlan!=='free'?'<div style="color:var(--green);font-size:.72rem;margin-top:2px">💳 Payment page khulegî after registration</div>':''}`;
+  document.getElementById('su3Summary').innerHTML=`<div>👤 <b>${signupData.name||'Google User'}</b></div><div>📧 ${signupData.email||'Google Account'}</div><div>💎 Plan: <b style="color:${selectedPlan==='free'?'var(--green)':'#E50914'}">${p.name} — ${p.price}</b></div><div>📺 ${p.quality} · ${p.screens} screen${p.screens>1?'s':''}</div>${selectedPlan!=='free'?'<div style="color:var(--green);font-size:.72rem;margin-top:2px">💳 Payment page will open after registration</div>':''}`;
   jumpStep(3);
 }
 
@@ -447,7 +447,7 @@ async function suStep3() {
     if (!data.session) {
       _inSignupFlow = false;
       showPage('login');
-      showMsg('loginMsg', '✅ Account created! Email confirm karo phir sign in karo.', true);
+      showMsg('loginMsg', '✅ Account created! Please confirm your email, then sign in.', true);
       return;
     }
   }
@@ -522,14 +522,14 @@ function jumpStep(n) {
 function showMsg(id,msg,ok=false) { const el=document.getElementById(id);if(!el)return;el.textContent=msg;el.className='msg show '+(ok?'ok':'err'); }
 function errText(m) {
   const map = {
-    'Invalid login credentials':              '❌ Email ya password galat hai',
-    'Email not confirmed':                    '⚠️ Pehle email confirm karo',
-    'User already registered':                '⚠️ Email already registered — Sign in karo',
-    'Password should be at least 6 characters': '⚠️ Password min 6 characters',
-    'Email rate limit exceeded':              '⏳ Bahut zyada attempts — Thodi der baad try karo',
-    'signup_disabled':                        '⚠️ Registration abhi disabled hai',
-    'over_request_rate_limit':                '⏳ Too many requests — Wait karo',
-    'Network request failed':                 '🌐 Internet connection check karo',
+    'Invalid login credentials':              '❌ Incorrect email or password',
+    'Email not confirmed':                    '⚠️ Please confirm your email first',
+    'User already registered':                '⚠️ Email already registered — please sign in',
+    'Password should be at least 6 characters': '⚠️ Password must be at least 6 characters',
+    'Email rate limit exceeded':              '⏳ Too many attempts — please try again later',
+    'signup_disabled':                        '⚠️ Registration is currently disabled',
+    'over_request_rate_limit':                '⏳ Too many requests — please wait a moment',
+    'Network request failed':                 '🌐 Please check your internet connection',
   };
   for (const [k, v] of Object.entries(map)) {
     if (m.toLowerCase().includes(k.toLowerCase())) return v;
