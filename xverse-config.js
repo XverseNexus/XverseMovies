@@ -798,6 +798,8 @@ const XCard = {
 .xc-cw-remove{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);border:none;color:rgba(255,255,255,.6);width:22px;height:22px;border-radius:50%;font-size:.65rem;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:all .2s}
 .xc-cw:hover .xc-cw-remove{opacity:1}
 .xc-cw-remove:hover{background:rgba(229,9,20,.7);color:#fff}
+.xc-cw-est{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;margin-left:4px;border-radius:50%;background:rgba(255,255,255,.18);color:rgba(255,255,255,.85);font-size:.56rem;font-style:normal;cursor:help;vertical-align:middle;line-height:1}
+.xc-cw-est:hover,.xc-cw-est:focus-visible{background:rgba(255,255,255,.35)}
 
 /* Top 10 numbered card — Home & Browse */
 .xc-t10{flex-shrink:0;display:flex;align-items:flex-end;cursor:pointer;transition:transform .2s}
@@ -1208,8 +1210,8 @@ html.tv-mode .xc-play,html.tv-mode .xc-add,html.tv-mode .xc-remove-btn,html.tv-m
       <div class="xc-cw-thumb">
         <img class="xc-cw-img" src="${m.backdrop_url||m.poster_url||''}" alt="${m.title}" loading="lazy" onerror="this.src='${m.poster_url||''}'">
         <div class="xc-cw-playov"><div class="xc-cw-playbtn">▶</div></div>
-        <div class="xc-cw-prog"><div class="xc-cw-progfill" style="width:${pct}%"></div></div>
-        ${isDone ? `<div class="xc-cw-time" style="color:var(--green)">✓ Done</div>` : (minsLeft > 0 ? `<div class="xc-cw-time">${minsLeft}m left</div>` : '')}
+        <div class="xc-cw-prog" title="Estimated progress — based on time spent, not exact video position"><div class="xc-cw-progfill" style="width:${pct}%"></div></div>
+        ${isDone ? `<div class="xc-cw-time" style="color:var(--green)">✓ Done</div>` : (minsLeft > 0 ? `<div class="xc-cw-time">~${minsLeft}m left<i class="xc-cw-est" tabindex="0" role="button" aria-label="Why estimated?" title="Estimated — based on time spent, not exact video position" onclick="event.stopPropagation();showToast('ℹ️ Progress is estimated from time spent watching, not the exact video position')">i</i></div>` : '')}
         ${showRemove ? `<button class="xc-cw-remove" data-mk="${k}" onclick="event.stopPropagation();${onRemove}(_get(this.dataset.mk).id)" title="Remove">✕</button>` : ''}
       </div>
       <div class="xc-cw-info">
