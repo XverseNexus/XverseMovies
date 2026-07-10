@@ -306,7 +306,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;ali
   <div class="mo">
     <div class="mh"><img id="modImg" src="" alt=""><div class="mhg"></div><button class="mx" onclick="closeMod()">✕</button></div>
     <div class="mb"><div class="mt" id="modTit"></div><div class="mm" id="modMeta"></div><div class="mov" id="modOv"></div>
-      <div class="mac"><button class="mpl" id="mPlayBtn">▶ Play</button><button class="mad" id="mAddBtn">＋ My List</button><button class="mad" onclick="closeMod()">✕ Close</button></div>
+      <div class="mac"><button class="mpl" id="mPlayBtn">▶ Play</button><button class="mad" id="mAddBtn">＋ My List</button><span id="mThumbsSlot"></span><button class="mad" onclick="closeMod()">✕ Close</button></div>
       <!-- EPISODE PICKER — shown for TV shows only -->
       <div class="ep-wrap" id="bEpWrap" style="display:none">
         <div class="ep-hd">
@@ -349,6 +349,8 @@ function _ac(el){ var m=_get(el.dataset.mk); if(m) addML(m); }
   await initNavAvatar('navAvatar');
   if (typeof XvNotif !== 'undefined') XvNotif.init(currentUser.id);
   await ML.init(currentUser.id);   // ← centralized My List state
+  Ratings.injectStyles();
+  await Ratings.init(currentUser.id);
   const hash = location.hash.replace('#','') || 'tv';
   switchPage(hash);
 
@@ -598,6 +600,8 @@ function openMod(m) {
 
   // My List button
   var mlBtn = document.getElementById('mAddBtn');
+  var thumbsEl = document.getElementById('mThumbsSlot');
+  if (thumbsEl) thumbsEl.innerHTML = m.id ? Ratings.thumbsHTML(m.id) : '';
   if (mlBtn) {
     mlBtn.innerHTML = inML ? '&#10003; In My List' : '＋ My List';
     mlBtn.onclick = async function() {

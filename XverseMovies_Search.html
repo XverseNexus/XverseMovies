@@ -460,6 +460,7 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
       <div class="mod-btns">
         <button class="mpl" id="mPlayBtn">&#9654; Play</button>
         <button class="mad" id="mAddBtn">+ My List</button>
+        <span id="mThumbsSlot"></span>
         <button class="mad" onclick="closeMod()">✕ Close</button>
       </div>
       <div class="ep-wrap" id="bEpWrap" style="display:none">
@@ -537,6 +538,8 @@ const CATS = [
   await initNavAvatar('navAvatar');
   if (typeof XvNotif !== 'undefined') XvNotif.init(currentUser.id);
   await ML.init(currentUser.id);
+  Ratings.injectStyles();
+  await Ratings.init(currentUser.id);
 
   buildCats();
   loadTrending();
@@ -796,6 +799,8 @@ function openMod(m) {
   pb.onclick = function(){ if (_curMovie.type==='tv') bPlayEp(1,1); else play(_curMovie); };
 
   var ab = document.getElementById('mAddBtn');
+  var thumbsEl = document.getElementById('mThumbsSlot');
+  if (thumbsEl) thumbsEl.innerHTML = m.id ? Ratings.thumbsHTML(m.id) : '';
   ab.innerHTML = inML ? '✓ In My List' : '+ My List';
   ab.onclick = async function(){
     var r = await ML.toggle(_curMovie); if (r===null) return;

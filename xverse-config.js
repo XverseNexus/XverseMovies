@@ -241,6 +241,33 @@ const DB = {
       .delete().eq('user_id', uid).eq('movie_id', movieId);
   },
 
+  // ── RATINGS (thumbs up/down) ─────────────────────────
+  // Bulk-fetch every rating this user has made, as a { movieId: 1|-1 } map —
+  // one query per page load instead of one query per card/title.
+  async getAllRatings(uid) {
+    const { data, error } = await getSB()
+      .from('ratings')
+      .select('movie_id, rating')
+      .eq('user_id', uid);
+    if (error) { console.error('getAllRatings:', error); return {}; }
+    const map = {};
+    (data || []).forEach(r => { map[r.movie_id] = r.rating; });
+    return map;
+  },
+
+  async setRating(uid, movieId, value) {
+    return getSB().from('ratings').upsert({
+      user_id:  uid,
+      movie_id: movieId,
+      rating:   value, // 1 = thumbs up, -1 = thumbs down
+    }, { onConflict: 'user_id,movie_id' });
+  },
+
+  async deleteRating(uid, movieId) {
+    return getSB().from('ratings')
+      .delete().eq('user_id', uid).eq('movie_id', movieId);
+  },
+
   // ── WATCH HISTORY ────────────────────────────────────
   async getHistory(uid, limit = 50) {
     const { data } = await getSB()
@@ -714,6 +741,162 @@ const ML = {
     this._data.splice(snapshot._idx, 0, snapshot);
   },
 };
+
+// ─────────────────────────────────────────────────────────
+//  REALTIME SYNC  (Task 14)
+//  My List / Continue Watching used to only sync on page
+//  refresh. This subscribes to Supabase Realtime so that a
+//  change made in one tab/device (add to My List, progress
+//  update, remove from Continue Watching, etc.) is reflected
+//  in every other open tab/device within a second or two,
+//  without the user having to reload.
+//
+//  IMPORTANT (one-time Supabase setup required):
+//  Realtime must be enabled for the `my_list` and
+//  `continue_watching` tables — Supabase Dashboard →
+//  Database → Replication → toggle both tables on (or run
+//  `ALTER PUBLICATION supabase_realtime ADD TABLE my_list,
+//  continue_watching;` in the SQL Editor). Existing RLS
+//  policies (user_id = auth.uid()) are reused automatically
+//  for realtime — no extra policy needed.
+// ─────────────────────────────────────────────────────────
+const RT = {
+  _channels: [],
+  _timers:   {},
+
+  /* Call once per page after auth + initial data load.
+     handlers.onMyListChange() and handlers.onCWChange() are
+     called (debounced) whenever a row changes for this user —
+     the page decides how to refresh itself (e.g. re-run its
+     existing load/render function). */
+  init(uid, handlers = {}) {
+    if (!uid) return;
+    this.teardown(); // avoid duplicate subscriptions if init() is called twice
+    const sb = getSB();
+
+    const debounced = (key, fn, ms = 500) => {
+      clearTimeout(this._timers[key]);
+      this._timers[key] = setTimeout(() => { try { fn(); } catch (e) { console.error('RT handler error:', e); } }, ms);
+    };
+
+    if (handlers.onMyListChange) {
+      const ch = sb.channel('rt-my-list-' + uid)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'my_list', filter: `user_id=eq.${uid}` },
+          () => debounced('myList', handlers.onMyListChange))
+        .subscribe();
+      this._channels.push(ch);
+    }
+
+    if (handlers.onCWChange) {
+      const ch = sb.channel('rt-cw-' + uid)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'continue_watching', filter: `user_id=eq.${uid}` },
+          () => debounced('cw', handlers.onCWChange))
+        .subscribe();
+      this._channels.push(ch);
+    }
+
+    // Best-effort cleanup so we don't leak open sockets across page navigations.
+    window.addEventListener('beforeunload', () => this.teardown(), { once: true });
+  },
+
+  /* Unsubscribe everything (safe to call even if nothing is subscribed). */
+  teardown() {
+    const sb = getSB();
+    this._channels.forEach(ch => { try { sb.removeChannel(ch); } catch (e) {} });
+    this._channels = [];
+    Object.values(this._timers).forEach(t => clearTimeout(t));
+    this._timers = {};
+  },
+};
+
+// ─────────────────────────────────────────────────────────
+//  RATINGS  (Task 15 — thumbs up/down)
+//  Shared, like ML — one place for the DB-backed state, so
+//  every page (Player, and the "more info" modal on
+//  Home/Browse/Search) gets thumbs up/down for free just by
+//  including xverse-config.js. Call Ratings.init(uid) once
+//  after auth, then drop Ratings.thumbsHTML(movieId) wherever
+//  the buttons should appear. Requires a `ratings` table —
+//  see SETUP_GUIDE.md for the SQL.
+// ─────────────────────────────────────────────────────────
+const Ratings = {
+  _data: {},   // movieId -> 1 (up) | -1 (down)
+  _uid:  null,
+
+  async init(uid) {
+    this._uid  = uid;
+    this._data = uid ? await DB.getAllRatings(uid) : {};
+  },
+
+  /* 0 = not rated, 1 = thumbs up, -1 = thumbs down */
+  get(movieId) {
+    return this._data[movieId] || 0;
+  },
+
+  /* Tapping the same thumb again clears the rating (matches Netflix). */
+  async toggle(movieId, value) {
+    if (!this._uid || !movieId) return null;
+    const current = this.get(movieId);
+    if (current === value) {
+      const { error } = await DB.deleteRating(this._uid, movieId);
+      if (error) { console.error('deleteRating:', error); return null; }
+      delete this._data[movieId];
+      return 0;
+    }
+    const { error } = await DB.setRating(this._uid, movieId, value);
+    if (error) { console.error('setRating:', error); return null; }
+    this._data[movieId] = value;
+    return value;
+  },
+
+  /* Small thumbs-up/thumbs-down pair. size: 'md' (default) or 'sm'. */
+  thumbsHTML(movieId, size = 'md') {
+    if (!movieId) return '';
+    const up   = this.get(movieId) === 1  ? ' active' : '';
+    const down = this.get(movieId) === -1 ? ' active' : '';
+    return `
+      <div class="xv-thumbs xv-thumbs-${size}" data-movie="${movieId}">
+        <button class="xv-thumb${up}"   type="button" data-val="1"  onclick="rateThumb(this,${movieId},1)"  aria-label="I like this" title="I like this">👍</button>
+        <button class="xv-thumb${down}" type="button" data-val="-1" onclick="rateThumb(this,${movieId},-1)" aria-label="Not for me"  title="Not for me">👎</button>
+      </div>`;
+  },
+
+  injectStyles() {
+    if (document.getElementById('xv-thumbs-style')) return;
+    const style = document.createElement('style');
+    style.id = 'xv-thumbs-style';
+    style.textContent = `
+      .xv-thumbs{display:inline-flex;gap:8px;vertical-align:middle}
+      .xv-thumb{width:36px;height:36px;border-radius:50%;border:1.5px solid rgba(255,255,255,.35);
+        background:rgba(255,255,255,.06);color:rgba(255,255,255,.9);font-size:1rem;cursor:pointer;
+        display:inline-flex;align-items:center;justify-content:center;transition:.15s;
+        filter:grayscale(1) opacity(.75);line-height:1;padding:0}
+      .xv-thumb:hover{border-color:#fff;background:rgba(255,255,255,.16);filter:grayscale(.3) opacity(1)}
+      .xv-thumb.active{border-color:var(--green,#46d369);background:rgba(70,211,105,.18);filter:none}
+      .xv-thumbs-sm .xv-thumb{width:30px;height:30px;font-size:.82rem}
+    `;
+    document.head.appendChild(style);
+  },
+};
+
+/* Global click handler for the inline onclick in Ratings.thumbsHTML() —
+   kept global (rather than a method the markup calls on Ratings directly)
+   so it can also update every matching .xv-thumbs block on the page in
+   one go, in case the same title's buttons appear more than once. */
+async function rateThumb(el, movieId, value) {
+  if (!Ratings._uid) { showToast('⚠️ Please log in first'); return; }
+  const result = await Ratings.toggle(movieId, value);
+  if (result === null) { showToast('❌ Could not save your rating — please try again'); return; }
+  document.querySelectorAll(`.xv-thumbs[data-movie="${movieId}"]`).forEach(wrap => {
+    wrap.querySelectorAll('.xv-thumb').forEach(btn => {
+      btn.classList.toggle('active', parseInt(btn.dataset.val, 10) === result);
+    });
+  });
+  if (result === 1)       showToast('👍 Thanks for the feedback!');
+  else if (result === -1) showToast('👎 Thanks — we\u2019ll show you less like this');
+}
 
 // ─────────────────────────────────────────────────────────
 //  SHARED CARD COMPONENT

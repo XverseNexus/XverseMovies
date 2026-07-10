@@ -646,6 +646,7 @@ html,body{
       <span class="meta-text" id="ageBadge"></span>
       <span class="meta-text" id="durBadge"></span>
       <button class="ml-btn" id="mlBtn" onclick="toggleML()">＋ My List</button>
+      <span id="thumbsSlot"></span>
     </div>
     <div class="ctrl-row">
       <button class="ctrl-btn" onclick="goBack()" aria-label="Home">🏠</button>
@@ -801,6 +802,9 @@ window.addEventListener('orientationchange', function() {
   if (movie.id) {
     await ML.init(currentUser.id);   // loads full list; ML.has() used by updateMLBtn
     updateMLBtn();
+    Ratings.injectStyles();
+    await Ratings.init(currentUser.id);
+    document.getElementById('thumbsSlot').innerHTML = Ratings.thumbsHTML(movie.id, 'sm');
   }
 
   loadVideo(movie);

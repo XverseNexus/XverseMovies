@@ -281,6 +281,7 @@ nav.solid{background:rgba(8,8,8,.97);backdrop-filter:blur(10px);border-bottom:1p
       <div class="modal-acts">
         <button class="modal-play" id="modalPlayBtn">▶ Play</button>
         <button class="modal-add" id="modalAddBtn">＋ My List</button>
+        <span id="modalThumbsSlot"></span>
         <button class="modal-add" onclick="closeModal()">✕ Close</button>
       </div>
       <!-- EPISODE PICKER — shown only for TV shows -->
@@ -349,6 +350,8 @@ let _cachedRowData = null;
   // When it was inside Promise.all its return value (void/undefined) was
   // assigned to adminMovies, shifting all remaining results by one slot.
   await ML.init(currentUser.id);
+  Ratings.injectStyles();
+  await Ratings.init(currentUser.id);
 
   // Load everything in parallel — 9 promises, 9 destructured vars
   const [
@@ -723,6 +726,7 @@ function openModal(m) {
 
   const inList = ML.has(m.id);
   document.getElementById('modalAddBtn').textContent = inList ? '✓ In My List' : '＋ My List';
+  document.getElementById('modalThumbsSlot').innerHTML = m.id ? Ratings.thumbsHTML(m.id) : '';
 
   // Play button — for TV shows, Play plays S1E1 by default
   document.getElementById('modalPlayBtn').textContent  = isTV ? '▶ Play S1 E1' : '▶ Play';
