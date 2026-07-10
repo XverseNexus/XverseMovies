@@ -851,12 +851,12 @@ const Ratings = {
     const current = this.get(tmdbId, mediaType);
     if (current === value) {
       const { error } = await DB.deleteRating(this._uid, tmdbId, mediaType);
-      if (error) { console.error('deleteRating:', error); return null; }
+      if (error) { console.error('deleteRating:', error); this._lastError = error; return null; }
       delete this._data[key];
       return 0;
     }
     const { error } = await DB.setRating(this._uid, tmdbId, mediaType, value);
-    if (error) { console.error('setRating:', error); return null; }
+    if (error) { console.error('setRating:', error); this._lastError = error; return null; }
     this._data[key] = value;
     return value;
   },
@@ -902,7 +902,11 @@ const Ratings = {
 async function rateThumb(el, tmdbId, mediaType, value) {
   if (!Ratings._uid) { showToast('⚠️ Please log in first'); return; }
   const result = await Ratings.toggle(tmdbId, mediaType, value);
-  if (result === null) { showToast('❌ Could not save your rating — please try again'); return; }
+  if (result === null) {
+    const msg = Ratings._lastError?.message || 'unknown error';
+    showToast('❌ Could not save rating: ' + msg, 4500);
+    return;
+  }
   document.querySelectorAll(`.xv-thumbs[data-tmdb="${tmdbId}"][data-media="${mediaType}"]`).forEach(wrap => {
     wrap.querySelectorAll('.xv-thumb').forEach(btn => {
       btn.classList.toggle('active', parseInt(btn.dataset.val, 10) === result);
