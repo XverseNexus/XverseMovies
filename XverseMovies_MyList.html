@@ -317,6 +317,14 @@ let undoTimer    = null;
   await ML.init(currentUser.id);   // single centralized load
   mlData = ML.getData();           // local reference for rendering
   renderMyList();
+
+  // Task 14: live sync — if My List or Continue Watching changes in
+  // another tab/device (or gets updated by the Player on this same
+  // page's next visit), refresh this page's data without a manual reload.
+  RT.init(currentUser.id, {
+    onMyListChange: loadMyList,
+    onCWChange:     loadCW,
+  });
 })();
 
 // ─────────────────────────────────────────
