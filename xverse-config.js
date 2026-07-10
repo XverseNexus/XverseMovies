@@ -546,10 +546,14 @@ async function initNavAvatar(avatarElId = 'navAvatar') {
     e.stopPropagation();
     if (document.getElementById(menuId)) { closeMenu(); return; }
 
-    const rect = el.getBoundingClientRect();
-    const menu = document.createElement('div');
+    const rect        = el.getBoundingClientRect();
+    const menu        = document.createElement('div');
+    const menuHeight  = 230; // approx — header + 4 items
+    const openUpward  = (window.innerHeight - rect.bottom) < (menuHeight + 16);
     menu.id    = menuId;
-    menu.style.cssText = `position:fixed;top:${rect.bottom+8}px;right:${window.innerWidth-rect.right}px;
+    menu.style.cssText = `position:fixed;
+      ${openUpward ? `bottom:${window.innerHeight - rect.top + 8}px;` : `top:${rect.bottom + 8}px;`}
+      right:${window.innerWidth-rect.right}px;
       background:#1a1a1a;border:1px solid rgba(255,255,255,.12);border-radius:8px;min-width:210px;
       box-shadow:0 8px 32px rgba(0,0,0,.6);z-index:9999;overflow:hidden;animation:menuFadeIn .15s ease`;
 
