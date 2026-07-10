@@ -316,6 +316,11 @@ let heroTimer      = null;
 let modalMovie     = null;
 // myListIds removed — use ML.has(id) / ML.toggle(movie) everywhere
 
+// Task 14: cache of the expensive TMDB row data (trending/top-rated/etc.)
+// so a realtime refresh only has to re-fetch the cheap parts (Continue
+// Watching + My List) instead of re-hitting TMDB on every DB change.
+let _cachedRowData = null;
+
 // ─────────────────────────────────────────
 //  INIT
 // ─────────────────────────────────────────
@@ -368,6 +373,8 @@ let modalMovie     = null;
     TMDB.popularTV(),
   ]);
 
+  _cachedRowData = { adminMovies, trending, topRated, popular, hindi, south, tv };
+
   // Hero: prefer admin-featured, fallback TMDB trending
   const heroSrc = featured.length ? featured : (trending?.results || []).slice(0,7).map(TMDB.normalize);
   buildHero(heroSrc);
@@ -384,7 +391,30 @@ let modalMovie     = null;
   south,
   tv
 );
+
+  // Task 14: live sync — if My List or Continue Watching changes in
+  // another tab/device, quietly refresh just those two rows here
+  // (uses the cached TMDB data above, so this stays cheap).
+  RT.init(currentUser.id, {
+    onMyListChange: refreshLiveRows,
+    onCWChange:     refreshLiveRows,
+  });
 })();
+
+// Re-fetch only the user-specific rows (Continue Watching + My List)
+// and rebuild the row list, reusing the cached TMDB rows so we don't
+// re-hit TMDB. Preserves scroll position so the page doesn't jump.
+async function refreshLiveRows() {
+  if (!currentUser || !_cachedRowData) return;
+  const scrollY = window.scrollY;
+  const [cwItems] = await Promise.all([
+    DB.getContinueWatching(currentUser.id),
+    ML.init(currentUser.id),
+  ]);
+  const { adminMovies, trending, topRated, popular, hindi, south, tv } = _cachedRowData;
+  buildRows(cwItems, ML.getData(), adminMovies, trending, topRated, popular, hindi, south, tv);
+  window.scrollTo(0, scrollY);
+}
 
 // ─────────────────────────────────────────
 //  HERO
