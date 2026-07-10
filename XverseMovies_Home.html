@@ -212,6 +212,7 @@ nav.solid{background:rgba(8,8,8,.97);backdrop-filter:blur(10px);border-bottom:1p
   .mnav-item.active{color:#fff}
   .mnav-item.active::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:20px;height:2px;background:#E50914;border-radius:0 0 3px 3px}
   .mnav-ico{width:22px;height:22px;fill:currentColor;flex-shrink:0}
+  .mnav-avatar{width:22px;height:22px;border-radius:4px;background:linear-gradient(135deg,var(--red,#E50914),#831010);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.6rem;color:#fff;overflow:hidden;flex-shrink:0}
   .mnav-lbl{font-size:.58rem;font-weight:600;letter-spacing:.2px}
 }
 </style>
@@ -342,6 +343,7 @@ let _cachedRowData = null;
 
   currentProfile = Session.getProfile();
   await initNavAvatar('navAvatar');
+  await initNavAvatar('mnavProfileAvatar');   // mobile bottom-nav Profile tab (Task: real-Netflix mobile nav)
 
   // Init notification panel
   if (typeof XvNotif !== 'undefined') XvNotif.init(currentUser.id);
@@ -967,21 +969,21 @@ document.addEventListener('keydown', e => {
     <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
     <span class="mnav-lbl">Home</span>
   </a>
-  <a class="mnav-item" href="XverseMovies_Browse.html#tv" aria-label="TV Shows">
-    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
-    <span class="mnav-lbl">TV Shows</span>
-  </a>
-  <a class="mnav-item" href="XverseMovies_Browse.html#movies" aria-label="Movies">
-    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
-    <span class="mnav-lbl">Movies</span>
-  </a>
-  <a class="mnav-item" href="XverseMovies_Browse.html#new" aria-label="New and Popular">
+  <a class="mnav-item" href="XverseMovies_Browse.html#new" aria-label="New and Hot">
     <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/></svg>
-    <span class="mnav-lbl">New</span>
+    <span class="mnav-lbl">New &amp; Hot</span>
+  </a>
+  <a class="mnav-item" href="XverseMovies_Search.html" aria-label="Search">
+    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+    <span class="mnav-lbl">Search</span>
   </a>
   <a class="mnav-item" href="XverseMovies_MyList.html" aria-label="My List">
     <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
     <span class="mnav-lbl">My List</span>
+  </a>
+  <a class="mnav-item" href="javascript:void(0)" id="mnavProfileTab" aria-label="Profile" onclick="document.getElementById('mnavProfileAvatar').click()">
+    <div class="mnav-avatar" id="mnavProfileAvatar">U</div>
+    <span class="mnav-lbl">Profile</span>
   </a>
 </nav>
 </body>
