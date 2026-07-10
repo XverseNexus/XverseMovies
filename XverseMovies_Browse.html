@@ -85,6 +85,18 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;ali
 .nav-bell{background:none;border:none;color:rgba(255,255,255,.72);cursor:pointer;width:34px;height:34px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.95rem;transition:all .2s;position:relative;flex-shrink:0}
 .nav-bell:hover{background:rgba(255,255,255,.09);color:#fff}
 #pageWrap{padding-top:66px}
+.mob-cat-tabs{display:none}
+@media(max-width:640px){
+  .mob-cat-tabs{display:flex;gap:8px;padding:12px var(--content-pad) 10px;overflow-x:auto;scrollbar-width:none;
+    position:sticky;top:66px;z-index:150;background:rgba(8,8,8,.97);backdrop-filter:blur(10px);
+    border-bottom:1px solid rgba(255,255,255,.08)}
+  .mob-cat-tabs::-webkit-scrollbar{display:none}
+  .mct-item{flex-shrink:0;padding:7px 16px;border-radius:20px;border:1px solid rgba(255,255,255,.18);
+    background:rgba(255,255,255,.05);color:rgba(255,255,255,.7);font-size:.78rem;font-weight:600;
+    font-family:'Barlow',sans-serif;cursor:pointer;white-space:nowrap;transition:.15s;
+    -webkit-tap-highlight-color:transparent}
+  .mct-item.active{background:#fff;color:#000;border-color:#fff}
+}
 /* PAGE TABS */
 .pg-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);padding:0 var(--content-pad);background:var(--bg);position:sticky;top:66px;z-index:100;overflow-x:auto;scrollbar-width:none}
 .pg-tabs::-webkit-scrollbar{display:none}
@@ -243,6 +255,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;ali
   .mnav-item.active{color:#fff}
   .mnav-item.active::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:20px;height:2px;background:#E50914;border-radius:0 0 3px 3px}
   .mnav-ico{width:22px;height:22px;fill:currentColor;flex-shrink:0}
+  .mnav-avatar{width:22px;height:22px;border-radius:4px;background:linear-gradient(135deg,var(--red,#E50914),#831010);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.6rem;color:#fff;overflow:hidden;flex-shrink:0}
   .mnav-lbl{font-size:.58rem;font-weight:600;letter-spacing:.2px}
 }
 </style>
@@ -269,6 +282,12 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;ali
 </nav>
 
 <div id="pageWrap">
+  <div class="mob-cat-tabs" id="mobCatTabs">
+    <button class="mct-item active" id="mctTV" onclick="switchPage('tv')">TV Shows</button>
+    <button class="mct-item" id="mctMovies" onclick="switchPage('movies')">Movies</button>
+    <button class="mct-item" id="mctNew" onclick="switchPage('new')">New &amp; Popular</button>
+    <button class="mct-item" id="mctLanguages" onclick="switchPage('languages')">Languages</button>
+  </div>
 
   <!-- TV SHOWS -->
   <div class="bpg active" id="pg-tv">
@@ -347,6 +366,7 @@ function _ac(el){ var m=_get(el.dataset.mk); if(m) addML(m); }
 (async()=>{
   currentUser = await requireAuth(); if(!currentUser) return;
   await initNavAvatar('navAvatar');
+  await initNavAvatar('mnavProfileAvatar');   // mobile bottom-nav Profile tab (Task: real-Netflix mobile nav)
   if (typeof XvNotif !== 'undefined') XvNotif.init(currentUser.id);
   await ML.init(currentUser.id);   // ← centralized My List state
   Ratings.injectStyles();
@@ -365,10 +385,13 @@ function switchPage(pg){
   document.querySelectorAll('.bpg').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('[id^="nl"]').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.mnav-item').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.mct-item').forEach(b=>b.classList.remove('active'));
   const p=document.getElementById('pg-'+pg), l=document.getElementById('nl'+pg[0].toUpperCase()+pg.slice(1));
-  const mnMap={tv:'mn-tv',movies:'mn-movies',new:'mn-new'};
+  const mnMap={tv:'mnavNewHot',movies:'mnavNewHot',new:'mnavNewHot',languages:'mnavNewHot'};
+  const mctMap={tv:'mctTV',movies:'mctMovies',new:'mctNew',languages:'mctLanguages'};
   const mn=document.getElementById(mnMap[pg]);
-  if(p) p.classList.add('active'); if(l) l.classList.add('active'); if(mn) mn.classList.add('active');
+  const mct=document.getElementById(mctMap[pg]);
+  if(p) p.classList.add('active'); if(l) l.classList.add('active'); if(mn) mn.classList.add('active'); if(mct) mct.classList.add('active');
   location.hash=pg;
   if(pg==='tv' && !tvData.length) loadTV();
   if(pg==='movies' && !movData.length) loadMovies();
@@ -732,25 +755,25 @@ document.addEventListener('keydown', function(e){ if (e.key==='Escape') closeMod
 
 <!-- MOBILE BOTTOM NAV -->
 <nav class="mob-nav" aria-label="Mobile navigation">
-  <a class="mnav-item" href="XverseMovies_Home.html">
+  <a class="mnav-item" href="XverseMovies_Home.html" aria-label="Home">
     <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
     <span class="mnav-lbl">Home</span>
   </a>
-  <a class="mnav-item" href="XverseMovies_Browse.html#tv" id="mn-tv">
-    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
-    <span class="mnav-lbl">TV Shows</span>
-  </a>
-  <a class="mnav-item" href="XverseMovies_Browse.html#movies" id="mn-movies">
-    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
-    <span class="mnav-lbl">Movies</span>
-  </a>
-  <a class="mnav-item" href="XverseMovies_Browse.html#new" id="mn-new">
+  <a class="mnav-item active" href="XverseMovies_Browse.html#new" id="mnavNewHot" aria-label="New and Hot">
     <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/></svg>
-    <span class="mnav-lbl">New</span>
+    <span class="mnav-lbl">New &amp; Hot</span>
   </a>
-  <a class="mnav-item" href="XverseMovies_MyList.html">
+  <a class="mnav-item" href="XverseMovies_Search.html" aria-label="Search">
+    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+    <span class="mnav-lbl">Search</span>
+  </a>
+  <a class="mnav-item" href="XverseMovies_MyList.html" aria-label="My List">
     <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
     <span class="mnav-lbl">My List</span>
+  </a>
+  <a class="mnav-item" href="javascript:void(0)" id="mnavProfileTab" aria-label="Profile" onclick="document.getElementById('mnavProfileAvatar').click()">
+    <div class="mnav-avatar" id="mnavProfileAvatar">U</div>
+    <span class="mnav-lbl">Profile</span>
   </a>
 </nav>
 <script>
