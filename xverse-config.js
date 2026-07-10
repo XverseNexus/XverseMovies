@@ -242,30 +242,36 @@ const DB = {
   },
 
   // ── RATINGS (thumbs up/down) ─────────────────────────
-  // Bulk-fetch every rating this user has made, as a { movieId: 1|-1 } map —
-  // one query per page load instead of one query per card/title.
+  // Keyed by tmdb_id + media_type — NOT the local movies.id.
+  // Most content on this site is played straight from an
+  // auto-generated TMDB embed and is never inserted into the
+  // `movies` table, so keying on the local DB row would leave
+  // ratings broken/missing for the majority of titles. tmdb_id
+  // exists for everything (TMDB-sourced or admin-added), so
+  // that's the one reliable, DB-independent identifier.
   async getAllRatings(uid) {
     const { data, error } = await getSB()
       .from('ratings')
-      .select('movie_id, rating')
+      .select('tmdb_id, media_type, rating')
       .eq('user_id', uid);
     if (error) { console.error('getAllRatings:', error); return {}; }
     const map = {};
-    (data || []).forEach(r => { map[r.movie_id] = r.rating; });
+    (data || []).forEach(r => { map[r.media_type + '_' + r.tmdb_id] = r.rating; });
     return map;
   },
 
-  async setRating(uid, movieId, value) {
+  async setRating(uid, tmdbId, mediaType, value) {
     return getSB().from('ratings').upsert({
-      user_id:  uid,
-      movie_id: movieId,
-      rating:   value, // 1 = thumbs up, -1 = thumbs down
-    }, { onConflict: 'user_id,movie_id' });
+      user_id:    uid,
+      tmdb_id:    tmdbId,
+      media_type: mediaType || 'movie',
+      rating:     value, // 1 = thumbs up, -1 = thumbs down
+    }, { onConflict: 'user_id,tmdb_id,media_type' });
   },
 
-  async deleteRating(uid, movieId) {
+  async deleteRating(uid, tmdbId, mediaType) {
     return getSB().from('ratings')
-      .delete().eq('user_id', uid).eq('movie_id', movieId);
+      .delete().eq('user_id', uid).eq('tmdb_id', tmdbId).eq('media_type', mediaType || 'movie');
   },
 
   // ── WATCH HISTORY ────────────────────────────────────
@@ -822,7 +828,7 @@ const RT = {
 //  see SETUP_GUIDE.md for the SQL.
 // ─────────────────────────────────────────────────────────
 const Ratings = {
-  _data: {},   // movieId -> 1 (up) | -1 (down)
+  _data: {},   // "movie_155" / "tv_1399" -> 1 (up) | -1 (down)
   _uid:  null,
 
   async init(uid) {
@@ -830,36 +836,44 @@ const Ratings = {
     this._data = uid ? await DB.getAllRatings(uid) : {};
   },
 
+  _key(tmdbId, mediaType) { return (mediaType || 'movie') + '_' + tmdbId; },
+
   /* 0 = not rated, 1 = thumbs up, -1 = thumbs down */
-  get(movieId) {
-    return this._data[movieId] || 0;
+  get(tmdbId, mediaType) {
+    if (!tmdbId) return 0;
+    return this._data[this._key(tmdbId, mediaType)] || 0;
   },
 
   /* Tapping the same thumb again clears the rating (matches Netflix). */
-  async toggle(movieId, value) {
-    if (!this._uid || !movieId) return null;
-    const current = this.get(movieId);
+  async toggle(tmdbId, mediaType, value) {
+    if (!this._uid || !tmdbId) return null;
+    const key     = this._key(tmdbId, mediaType);
+    const current = this.get(tmdbId, mediaType);
     if (current === value) {
-      const { error } = await DB.deleteRating(this._uid, movieId);
+      const { error } = await DB.deleteRating(this._uid, tmdbId, mediaType);
       if (error) { console.error('deleteRating:', error); return null; }
-      delete this._data[movieId];
+      delete this._data[key];
       return 0;
     }
-    const { error } = await DB.setRating(this._uid, movieId, value);
+    const { error } = await DB.setRating(this._uid, tmdbId, mediaType, value);
     if (error) { console.error('setRating:', error); return null; }
-    this._data[movieId] = value;
+    this._data[key] = value;
     return value;
   },
 
-  /* Small thumbs-up/thumbs-down pair. size: 'md' (default) or 'sm'. */
-  thumbsHTML(movieId, size = 'md') {
-    if (!movieId) return '';
-    const up   = this.get(movieId) === 1  ? ' active' : '';
-    const down = this.get(movieId) === -1 ? ' active' : '';
+  /* Small thumbs-up/thumbs-down pair. Pass the movie/show's tmdb_id +
+     type ('movie'/'tv') — NOT the local DB id, since most titles are
+     played straight off TMDB and never get a local DB row.
+     size: 'md' (default) or 'sm'. */
+  thumbsHTML(tmdbId, mediaType, size = 'md') {
+    if (!tmdbId) return '';
+    const mt   = mediaType || 'movie';
+    const up   = this.get(tmdbId, mt) === 1  ? ' active' : '';
+    const down = this.get(tmdbId, mt) === -1 ? ' active' : '';
     return `
-      <div class="xv-thumbs xv-thumbs-${size}" data-movie="${movieId}">
-        <button class="xv-thumb${up}"   type="button" data-val="1"  onclick="rateThumb(this,${movieId},1)"  aria-label="I like this" title="I like this">👍</button>
-        <button class="xv-thumb${down}" type="button" data-val="-1" onclick="rateThumb(this,${movieId},-1)" aria-label="Not for me"  title="Not for me">👎</button>
+      <div class="xv-thumbs xv-thumbs-${size}" data-tmdb="${tmdbId}" data-media="${mt}">
+        <button class="xv-thumb${up}"   type="button" data-val="1"  onclick="rateThumb(this,${tmdbId},'${mt}',1)"  aria-label="I like this" title="I like this">👍</button>
+        <button class="xv-thumb${down}" type="button" data-val="-1" onclick="rateThumb(this,${tmdbId},'${mt}',-1)" aria-label="Not for me"  title="Not for me">👎</button>
       </div>`;
   },
 
@@ -885,11 +899,11 @@ const Ratings = {
    kept global (rather than a method the markup calls on Ratings directly)
    so it can also update every matching .xv-thumbs block on the page in
    one go, in case the same title's buttons appear more than once. */
-async function rateThumb(el, movieId, value) {
+async function rateThumb(el, tmdbId, mediaType, value) {
   if (!Ratings._uid) { showToast('⚠️ Please log in first'); return; }
-  const result = await Ratings.toggle(movieId, value);
+  const result = await Ratings.toggle(tmdbId, mediaType, value);
   if (result === null) { showToast('❌ Could not save your rating — please try again'); return; }
-  document.querySelectorAll(`.xv-thumbs[data-movie="${movieId}"]`).forEach(wrap => {
+  document.querySelectorAll(`.xv-thumbs[data-tmdb="${tmdbId}"][data-media="${mediaType}"]`).forEach(wrap => {
     wrap.querySelectorAll('.xv-thumb').forEach(btn => {
       btn.classList.toggle('active', parseInt(btn.dataset.val, 10) === result);
     });

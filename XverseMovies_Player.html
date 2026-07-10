@@ -802,9 +802,11 @@ window.addEventListener('orientationchange', function() {
   if (movie.id) {
     await ML.init(currentUser.id);   // loads full list; ML.has() used by updateMLBtn
     updateMLBtn();
+  }
+  if (movie.tmdb_id) {
     Ratings.injectStyles();
     await Ratings.init(currentUser.id);
-    document.getElementById('thumbsSlot').innerHTML = Ratings.thumbsHTML(movie.id, 'sm');
+    document.getElementById('thumbsSlot').innerHTML = Ratings.thumbsHTML(movie.tmdb_id, movie.type, 'sm');
   }
 
   loadVideo(movie);

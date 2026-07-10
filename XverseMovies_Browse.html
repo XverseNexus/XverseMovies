@@ -601,7 +601,7 @@ function openMod(m) {
   // My List button
   var mlBtn = document.getElementById('mAddBtn');
   var thumbsEl = document.getElementById('mThumbsSlot');
-  if (thumbsEl) thumbsEl.innerHTML = m.id ? Ratings.thumbsHTML(m.id) : '';
+  if (thumbsEl) thumbsEl.innerHTML = m.tmdb_id ? Ratings.thumbsHTML(m.tmdb_id, m.type) : '';
   if (mlBtn) {
     mlBtn.innerHTML = inML ? '&#10003; In My List' : '＋ My List';
     mlBtn.onclick = async function() {

@@ -726,7 +726,7 @@ function openModal(m) {
 
   const inList = ML.has(m.id);
   document.getElementById('modalAddBtn').textContent = inList ? '✓ In My List' : '＋ My List';
-  document.getElementById('modalThumbsSlot').innerHTML = m.id ? Ratings.thumbsHTML(m.id) : '';
+  document.getElementById('modalThumbsSlot').innerHTML = m.tmdb_id ? Ratings.thumbsHTML(m.tmdb_id, m.type) : '';
 
   // Play button — for TV shows, Play plays S1E1 by default
   document.getElementById('modalPlayBtn').textContent  = isTV ? '▶ Play S1 E1' : '▶ Play';
