@@ -203,7 +203,15 @@ nav.solid{background:rgba(8,8,8,.97);backdrop-filter:blur(10px);border-bottom:1p
 .empty-row{padding:20px;text-align:center;font-size:.84rem;color:var(--muted)}
 
 /* ── RESPONSIVE ── */
-@media(max-width:640px){.nav-links{display:none}.ep-thumb{width:80px;height:46px}.modal{width:100%}main{padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))!important}}
+@media(max-width:640px){
+  .nav-links{display:none}.ep-thumb{width:80px;height:46px}
+  main{padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))!important}
+  .modal-bg{padding:0;align-items:flex-end;background:rgba(0,0,0,.4)}
+  .modal{width:100%;max-width:none;height:100%;max-height:100%;border-radius:0;border:none;
+    animation:msuFull .28s cubic-bezier(.32,.72,0,1)}
+  .modal-hero{height:42vh}
+  @keyframes msuFull{from{transform:translateY(100%)}to{transform:translateY(0)}}
+}
 /* ── MOBILE BOTTOM NAV ────────────────────────────────── */
 .mob-nav{display:none}
 @media(max-width:640px){
@@ -711,6 +719,7 @@ let tvTmdbId  = null;  // current TV show TMDB ID in modal
 
 function openModal(m) {
   modalMovie = m;
+  document.body.style.overflow = 'hidden';
   document.getElementById('modalImg').src    = m.backdrop_url || m.poster_url || '';
   document.getElementById('modalTitle').textContent = m.title;
   const match = Math.round(65 + (parseFloat(m.rating||m.vote_average||7) * 3.5));
@@ -751,6 +760,7 @@ function openModal(m) {
 
 function closeModal() {
   document.getElementById('modalBg').classList.remove('open');
+  document.body.style.overflow = '';
 }
 
 // Load seasons for current TV show
