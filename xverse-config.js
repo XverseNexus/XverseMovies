@@ -510,6 +510,14 @@ async function requireAuth(redirectTo = 'index.html') {
 //  NAV AVATAR — shared across all pages
 // ─────────────────────────────────────────────────────────
 async function initNavAvatar(avatarElId = 'navAvatar') {
+  // On some pages the main script tag sits earlier in the document than
+  // the mobile bottom-nav markup, so this element may not exist in the DOM
+  // yet at call time. Wait for parsing to finish rather than silently
+  // no-op'ing (which used to leave the mobile Profile tab stuck showing
+  // its hardcoded placeholder letter and non-clickable).
+  if (document.readyState === 'loading') {
+    await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve, { once: true }));
+  }
   const el = document.getElementById(avatarElId);
   if (!el) return;
   const profile = Session.getProfile();
