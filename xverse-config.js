@@ -252,8 +252,9 @@ const DB = {
   async getAllRatings(uid) {
     const { data, error } = await getSB()
       .from('ratings')
-      .select('tmdb_id, media_type, rating')
-      .eq('user_id', uid);
+      .select('tmdb_id, media_type, rating, updated_at')
+      .eq('user_id', uid)
+      .order('updated_at', { ascending: false });
     if (error) { console.error('getAllRatings:', error); return {}; }
     const map = {};
     (data || []).forEach(r => { map[r.media_type + '_' + r.tmdb_id] = r.rating; });
@@ -266,6 +267,7 @@ const DB = {
       tmdb_id:    tmdbId,
       media_type: mediaType || 'movie',
       rating:     value, // 1 = thumbs up, -1 = thumbs down
+      updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id,tmdb_id,media_type' });
   },
 
@@ -435,6 +437,19 @@ const TMDB = {
   async southMovies() { return this.fetch('/discover/movie', { with_original_language:'te', sort_by:'popularity.desc' }); },
   async movieDetails(id)  { return this.fetch(`/movie/${id}`, { append_to_response:'credits,videos,similar,release_dates,keywords' }); },
   async tvDetails(id)     { return this.fetch(`/tv/${id}`,    { append_to_response:'credits,videos,similar,seasons,content_ratings,keywords' }); },
+
+  /* Used for the "Because You Liked X" row (Home). Returns
+     { seedTitle, items } — items are normalized and capped at 15,
+     or null if the seed title has no similar titles / lookup failed. */
+  async similarTo(tmdbId, mediaType) {
+    const details = mediaType === 'tv' ? await this.tvDetails(tmdbId) : await this.movieDetails(tmdbId);
+    const results = details?.similar?.results || [];
+    if (!results.length) return null;
+    return {
+      seedTitle: details.title || details.name || '',
+      items: results.slice(0, 15).map(r => TMDB.normalize({ ...r, media_type: mediaType })),
+    };
+  },
   async tvSeason(id, s)   { return this.fetch(`/tv/${id}/season/${s}`); },
   async search(q)         { return this.fetch('/search/multi', { query:q }); },
 };
@@ -854,6 +869,22 @@ const Ratings = {
   get(tmdbId, mediaType) {
     if (!tmdbId) return 0;
     return this._data[this._key(tmdbId, mediaType)] || 0;
+  },
+
+  /* Returns the user's most recently thumbs-up'd title as {tmdbId, mediaType},
+     or null if they haven't liked anything yet. Powers "Because You Liked X"
+     on Home. _data is populated in most-recent-first order (see init()/
+     DB.getAllRatings' ORDER BY updated_at desc), and plain-object string-key
+     insertion order is preserved per spec, so the first match here really is
+     the most recent one — no extra sorting/timestamps needed client-side. */
+  getMostRecentLiked() {
+    for (const key of Object.keys(this._data)) {
+      if (this._data[key] === 1) {
+        const idx = key.indexOf('_');
+        return { mediaType: key.slice(0, idx), tmdbId: parseInt(key.slice(idx + 1), 10) };
+      }
+    }
+    return null;
   },
 
   /* Tapping the same thumb again clears the rating (matches Netflix). */
