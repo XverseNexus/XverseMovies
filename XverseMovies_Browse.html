@@ -246,7 +246,12 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;ali
 /* PAGE SECTIONS */
 .bpg{display:none}
 .bpg.active{display:block}
-@media(max-width:640px){.nav-links{display:none}.cgrid{grid-template-columns:repeat(auto-fill,minmax(115px,1fr));gap:7px}.t10n{font-size:5rem}.t10p{width:76px;height:112px}main,#mainContent{padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))!important}}
+@media(max-width:640px){.nav-links{display:none}.cgrid{grid-template-columns:repeat(auto-fill,minmax(115px,1fr));gap:7px}.t10n{font-size:5rem}.t10p{width:76px;height:112px}main,#mainContent{padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))!important}
+  .mbg{padding:0;align-items:flex-end;background:rgba(0,0,0,.4)}
+  .mo{width:100%;max-width:none;height:100%;max-height:100%;border-radius:0;border:none;animation:msuFull .28s cubic-bezier(.32,.72,0,1)}
+  .mh{height:42vh}
+}
+@keyframes msuFull{from{transform:translateY(100%)}to{transform:translateY(0)}}
 /* ── MOBILE BOTTOM NAV ────────────────────────────────── */
 .mob-nav{display:none}
 @media(max-width:640px){
@@ -592,6 +597,7 @@ var _curMovie = null;
 function openMod(m) {
   if (!m) return;
   _curMovie = m;
+  document.body.style.overflow = 'hidden';
   var isTV = m.type === 'tv', k = _reg(m), tvF = isTV ? '1' : '0';
   var match = Math.round(65 + parseFloat(m.rating || m.vote_average || 7) * 3.5);
   var inML = ML.has(m.id);
