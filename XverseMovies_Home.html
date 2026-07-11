@@ -392,8 +392,9 @@ let _cachedRowData = null;
   await ML.init(currentUser.id);
   Ratings.injectStyles();
   await Ratings.init(currentUser.id);
+  const likedSeed = Ratings.getMostRecentLiked();
 
-  // Load everything in parallel — 9 promises, 9 destructured vars
+  // Load everything in parallel — 10 promises, 10 destructured vars
   const [
     featured,
     cwItems,
@@ -403,7 +404,8 @@ let _cachedRowData = null;
     popular,
     hindi,
     south,
-    tv
+    tv,
+    becauseYouLiked,
   ] = await Promise.all([
     DB.getFeatured(),
     DB.getContinueWatching(currentUser.id),
@@ -414,9 +416,10 @@ let _cachedRowData = null;
     TMDB.hindiMovies(),
     TMDB.southMovies(),
     TMDB.popularTV(),
+    likedSeed ? TMDB.similarTo(likedSeed.tmdbId, likedSeed.mediaType) : Promise.resolve(null),
   ]);
 
-  _cachedRowData = { adminMovies, trending, topRated, popular, hindi, south, tv };
+  _cachedRowData = { adminMovies, trending, topRated, popular, hindi, south, tv, becauseYouLiked };
 
   // Hero: prefer admin-featured, fallback TMDB trending
   const heroSrc = featured.length ? featured : (trending?.results || []).slice(0,7).map(TMDB.normalize);
@@ -432,7 +435,8 @@ let _cachedRowData = null;
   popular,
   hindi,
   south,
-  tv
+  tv,
+  becauseYouLiked
 );
 
   // Task 14: live sync — if My List or Continue Watching changes in
@@ -454,8 +458,8 @@ async function refreshLiveRows() {
     DB.getContinueWatching(currentUser.id),
     ML.init(currentUser.id),
   ]);
-  const { adminMovies, trending, topRated, popular, hindi, south, tv } = _cachedRowData;
-  buildRows(cwItems, ML.getData(), adminMovies, trending, topRated, popular, hindi, south, tv);
+  const { adminMovies, trending, topRated, popular, hindi, south, tv, becauseYouLiked } = _cachedRowData;
+  buildRows(cwItems, ML.getData(), adminMovies, trending, topRated, popular, hindi, south, tv, becauseYouLiked);
   window.scrollTo(0, scrollY);
 }
 
@@ -519,7 +523,8 @@ function buildRows(
   popular,
   hindi,
   south,
-  tv
+  tv,
+  becauseYouLiked
 ) {
   const wrap  = document.getElementById('rowsWrap');
   wrap.innerHTML = '';
@@ -532,6 +537,13 @@ function buildRows(
   // My List preview
   if (myListItems.length) {
     wrap.appendChild(buildCardRow('My List', myListItems, 'XverseMovies_MyList.html'));
+  }
+
+  // Because You Liked X — personalized row from the user's most recent 👍 rating.
+  // Independent of My List/Continue Watching, so this stays the same across
+  // Task 14 realtime refreshes (no need to re-fetch on every DB change).
+  if (becauseYouLiked?.items?.length) {
+    wrap.appendChild(buildCardRow(`Because You Liked ${becauseYouLiked.seedTitle}`, becauseYouLiked.items));
   }
 
   // TMDB rows with duplicate removal
