@@ -12,34 +12,22 @@ const XVERSE = {
   TMDB_IMG:         'https://image.tmdb.org/t/p/',
   SITE_NAME:        'XverseMovies',
 
-  // ── PAYMENTS (Task 11 — real fix) ──────────────────────────────
-  // Upgrades now go through Cashfree's Orders API + a verified
-  // webhook (api/create-order.js + api/cashfree-webhook.js), not a
-  // static Payment Link — this is what makes profiles.plan actually
-  // get updated after a real payment, tamper-resistant, instead of
-  // never updating at all (the old bug) or being trust-based
-  // (the earlier stopgap fix).
+  // ── PAY-PER-REQUEST (Phase 4) ──────────────────────────────
+  // The old 4-plan subscription system is gone — streaming via
+  // vidsrc is 100% free for everyone. Cashfree is now used only
+  // for one-off Request payments (Movie ₹9 / Season ₹29 /
+  // Complete Series ₹59) — see api/create-request-order.js +
+  // api/cashfree-request-webhook.js.
   //
-  // Set these as VERCEL ENVIRONMENT VARIABLES (Project → Settings →
-  // Environment Variables) — never in this file, since this file is
-  // shipped to every visitor's browser:
+  // Same Vercel Environment Variables as before still apply:
   //   CASHFREE_APP_ID, CASHFREE_SECRET_KEY, CASHFREE_ENV
   //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SITE_URL
-  //
-  // Also required: Cashfree Dashboard → Developers → Webhooks →
-  // add https://xverse-movies.vercel.app/api/cashfree-webhook and
-  // subscribe it to Payment events.
-  //
-  // CASHFREE_ENV below is just the public "sandbox"/"production"
-  // flag so the frontend loads Cashfree's checkout SDK in the right
-  // mode — it is NOT a secret, unlike the server-side env vars above.
   CASHFREE_ENV: 'production', // must match the Vercel env var CASHFREE_ENV — both are 'production'
 
-  PLANS: {
-    free: { name:'Basic',       quality:'480p', price:'Free',   screens:1, order:0 },
-    hd:   { name:'HD',          quality:'720p', price:'₹29/mo', screens:2, order:1 },
-    fhd:  { name:'Full HD',     quality:'1080p',price:'₹49/mo', screens:2, order:2 },
-    uhd:  { name:'4K Ultra HD', quality:'4K',   price:'₹99/mo', screens:4, order:3 },
+  REQUEST_PRICES: {
+    movie:  { label: 'Movie Request',            price: 9,  priceLabel: '₹9'  },
+    season: { label: 'Season Request',           price: 29, priceLabel: '₹29' },
+    series: { label: 'Complete Web Series Request', price: 59, priceLabel: '₹59' },
   },
 };
 
@@ -124,24 +112,6 @@ const Auth = {
     return getSB().auth.resetPasswordForEmail(email, {
       redirectTo: window.location.origin + '/index.html?reset=1'
     });
-  },
-
-  // Update plan after payment
-  async updatePlan(uid, plan) {
-    const now = new Date();
-    const end = new Date(now); end.setMonth(end.getMonth() + 1);
-    return getSB().from('profiles').update({
-      plan,
-      plan_start:  now.toISOString(),
-      plan_end:    end.toISOString(),
-      plan_active: true,
-    }).eq('id', uid);
-  },
-
-  // Can user access this content?
-  canAccess(userPlan, requiredPlan) {
-    const o = XVERSE.PLANS;
-    return (o[userPlan]?.order ?? 0) >= (o[requiredPlan]?.order ?? 0);
   },
 };
 
