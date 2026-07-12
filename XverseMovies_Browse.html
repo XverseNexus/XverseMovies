@@ -228,6 +228,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;ali
 .mo{background:#181818;border:1px solid rgba(255,255,255,.1);border-radius:10px;width:min(96vw,560px);max-height:90vh;overflow-y:auto;animation:msu .28s ease}
 @keyframes msu{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
 .mh{position:relative;height:210px;overflow:hidden}
+.modal-drag-handle{display:none}
 .mh img{width:100%;height:100%;object-fit:cover;display:block}
 .mhg{position:absolute;inset:0;background:linear-gradient(to top,#181818 0%,transparent 55%)}
 .mx{position:absolute;top:11px;right:11px;background:rgba(0,0,0,.6);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:.86rem;display:flex;align-items:center;justify-content:center}
@@ -250,6 +251,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;ali
   .mbg{padding:0;align-items:flex-end;background:rgba(0,0,0,.4)}
   .mo{width:100%;max-width:none;height:100%;max-height:100%;border-radius:0;border:none;animation:msuFull .28s cubic-bezier(.32,.72,0,1)}
   .mh{height:42vh}
+  .modal-drag-handle{display:flex;align-items:center;justify-content:center;height:26px;cursor:grab;touch-action:none}
+  .modal-drag-handle::after{content:'';width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.35)}
 }
 @keyframes msuFull{from{transform:translateY(100%)}to{transform:translateY(0)}}
 /* ── MOBILE BOTTOM NAV ────────────────────────────────── */
@@ -327,7 +330,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;ali
 
 <!-- MODAL -->
 <div class="mbg" id="modBg" onclick="if(event.target===this)closeMod()">
-  <div class="mo">
+  <div class="mo" id="modCard">
+    <div class="modal-drag-handle" id="modalDragHandle"></div>
     <div class="mh"><img id="modImg" src="" alt=""><div class="mhg"></div><button class="mx" onclick="closeMod()">✕</button></div>
     <div class="mb"><div class="mt" id="modTit"></div><div class="mm" id="modMeta"></div><div class="mov" id="modOv"></div>
       <div class="mac"><button class="mpl" id="mPlayBtn">▶ Play</button><button class="mad" id="mAddBtn">＋ My List</button><span id="mThumbsSlot"></span><button class="mad" onclick="closeMod()">✕ Close</button></div>
@@ -654,6 +658,7 @@ function openMod(m) {
     if (isTV && m.tmdb_id) bLoadSeasons(m);
   }
 
+  SwipeSheet.attach(document.getElementById('modalDragHandle'), document.getElementById('modCard'), closeMod);
   document.getElementById('modBg').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
