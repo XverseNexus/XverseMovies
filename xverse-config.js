@@ -891,6 +891,53 @@ const RT = {
 //  the buttons should appear. Requires a `ratings` table —
 //  see SETUP_GUIDE.md for the SQL.
 // ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────
+//  SWIPE SHEET  (Phase 3.6)
+//  Swipe-down-to-close for the mobile full-screen "More Info"
+//  modal, matching native iOS/Android sheet behaviour. Only
+//  the drag-handle element is draggable (not the whole modal),
+//  so it never fights with normal content scrolling inside
+//  the sheet — the handle is a small dedicated grab strip at
+//  the very top, like Apple/Netflix's own sheets.
+// ─────────────────────────────────────────────────────────
+const SwipeSheet = {
+  attach(handleEl, modalEl, onClose) {
+    if (!handleEl || !modalEl || handleEl._swipeAttached) return;
+    handleEl._swipeAttached = true;
+
+    let startY = 0, lastY = 0, dragging = false;
+    const CLOSE_THRESHOLD = 110; // px
+
+    const onStart = (e) => {
+      dragging = true;
+      startY = lastY = (e.touches ? e.touches[0].clientY : e.clientY);
+      modalEl.style.transition = 'none';
+    };
+    const onMove = (e) => {
+      if (!dragging) return;
+      lastY = (e.touches ? e.touches[0].clientY : e.clientY);
+      const dy = Math.max(0, lastY - startY);
+      modalEl.style.transform = `translateY(${dy}px)`;
+    };
+    const onEnd = () => {
+      if (!dragging) return;
+      dragging = false;
+      modalEl.style.transition = '';
+      const dy = Math.max(0, lastY - startY);
+      if (dy > CLOSE_THRESHOLD) {
+        onClose();
+      }
+      modalEl.style.transform = '';
+      startY = lastY = 0;
+    };
+
+    handleEl.addEventListener('touchstart', onStart, { passive: true });
+    handleEl.addEventListener('touchmove',  onMove,  { passive: true });
+    handleEl.addEventListener('touchend',   onEnd);
+    handleEl.addEventListener('touchcancel', onEnd);
+  },
+};
+
 const Ratings = {
   _data: {},   // "movie_155" / "tv_1399" -> 1 (up) | -1 (down)
   _uid:  null,
