@@ -772,7 +772,7 @@ function play(m) {
   p.set('type',    m.type||'movie'); p.set('title',   m.title||'');
   p.set('year',    m.year||'');      p.set('poster',  m.poster_url||'');
   p.set('backdrop',m.backdrop_url||''); p.set('age', m.age_rating||'');
-  p.set('quality', m.quality||'');   p.set('minPlan', m.min_plan||'free');
+  p.set('quality', m.quality||'');
   if (m.embed_url) p.set('embed', m.embed_url);
   location.href = 'XverseMovies_Player.html?' + p.toString();
 }
@@ -886,7 +886,6 @@ function bPlayEp(season, episode) {
   p.set('title',m.title||''); p.set('year',m.year||'');
   p.set('poster',m.poster_url||''); p.set('backdrop',m.backdrop_url||'');
   p.set('age',m.age_rating||''); p.set('quality',m.quality||'');
-  p.set('minPlan',m.min_plan||'free');
   closeMod();
   location.href = 'XverseMovies_Player.html?'+p.toString();
 }
