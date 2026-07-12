@@ -435,6 +435,14 @@ const TMDB = {
   async nowPlaying()  { return this.fetch('/movie/now_playing', { region:'IN' }); },
   async hindiMovies() { return this.fetch('/discover/movie', { with_original_language:'hi', sort_by:'popularity.desc', region:'IN' }); },
   async southMovies() { return this.fetch('/discover/movie', { with_original_language:'te', sort_by:'popularity.desc' }); },
+
+  /* Genre rows for Home (Action & Adventure, Comedies, Thrillers, etc.),
+     matching Netflix's own genre-row pattern. TMDB genre IDs are stable,
+     well-known constants — see https://developer.themoviedb.org/reference/genre-movie-list */
+  async byGenre(genreId, mediaType = 'movie') {
+    const endpoint = mediaType === 'tv' ? '/discover/tv' : '/discover/movie';
+    return this.fetch(endpoint, { with_genres: genreId, sort_by: 'popularity.desc' });
+  },
   async movieDetails(id)  { return this.fetch(`/movie/${id}`, { append_to_response:'credits,videos,similar,release_dates,keywords' }); },
   async tvDetails(id)     { return this.fetch(`/tv/${id}`,    { append_to_response:'credits,videos,similar,seasons,content_ratings,keywords' }); },
 
