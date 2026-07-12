@@ -392,9 +392,14 @@ let _cachedRowData = null;
   await ML.init(currentUser.id);
   Ratings.injectStyles();
   await Ratings.init(currentUser.id);
-  const likedSeed = Ratings.getMostRecentLiked();
+  const topSeeds     = Ratings.getTopLikedSeeds(3);
+  const dislikedKeys = Ratings.getDislikedSet();
+  // With 2+ liked titles, "Top Picks" (multi-seed) is strictly richer than
+  // "Because You Liked X" (single-seed) and would be near-duplicate content,
+  // so only fetch whichever one actually applies — avoids a wasted TMDB call too.
+  const useTopPicks = topSeeds.length >= 2;
 
-  // Load everything in parallel — 10 promises, 10 destructured vars
+  // Load everything in parallel — 11 promises, 11 destructured vars
   const [
     featured,
     cwItems,
@@ -406,6 +411,7 @@ let _cachedRowData = null;
     south,
     tv,
     becauseYouLiked,
+    topPicks,
   ] = await Promise.all([
     DB.getFeatured(),
     DB.getContinueWatching(currentUser.id),
@@ -416,10 +422,11 @@ let _cachedRowData = null;
     TMDB.hindiMovies(),
     TMDB.southMovies(),
     TMDB.popularTV(),
-    likedSeed ? TMDB.similarTo(likedSeed.tmdbId, likedSeed.mediaType) : Promise.resolve(null),
+    (!useTopPicks && topSeeds.length) ? TMDB.similarTo(topSeeds[0].tmdbId, topSeeds[0].mediaType) : Promise.resolve(null),
+    useTopPicks ? TMDB.topPicksFor(topSeeds, { dislikedKeys }) : Promise.resolve([]),
   ]);
 
-  _cachedRowData = { adminMovies, trending, topRated, popular, hindi, south, tv, becauseYouLiked };
+  _cachedRowData = { adminMovies, trending, topRated, popular, hindi, south, tv, becauseYouLiked, topPicks };
 
   // Hero: prefer admin-featured, fallback TMDB trending
   const heroSrc = featured.length ? featured : (trending?.results || []).slice(0,7).map(TMDB.normalize);
@@ -436,7 +443,8 @@ let _cachedRowData = null;
   hindi,
   south,
   tv,
-  becauseYouLiked
+  becauseYouLiked,
+  topPicks
 );
 
   // Task 14: live sync — if My List or Continue Watching changes in
@@ -458,8 +466,8 @@ async function refreshLiveRows() {
     DB.getContinueWatching(currentUser.id),
     ML.init(currentUser.id),
   ]);
-  const { adminMovies, trending, topRated, popular, hindi, south, tv, becauseYouLiked } = _cachedRowData;
-  buildRows(cwItems, ML.getData(), adminMovies, trending, topRated, popular, hindi, south, tv, becauseYouLiked);
+  const { adminMovies, trending, topRated, popular, hindi, south, tv, becauseYouLiked, topPicks } = _cachedRowData;
+  buildRows(cwItems, ML.getData(), adminMovies, trending, topRated, popular, hindi, south, tv, becauseYouLiked, topPicks);
   window.scrollTo(0, scrollY);
 }
 
@@ -524,7 +532,8 @@ function buildRows(
   hindi,
   south,
   tv,
-  becauseYouLiked
+  becauseYouLiked,
+  topPicks
 ) {
   const wrap  = document.getElementById('rowsWrap');
   wrap.innerHTML = '';
@@ -539,10 +548,14 @@ function buildRows(
     wrap.appendChild(buildCardRow('My List', myListItems, 'XverseMovies_MyList.html'));
   }
 
-  // Because You Liked X — personalized row from the user's most recent 👍 rating.
+  // Personalized row from ratings — "Top Picks for You" (2+ liked titles,
+  // richer multi-seed signal) or "Because You Liked X" (exactly 1 liked
+  // title) — never both, since with only one seed they'd be near-duplicates.
   // Independent of My List/Continue Watching, so this stays the same across
   // Task 14 realtime refreshes (no need to re-fetch on every DB change).
-  if (becauseYouLiked?.items?.length) {
+  if (topPicks?.length) {
+    wrap.appendChild(buildCardRow('Top Picks for You', topPicks));
+  } else if (becauseYouLiked?.items?.length) {
     wrap.appendChild(buildCardRow(`Because You Liked ${becauseYouLiked.seedTitle}`, becauseYouLiked.items));
   }
 
