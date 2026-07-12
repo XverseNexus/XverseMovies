@@ -399,7 +399,7 @@ let _cachedRowData = null;
   // so only fetch whichever one actually applies — avoids a wasted TMDB call too.
   const useTopPicks = topSeeds.length >= 2;
 
-  // Load everything in parallel — 11 promises, 11 destructured vars
+  // Load everything in parallel — 14 promises, 14 destructured vars
   const [
     featured,
     cwItems,
@@ -412,6 +412,9 @@ let _cachedRowData = null;
     tv,
     becauseYouLiked,
     topPicks,
+    actionGenre,
+    comedyGenre,
+    thrillerGenre,
   ] = await Promise.all([
     DB.getFeatured(),
     DB.getContinueWatching(currentUser.id),
@@ -424,9 +427,12 @@ let _cachedRowData = null;
     TMDB.popularTV(),
     (!useTopPicks && topSeeds.length) ? TMDB.similarTo(topSeeds[0].tmdbId, topSeeds[0].mediaType) : Promise.resolve(null),
     useTopPicks ? TMDB.topPicksFor(topSeeds, { dislikedKeys }) : Promise.resolve([]),
+    TMDB.byGenre(28),    // Action & Adventure
+    TMDB.byGenre(35),    // Comedy
+    TMDB.byGenre(27),    // Horror/Thriller
   ]);
 
-  _cachedRowData = { adminMovies, trending, topRated, popular, hindi, south, tv, becauseYouLiked, topPicks };
+  _cachedRowData = { adminMovies, trending, topRated, popular, hindi, south, tv, becauseYouLiked, topPicks, actionGenre, comedyGenre, thrillerGenre };
 
   // Hero: prefer admin-featured, fallback TMDB trending
   const heroSrc = featured.length ? featured : (trending?.results || []).slice(0,7).map(TMDB.normalize);
@@ -444,7 +450,10 @@ let _cachedRowData = null;
   south,
   tv,
   becauseYouLiked,
-  topPicks
+  topPicks,
+  actionGenre,
+  comedyGenre,
+  thrillerGenre
 );
 
   // Task 14: live sync — if My List or Continue Watching changes in
@@ -466,8 +475,8 @@ async function refreshLiveRows() {
     DB.getContinueWatching(currentUser.id),
     ML.init(currentUser.id),
   ]);
-  const { adminMovies, trending, topRated, popular, hindi, south, tv, becauseYouLiked, topPicks } = _cachedRowData;
-  buildRows(cwItems, ML.getData(), adminMovies, trending, topRated, popular, hindi, south, tv, becauseYouLiked, topPicks);
+  const { adminMovies, trending, topRated, popular, hindi, south, tv, becauseYouLiked, topPicks, actionGenre, comedyGenre, thrillerGenre } = _cachedRowData;
+  buildRows(cwItems, ML.getData(), adminMovies, trending, topRated, popular, hindi, south, tv, becauseYouLiked, topPicks, actionGenre, comedyGenre, thrillerGenre);
   window.scrollTo(0, scrollY);
 }
 
@@ -533,7 +542,10 @@ function buildRows(
   south,
   tv,
   becauseYouLiked,
-  topPicks
+  topPicks,
+  actionGenre,
+  comedyGenre,
+  thrillerGenre
 ) {
   const wrap  = document.getElementById('rowsWrap');
   wrap.innerHTML = '';
@@ -599,6 +611,19 @@ if (popularFiltered.length)
       popularFiltered
     )
   );
+
+const actionFiltered   = mergeMovieLists(adminMovies, norm(actionGenre));
+const comedyFiltered   = mergeMovieLists(adminMovies, norm(comedyGenre));
+const thrillerFiltered = mergeMovieLists(adminMovies, norm(thrillerGenre));
+
+if (actionFiltered.length)
+  wrap.appendChild(buildCardRow('Action &amp; Adventure 💥', actionFiltered));
+
+if (comedyFiltered.length)
+  wrap.appendChild(buildCardRow('Comedies 😂', comedyFiltered));
+
+if (thrillerFiltered.length)
+  wrap.appendChild(buildCardRow('Thrillers &amp; Horror 😱', thrillerFiltered));
 
 if (hindiFiltered.length)
   wrap.appendChild(
