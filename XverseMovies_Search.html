@@ -98,6 +98,8 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
   .mbg{padding:0;align-items:flex-end;background:rgba(0,0,0,.4)}
   .mc{width:100%;max-width:none;height:100%;max-height:100%;border-radius:0;animation:msuFull .28s cubic-bezier(.32,.72,0,1)}
   .mod-bd-wrap{aspect-ratio:auto;height:42vh}
+  .modal-drag-handle{display:flex;align-items:center;justify-content:center;height:26px;cursor:grab;touch-action:none}
+  .modal-drag-handle::after{content:'';width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.35)}
 }
 @keyframes msuFull{from{transform:translateY(100%)}to{transform:translateY(0)}}
 
@@ -309,6 +311,7 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
 .mc::-webkit-scrollbar{width:4px}
 .mc::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
 .mod-bd-wrap{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;background:#0a0a0a}
+.modal-drag-handle{display:none}
 .mod-bd-wrap img{width:100%;height:100%;object-fit:cover}
 .mod-bd-wrap::after{
   content:'';position:absolute;bottom:0;left:0;right:0;height:60%;
@@ -455,6 +458,7 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
 <!-- MODAL -->
 <div class="mbg" id="modBg" onclick="if(event.target===this)closeMod()">
   <div class="mc" id="modCard">
+    <div class="modal-drag-handle" id="modalDragHandle"></div>
     <div class="mod-bd-wrap">
       <img id="modImg" src="" alt="">
       <button class="mod-x" onclick="closeMod()">✕</button>
@@ -819,6 +823,7 @@ function openMod(m) {
   epW.style.display = isTV ? 'block' : 'none';
   if (isTV && m.tmdb_id) bLoadSeasons(m);
 
+  SwipeSheet.attach(document.getElementById('modalDragHandle'), document.getElementById('modCard'), closeMod);
   document.getElementById('modBg').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
