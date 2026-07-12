@@ -450,6 +450,35 @@ const TMDB = {
       items: results.slice(0, 15).map(r => TMDB.normalize({ ...r, media_type: mediaType })),
     };
   },
+
+  /* Combines "similar" results from multiple liked seed titles into one
+     deduplicated list for "Top Picks for You" — a richer signal than a
+     single seed. Excludes anything the user has thumbs-down'd or is
+     already actively watching (Continue Watching), and excludes the
+     seeds themselves so we don't recommend a title back to the person
+     who already rated it. */
+  async topPicksFor(seeds, { dislikedKeys = new Set(), excludeTmdbIds = new Set(), limit = 20 } = {}) {
+    if (!seeds?.length) return [];
+    const seedResults = await Promise.all(
+      seeds.map(s => this.similarTo(s.tmdbId, s.mediaType).catch(() => null))
+    );
+    const seedKeySet = new Set(seeds.map(s => (s.mediaType || 'movie') + '_' + s.tmdbId));
+    const seen  = new Set();
+    const merged = [];
+    for (const res of seedResults) {
+      if (!res?.items) continue;
+      for (const item of res.items) {
+        const key = (item.type || 'movie') + '_' + item.tmdb_id;
+        if (seen.has(key) || seedKeySet.has(key) || dislikedKeys.has(key)) continue;
+        if (item.id && excludeTmdbIds.has(item.id)) continue;
+        seen.add(key);
+        merged.push(item);
+        if (merged.length >= limit) return merged;
+      }
+    }
+    return merged;
+  },
+
   async tvSeason(id, s)   { return this.fetch(`/tv/${id}/season/${s}`); },
   async search(q)         { return this.fetch('/search/multi', { query:q }); },
 };
@@ -885,6 +914,31 @@ const Ratings = {
       }
     }
     return null;
+  },
+
+  /* Same idea as getMostRecentLiked() but returns up to n seeds (most
+     recent first), for combining multiple liked titles into one
+     "Top Picks for You" row instead of relying on a single title. */
+  getTopLikedSeeds(n = 3) {
+    const seeds = [];
+    for (const key of Object.keys(this._data)) {
+      if (this._data[key] === 1) {
+        const idx = key.indexOf('_');
+        seeds.push({ mediaType: key.slice(0, idx), tmdbId: parseInt(key.slice(idx + 1), 10) });
+        if (seeds.length >= n) break;
+      }
+    }
+    return seeds;
+  },
+
+  /* Set of "mediaType_tmdbId" keys the user gave a thumbs-down — used to
+     filter disliked titles back out of recommendation rows. */
+  getDislikedSet() {
+    const set = new Set();
+    for (const key of Object.keys(this._data)) {
+      if (this._data[key] === -1) set.add(key);
+    }
+    return set;
   },
 
   /* Tapping the same thumb again clears the rating (matches Netflix). */
