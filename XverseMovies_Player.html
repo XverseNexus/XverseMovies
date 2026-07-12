@@ -399,73 +399,6 @@ html,body{
 
 #desktopBadge.show{ display:inline-flex; }
 
-/* ── PLAN GATE ──────────────────────────────────────────── */
-#planGate{
-  position:absolute;
-  inset:0;
-  z-index:50;
-  background:rgba(0,0,0,.94);
-  display:none;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  padding:40px max(20px, env(safe-area-inset-left));
-  text-align:center;
-}
-
-#planGate.show{ display:flex; }
-
-.gate-title{
-  font-family:'Bebas Neue',cursive;
-  font-size:2rem;
-  margin-top:8px;
-  letter-spacing:2px;
-}
-
-.gate-sub{
-  color:rgba(255,255,255,.6);
-  margin-top:8px;
-  max-width:420px;
-  line-height:1.6;
-}
-
-.gate-plans{
-  display:flex;
-  gap:12px;
-  flex-wrap:wrap;
-  justify-content:center;
-  margin-top:20px;
-}
-
-.gate-plan{
-  border:1px solid rgba(255,255,255,.2);
-  border-radius:8px;
-  padding:14px 18px;
-  min-width:120px;
-  cursor:pointer;
-  transition:.2s;
-}
-
-.gate-plan:hover{ border-color:#fff; background:rgba(255,255,255,.05); }
-.gate-plan.popular{ border-color:#E50914; }
-
-.gp-name{ font-size:.9rem; font-weight:700; }
-.gp-price{ font-family:'Bebas Neue',cursive; color:#E50914; font-size:1.4rem; margin-top:4px; }
-.gp-desc{ color:rgba(255,255,255,.45); font-size:.7rem; }
-
-.btn-back-gate{
-  margin-top:18px;
-  padding:11px 24px;
-  border-radius:4px;
-  border:1px solid rgba(255,255,255,.2);
-  background:transparent;
-  color:#aaa;
-  cursor:pointer;
-  font-family:'Barlow',sans-serif;
-  font-size:.85rem;
-  min-height:44px;
-}
-
 /* ── SYNC DOT ───────────────────────────────────────────── */
 #syncDot{
   position:absolute;
@@ -569,31 +502,6 @@ html,body{
     <div class="ld-msg" id="ldMsg">Loading video...</div>
   </div>
 
-  <!-- PLAN GATE -->
-  <div id="planGate">
-    <div style="font-size:3rem;">🔒</div>
-    <div class="gate-title">Upgrade Your Plan</div>
-    <div class="gate-sub" id="gateSub">This content requires a higher plan.</div>
-    <div class="gate-plans">
-      <div class="gate-plan" onclick="upgradePlan('hd')">
-        <div class="gp-name">HD</div>
-        <div class="gp-price">₹29</div>
-        <div class="gp-desc">720p · 2 screens</div>
-      </div>
-      <div class="gate-plan popular" onclick="upgradePlan('fhd')">
-        <div class="gp-name">Full HD ⭐</div>
-        <div class="gp-price">₹49</div>
-        <div class="gp-desc">1080p · 2 screens</div>
-      </div>
-      <div class="gate-plan" onclick="upgradePlan('uhd')">
-        <div class="gp-name">4K Ultra HD</div>
-        <div class="gp-price">₹99</div>
-        <div class="gp-desc">4K · 4 screens</div>
-      </div>
-    </div>
-    <button class="btn-back-gate" onclick="goBack()">← Go Back</button>
-  </div>
-
   <!-- ═══════════════════════════════════════════════════════
        IFRAME
        FIX #1: webkit-allowfullscreen + mozallowfullscreen for iOS/Firefox
@@ -683,8 +591,6 @@ let movieData   = null;
 let uiTimer     = null;
 let syncTimer   = null;
 let watchStart  = null;
-
-const PLAN_ORDER = { free:0, hd:1, fhd:2, uhd:3 };
 
 /* ─────────────────────────────────────────────────────────
    FIX #2 — IFRAME SCALE TRICK (PRIMARY FIX)
@@ -779,7 +685,6 @@ window.addEventListener('orientationchange', function() {
       quality:     p.get('quality')  || '',
       age_rating:  p.get('age')      || 'UA',
       duration:    p.get('dur')      || '',
-      min_plan:    p.get('minPlan')  || 'free',
       embed_url:   p.get('embed')    || '',
       poster_url:  p.get('poster')   || '',
       backdrop_url:p.get('backdrop') || '',
@@ -789,15 +694,6 @@ window.addEventListener('orientationchange', function() {
   movie._season  = urlSeason;
   movie._episode = urlEpisode;
   movieData = movie;
-
-  const profile  = await Auth.getProfile(currentUser.id);
-  const userPlan = profile?.plan || 'free';
-  const reqPlan  = movie.min_plan || 'free';
-
-  if ((PLAN_ORDER[userPlan] ?? 0) < (PLAN_ORDER[reqPlan] ?? 0)) {
-    showPlanGate(reqPlan);
-    return;
-  }
 
   if (movie.id) {
     await ML.init(currentUser.id);   // loads full list; ML.has() used by updateMLBtn
@@ -1030,21 +926,6 @@ function updateMLBtn() {
     btn.textContent = '＋ My List';
     btn.classList.remove('added');
   }
-}
-
-/* ─────────────────────────────────────────────────────────
-   PLAN GATE
-───────────────────────────────────────────────────────── */
-function showPlanGate(reqPlan) {
-  document.getElementById('loadScreen').style.display = 'none';
-  document.getElementById('planGate').classList.add('show');
-}
-
-function upgradePlan(plan) {
-  // Real checkout (Cashfree Orders API + verified webhook) lives in
-  // Settings.html — send the user there instead of duplicating that
-  // logic here. See xverse-config.js Task 11 notes.
-  window.location.href = 'XverseMovies_Settings.html?upgrade=' + encodeURIComponent(plan);
 }
 
 /* ─────────────────────────────────────────────────────────
