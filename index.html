@@ -125,19 +125,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .sdot{height:4px;border-radius:2px;background:rgba(255,255,255,.18);flex:1;transition:background .3s}
 .sdot.active{background:var(--red)}
 .sdot.done{background:var(--green)}
-.plan-list{display:flex;flex-direction:column;gap:7px;margin-bottom:14px}
-.plan-opt{border:1.5px solid rgba(255,255,255,.13);border-radius:6px;padding:11px 13px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:11px;position:relative;user-select:none}
-.plan-opt:hover{border-color:rgba(255,255,255,.38)}
-.plan-opt.sel{border-color:var(--red);background:rgba(229,9,20,.06)}
-.plan-opt.popular::after{content:'POPULAR';position:absolute;top:-1px;right:11px;background:var(--red);color:#fff;font-size:.52rem;font-weight:800;padding:2px 7px;border-radius:0 0 4px 4px;letter-spacing:.8px}
-.radio{width:17px;height:17px;border-radius:50%;border:2px solid rgba(255,255,255,.32);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.plan-opt.sel .radio{border-color:var(--red)}
-.rdot{width:8px;height:8px;border-radius:50%;background:var(--red);display:none}
-.plan-opt.sel .rdot{display:block}
-.pinfo{flex:1}
-.pname{font-size:.9rem;font-weight:700;color:#fff}
-.pdesc{font-size:.68rem;color:var(--muted);margin-top:2px}
-.pprice{font-size:.9rem;font-weight:700;color:#fff}
 .prof-grid{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;margin-bottom:32px}
 .prof-item{display:flex;flex-direction:column;align-items:center;gap:9px;cursor:pointer}
 .prof-av{width:88px;height:88px;border-radius:6px;overflow:hidden;border:3px solid transparent;transition:all .22s;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',cursive;font-size:2.4rem;color:#fff;position:relative}
@@ -211,10 +198,10 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 <!-- SIGNUP -->
 <div class="page" id="page-signup">
   <div class="box">
-    <div class="step-bar"><div class="sdot active" id="sd1"></div><div class="sdot" id="sd2"></div><div class="sdot" id="sd3"></div></div>
+    <div class="step-bar"><div class="sdot active" id="sd1"></div><div class="sdot" id="sd2"></div></div>
     <div id="su1">
       <h2 class="box-title">Create Account</h2>
-      <p style="font-size:.78rem;color:var(--muted);margin-bottom:18px">Step 1 of 3 — Your details</p>
+      <p style="font-size:.78rem;color:var(--muted);margin-bottom:18px">Step 1 of 2 — Your details</p>
       <div class="field"><input type="text" id="suName" placeholder="n" autocomplete="name" onkeydown="if(event.key==='Enter')document.getElementById('suEmail').focus()"><label>Full Name</label></div>
       <div class="field"><input type="email" id="suEmail" placeholder="e" autocomplete="email" onkeydown="if(event.key==='Enter')document.getElementById('suPass').focus()"><label>Email address</label></div>
       <div class="field"><input type="password" id="suPass" placeholder="p" onkeydown="if(event.key==='Enter')suStep1()"><label>Password (min 6 chars)</label></div>
@@ -227,24 +214,12 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
       </button>
       <p class="box-footer" style="margin-top:16px">Already have account? <a onclick="showPage('login')">Sign in</a></p>
     </div>
-    <div id="su2" style="display:none">
-      <h2 class="box-title">Choose Your Plan</h2>
-      <p style="font-size:.78rem;color:var(--muted);margin-bottom:14px">Step 2 of 3 — All plans include unlimited movies</p>
-      <div class="plan-list">
-        <div class="plan-opt sel" id="po-free" onclick="selPlan('free')"><div class="radio"><div class="rdot"></div></div><div class="pinfo"><div class="pname">Basic</div><div class="pdesc">480p · Mobile only · 1 screen</div></div><div class="pprice" style="color:var(--green)">Free</div></div>
-        <div class="plan-opt" id="po-hd" onclick="selPlan('hd')"><div class="radio"><div class="rdot"></div></div><div class="pinfo"><div class="pname">HD</div><div class="pdesc">720p · 2 screens · Downloads</div></div><div class="pprice">₹29<span style="font-size:.6rem;color:var(--muted);font-weight:400">/mo</span></div></div>
-        <div class="plan-opt popular" id="po-fhd" onclick="selPlan('fhd')"><div class="radio"><div class="rdot"></div></div><div class="pinfo"><div class="pname">Full HD</div><div class="pdesc">1080p · 2 screens · Downloads</div></div><div class="pprice">₹49<span style="font-size:.6rem;color:var(--muted);font-weight:400">/mo</span></div></div>
-        <div class="plan-opt" id="po-uhd" onclick="selPlan('uhd')"><div class="radio"><div class="rdot"></div></div><div class="pinfo"><div class="pname">4K Ultra HD</div><div class="pdesc">4K+HDR · 4 screens · All devices</div></div><div class="pprice">₹99<span style="font-size:.6rem;color:var(--muted);font-weight:400">/mo</span></div></div>
-      </div>
-      <div class="msg err" id="su2Msg"></div>
-      <button class="btn-red" style="width:100%" onclick="suStep2()">Continue</button>
-    </div>
     <div id="su3" style="display:none">
       <h2 class="box-title">Almost Done!</h2>
-      <p style="font-size:.78rem;color:var(--muted);margin-bottom:18px">Step 3 of 3 — Confirm & Start</p>
+      <p style="font-size:.78rem;color:var(--muted);margin-bottom:18px">Step 2 of 2 — Confirm & Start</p>
       <div id="su3Summary" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:6px;padding:13px 15px;margin-bottom:16px;font-size:.82rem;color:rgba(255,255,255,.72);line-height:2"></div>
       <button class="btn-red" style="width:100%" id="su3Btn" onclick="suStep3()">Start Watching →</button>
-      <p style="font-size:.68rem;color:var(--muted);margin-top:10px;text-align:center;line-height:1.6">The secure Cashfree payment page will open for paid plans.</p>
+      <p style="font-size:.68rem;color:var(--muted);margin-top:10px;text-align:center;line-height:1.6">Streaming is 100% free — no card required.</p>
     </div>
   </div>
 </div>
@@ -264,7 +239,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 </footer>
 
 <script>
-let selectedPlan = 'free';
 let signupData   = {};
 let _inSignupFlow = false; // prevents handleSession from interfering during signup
 
@@ -417,15 +391,9 @@ function suStep1() {
   if (!name) { showMsg('su1Msg','Please enter your name'); return; }
   if (!/\S+@\S+\.\S+/.test(email)) { showMsg('su1Msg','Please enter a valid email'); return; }
   if (pass.length<6) { showMsg('su1Msg','Password min 6 chars'); return; }
-  signupData={name,email,pass}; jumpStep(2);
-}
-
-function selPlan(p) { selectedPlan=p; document.querySelectorAll('.plan-opt').forEach(e=>e.classList.remove('sel')); document.getElementById('po-'+p).classList.add('sel'); }
-
-function suStep2() {
-  const p=XVERSE.PLANS[selectedPlan];
-  document.getElementById('su3Summary').innerHTML=`<div>👤 <b>${signupData.name||'Google User'}</b></div><div>📧 ${signupData.email||'Google Account'}</div><div>💎 Plan: <b style="color:${selectedPlan==='free'?'var(--green)':'#E50914'}">${p.name} — ${p.price}</b></div><div>📺 ${p.quality} · ${p.screens} screen${p.screens>1?'s':''}</div>${selectedPlan!=='free'?'<div style="color:var(--green);font-size:.72rem;margin-top:2px">💳 Payment page will open after registration</div>':''}`;
-  jumpStep(3);
+  signupData={name,email,pass};
+  document.getElementById('su3Summary').innerHTML=`<div>👤 <b>${signupData.name||'Google User'}</b></div><div>📧 ${signupData.email||'Google Account'}</div><div>🎬 Unlimited free streaming — no plan, no card</div>`;
+  jumpStep(2);
 }
 
 async function suStep3() {
@@ -439,9 +407,9 @@ async function suStep3() {
     const { data, error } = await Auth.signUp(signupData.email, signupData.pass, signupData.name);
     if (error) {
       _inSignupFlow = false;
-      showMsg('su2Msg', errText(error.message));
+      showMsg('su1Msg', errText(error.message));
       btn.textContent = 'Start Watching →'; btn.disabled = false;
-      jumpStep(2); return;
+      jumpStep(1); return;
     }
     uid = data.user?.id;
     if (!data.session) {
@@ -453,17 +421,6 @@ async function suStep3() {
   }
 
   if (!uid) { _inSignupFlow = false; btn.textContent = 'Start Watching →'; btn.disabled = false; return; }
-
-  // Don't grant the paid plan yet — that's the same bug we fixed in
-  // Settings.html (Task 11): this used to call Auth.updatePlan(uid,
-  // selectedPlan) here, BEFORE any payment happened, which handed out
-  // paid plans for free. Leave the profile on its default plan and
-  // remember what they intended to upgrade to; Home.html will send
-  // them to the real (Cashfree Orders API + webhook-verified) upgrade
-  // flow in Settings.html on their first load after signup.
-  if (selectedPlan !== 'free') {
-    localStorage.setItem('xv_pending_signup_plan', selectedPlan);
-  }
 
   // Wait briefly for DB trigger to create profile row
   await new Promise(r => setTimeout(r, 800));
@@ -480,7 +437,7 @@ async function suStep3() {
 
   _inSignupFlow = false; // Unlock AFTER we have the profile
 
-  await renderProfileSelect(user, profile || { name: signupData.name, plan: selectedPlan });
+  await renderProfileSelect(user, profile || { name: signupData.name });
 }
 
 // ── PROFILE SELECT ────────────────────────────────
@@ -516,8 +473,8 @@ async function renderProfileSelect(user, profile) {
 
 // ── HELPERS ───────────────────────────────────────
 function jumpStep(n) {
-  ['su1','su2','su3'].forEach((id,i)=>document.getElementById(id).style.display=i+1===n?'block':'none');
-  ['sd1','sd2','sd3'].forEach((id,i)=>{const el=document.getElementById(id);el.className='sdot'+(i+1<n?' done':i+1===n?' active':'');});
+  ['su1','su3'].forEach((id,i)=>document.getElementById(id).style.display=i+1===n?'block':'none');
+  ['sd1','sd2'].forEach((id,i)=>{const el=document.getElementById(id);el.className='sdot'+(i+1<n?' done':i+1===n?' active':'');});
 }
 function showMsg(id,msg,ok=false) { const el=document.getElementById(id);if(!el)return;el.textContent=msg;el.className='msg show '+(ok?'ok':'err'); }
 function errText(m) {
