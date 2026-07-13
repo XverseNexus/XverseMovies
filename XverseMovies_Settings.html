@@ -9,7 +9,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="XverseMovies">
 <meta property="og:title" content="Account Settings — XverseMovies">
-<meta property="og:description" content="Manage your XverseMovies account, plan, and preferences.">
+<meta property="og:description" content="Manage your XverseMovies account and preferences.">
 <meta property="og:image" content="https://xverse-movies.vercel.app/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -18,7 +18,7 @@
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Account Settings — XverseMovies">
-<meta name="twitter:description" content="Manage your XverseMovies account, plan, and preferences.">
+<meta name="twitter:description" content="Manage your XverseMovies account and preferences.">
 <meta name="twitter:image" content="https://xverse-movies.vercel.app/og-image.png">
 <script>/* SW update → auto-reload */if('serviceWorker'in navigator){var _xvR=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!_xvR){_xvR=true;location.reload();}});}</script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -100,7 +100,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:60px;display:flex;ali
 .sb-av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .sb-name{font-size:.95rem;font-weight:700;color:#fff;margin-bottom:1px}
 .sb-email{font-size:.72rem;color:var(--muted);margin-bottom:7px;word-break:break-all}
-.sb-plan{display:inline-flex;align-items:center;gap:4px;background:rgba(229,9,20,.12);border:1px solid rgba(229,9,20,.22);color:var(--red);font-size:.65rem;font-weight:700;padding:2px 9px;border-radius:20px;letter-spacing:.5px}
 .sb-lbl{font-size:.58rem;font-weight:700;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;padding:9px 17px 5px}
 .sb-item{display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;border-left:2px solid transparent;color:rgba(255,255,255,.68);font-size:.82rem;font-weight:500;padding:9px 17px;cursor:pointer;font-family:'Barlow',sans-serif;text-align:left;transition:all .18s}
 .sb-item:hover{background:rgba(255,255,255,.04);color:#fff}
@@ -170,16 +169,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:60px;display:flex;ali
 .pc:hover .pc-acts{opacity:1}
 .pc-btn{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.7);padding:3px 9px;border-radius:4px;font-size:.66rem;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s}
 .pc-btn:hover{background:rgba(255,255,255,.17);color:#fff}
-/* PLAN CARDS */
-.plan-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:9px;margin-bottom:14px}
-.plan-c{background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.09);border-radius:7px;padding:14px 12px;cursor:pointer;transition:all .2s;position:relative}
-.plan-c:hover{border-color:rgba(255,255,255,.28)}
-.plan-c.curr{border-color:var(--green);background:rgba(70,211,105,.05)}
-.plan-c.curr::after{content:'CURRENT';position:absolute;top:-1px;right:11px;background:var(--green);color:#000;font-size:.55rem;font-weight:800;padding:2px 7px;border-radius:0 0 4px 4px;letter-spacing:.8px}
-.plan-nm{font-size:.86rem;font-weight:700;color:#fff;margin-bottom:3px}
-.plan-pr{font-family:'Bebas Neue',cursive;font-size:1.3rem;color:#fff;letter-spacing:.5px;margin-bottom:5px}
-.plan-f{font-size:.7rem;color:rgba(255,255,255,.45);line-height:1.7;list-style:none}
-.plan-f li::before{content:'✓ ';color:var(--green);font-size:.65rem}
 /* NOTIF PANEL */
 .np{position:fixed;top:60px;right:0;width:360px;height:calc(100vh - 60px);background:rgba(9,9,9,.98);border-left:1px solid var(--border);z-index:300;transform:translateX(100%);transition:transform .32s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;backdrop-filter:blur(12px)}
 .np.open{transform:translateX(0)}
@@ -222,9 +211,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:60px;display:flex;ali
 @media(max-width:1024px) and (min-width:641px){
   .sb{width:180px}
   .fgrid{grid-template-columns:1fr}
-  .plan-g{grid-template-columns:repeat(3,1fr)}
 }
-@media(max-width:640px){.sb{display:none}.mob-nav{display:flex}.main{padding:20px var(--content-pad) 40px}.plan-g{grid-template-columns:1fr 1fr}.fgrid{grid-template-columns:1fr}
+@media(max-width:640px){.sb{display:none}.mob-nav{display:flex}.main{padding:20px var(--content-pad) 40px}.fgrid{grid-template-columns:1fr}
   .main{padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))!important}}
 /* ── MOBILE BOTTOM NAV ─────────────────────────────────── */
 .btm-nav{display:none}
@@ -269,7 +257,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:60px;display:flex;ali
       <div class="sb-av" id="sbAv"><span id="sbInit">U</span></div>
       <div class="sb-name" id="sbName">Loading...</div>
       <div class="sb-email" id="sbEmail"></div>
-      <div class="sb-plan" id="sbPlan">⬜ FREE</div>
     </div>
     <div class="sb-lbl">Account</div>
     <button class="sb-item active" onclick="showPanel('account',this)" id="sb-account"><span class="sb-ico">👤</span> Account Info</button>
@@ -278,8 +265,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:60px;display:flex;ali
     <div class="sb-lbl">Preferences</div>
     <button class="sb-item" onclick="showPanel('playback',this)"><span class="sb-ico">▶️</span> Playback & Video</button>
     <button class="sb-item" onclick="showPanel('language',this)"><span class="sb-ico">🌐</span> Language</button>
-    <div class="sb-lbl">Subscription</div>
-    <button class="sb-item" onclick="showPanel('plan',this)"><span class="sb-ico">💎</span> Plan & Billing</button>
     <button class="sb-item" onclick="showPanel('activity',this)"><span class="sb-ico">🕐</span> Viewing Activity</button>
     <div class="sb-lbl">Security</div>
     <button class="sb-item" onclick="showPanel('security',this)"><span class="sb-ico">🔒</span> Privacy & Security</button>
@@ -351,7 +336,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:60px;display:flex;ali
       <div class="ptit">Playback & Video</div>
       <div class="psub">Streaming quality and autoplay settings</div>
       <div class="sc open">
-        <div class="sch" onclick="toggleSC(this)"><div class="schl"><div class="sch-ico">📺</div><div><div class="sch-tit">Video Quality</div><div class="sch-sub">Available quality depends on your plan</div></div></div><span class="sch-chev">▼</span></div>
+        <div class="sch" onclick="toggleSC(this)"><div class="schl"><div class="sch-ico">📺</div><div><div class="sch-tit">Video Quality</div><div class="sch-sub">Choose your preferred streaming quality</div></div></div><span class="sch-chev">▼</span></div>
         <div class="scb">
           <div class="fgrid one"><div class="fwrap"><label class="flbl">Streaming Quality</label><select class="fsel" onchange="showToast('Quality set: '+this.value)"><option>Auto (Recommended)</option><option>4K Ultra HD</option><option selected>1080p Full HD</option><option>720p HD</option><option>480p</option></select></div></div>
           <div class="trow"><div class="tinfo"><div class="tlbl">Autoplay Next Episode</div><div class="tdesc">Automatically play the next episode in a series</div></div><label class="tog"><input type="checkbox" checked onchange="saveToggle(this,'Autoplay')"><div class="tog-trk"></div><div class="tog-th"></div></label></div>
@@ -370,20 +355,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:60px;display:flex;ali
         <div class="scb">
           <div class="fgrid"><div class="fwrap"><label class="flbl">Interface Language</label><select class="fsel"><option selected>English</option><option>हिंदी (Hindi)</option><option>தமிழ் (Tamil)</option><option>తెలుగు (Telugu)</option></select></div><div class="fwrap"><label class="flbl">Preferred Audio</label><select class="fsel"><option>Hindi</option><option>English</option><option>Telugu</option><option>Tamil</option></select></div></div>
           <div class="brow"><button class="btn-save" onclick="showToast('✅ Language saved!')">Save</button></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- PLAN -->
-    <div class="panel" id="panel-plan">
-      <div class="ptit">Plan & Billing</div>
-      <div class="psub">Subscription and payment management</div>
-      <div class="plan-g" id="planGrid"></div>
-      <div class="sc">
-        <div class="sch" onclick="toggleSC(this)"><div class="schl"><div class="sch-ico">💳</div><div><div class="sch-tit">Payment Method</div><div class="sch-sub">UPI, Card, NetBanking</div></div></div><span class="sch-chev">▼</span></div>
-        <div class="scb">
-          <div class="fgrid one"><div class="fwrap"><label class="flbl">Payment Method</label><select class="fsel"><option>UPI — user@upi</option><option>Credit Card •••• 4242</option><option>Add New Method</option></select></div></div>
-          <div class="brow"><button class="btn-save" onclick="showToast('✅ Payment method updated!')">Update Payment</button><button class="btn-dng" onclick="cancelMembership()">Cancel Membership</button></div>
         </div>
       </div>
     </div>
@@ -430,14 +401,6 @@ let notifs       = [];
 let npOpen       = false;
 let npFilterTab  = 'all';
 
-const PLAN_ICONS = { free:'⬜', hd:'🟦', fhd:'🟥', uhd:'👑' };
-const PLAN_DATA  = [
-  { id:'free', name:'Basic',       price:'Free',   period:'',    feats:['480p','Mobile only','1 screen'] },
-  { id:'hd',   name:'HD',         price:'₹29',    period:'/mo', feats:['720p HD','2 screens','Downloads'] },
-  { id:'fhd',  name:'Full HD',    price:'₹49',    period:'/mo', feats:['1080p Full HD','2 screens','Downloads'] },
-  { id:'uhd',  name:'4K Ultra HD',price:'₹99',    period:'/mo', feats:['4K + HDR','4 screens','All devices'] },
-];
-
 // ─────────────────────────────────────────
 //  INSTANT PANEL SWITCH FROM HASH
 //  Runs synchronously so the correct panel is visible IMMEDIATELY —
@@ -446,7 +409,7 @@ const PLAN_DATA  = [
 (function() {
   const raw = (location.hash || '').replace('#', '');
   if (!raw) return;
-  const alias = { notifications:'notifs', 'account-info':'account', billing:'plan', security:'security' };
+  const alias = { notifications:'notifs', 'account-info':'account', security:'security' };
   const id    = alias[raw] || raw;
   const target = document.getElementById('panel-' + id);
   if (!target) return;
@@ -471,28 +434,17 @@ const PLAN_DATA  = [
   notifs      = await DB.getNotifications(currentUser.id);
 
   loadSidebar();
-  buildPlanGrid();
   buildViewerProfs();
   buildNotifPanel();
   buildMobNav();
   await initNavAvatar('mnavProfileAvatar');   // mobile bottom-nav Profile tab
   loadActivity();
   PwdMeter.attach(document.getElementById('newPass'));
-  checkPendingPayment();
-
-  // Arrived here via a redirect asking us to start an upgrade (from
-  // signup selecting a paid plan, or Player.html's "upgrade to watch
-  // this" gate) — auto-trigger the real checkout flow once.
-  const upgradeParam = new URLSearchParams(location.search).get('upgrade');
-  if (upgradeParam) {
-    history.replaceState(null, '', location.pathname);
-    upgradePlan(upgradeParam);
-  }
 
   // Hash-based panel — #notifications (old link) and #notifs both work
   const hash = location.hash.replace('#','');
   if (hash) {
-    const alias = { 'notifications': 'notifs', 'account-info': 'account', 'billing': 'plan', 'security': 'security' };
+    const alias = { 'notifications': 'notifs', 'account-info': 'account', 'security': 'security' };
     showPanel(alias[hash] || hash);
   }
 })();
@@ -503,12 +455,10 @@ const PLAN_DATA  = [
 function loadSidebar() {
   const name  = userProfile?.name || currentUser.email?.split('@')[0] || 'User';
   const email = currentUser.email || '';
-  const plan  = userProfile?.plan || 'free';
   const av    = userProfile?.avatar_url || currentUser.user_metadata?.avatar_url;
 
   document.getElementById('sbName').textContent  = name;
   document.getElementById('sbEmail').textContent = email;
-  document.getElementById('sbPlan').textContent  = PLAN_ICONS[plan] + ' ' + XVERSE.PLANS[plan]?.name.toUpperCase();
 
   // Avatar
   const avEl = document.getElementById('sbAv');
@@ -548,7 +498,7 @@ function showPanel(name, btn) {
 function buildMobNav() {
   const panels = [
     {id:'account',l:'Account'},{id:'profiles',l:'Profiles'},{id:'notifs',l:'Notifications'},
-    {id:'playback',l:'Playback'},{id:'language',l:'Language'},{id:'plan',l:'Plan'},
+    {id:'playback',l:'Playback'},{id:'language',l:'Language'},
     {id:'activity',l:'Activity'},{id:'security',l:'Security'},
   ];
   const cur = (location.hash || '').replace('#','') || 'account';
@@ -647,116 +597,6 @@ async function deleteProfile(id, name) {
   viewerProfs = viewerProfs.filter(p=>p.id!==id);
   buildViewerProfs();
   showToast('🗑️ Profile deleted');
-}
-
-// ─────────────────────────────────────────
-//  PLAN GRID
-// ─────────────────────────────────────────
-function buildPlanGrid() {
-  const curr = userProfile?.plan || 'free';
-  document.getElementById('planGrid').innerHTML = PLAN_DATA.map(p=>`
-    <div class="plan-c ${p.id===curr?'curr':''}" onclick="upgradePlan('${p.id}')">
-      <div class="plan-nm">${p.name}</div>
-      <div class="plan-pr">${p.price}<span style="font-size:.6rem;font-family:'Barlow',sans-serif;font-weight:400;color:var(--muted)">${p.period}</span></div>
-      <ul class="plan-f">${p.feats.map(f=>`<li>${f}</li>`).join('')}</ul>
-    </div>`).join('');
-}
-
-// ── PAYMENT (real fix — Cashfree Orders API + webhook) ──────────
-// upgradePlan() only ever STARTS a payment. The actual upgrade
-// happens server-side in api/cashfree-webhook.js once Cashfree
-// confirms the payment is genuinely PAID — this file never
-// upgrades anyone itself, it just asks our backend to create an
-// order and opens Cashfree's checkout for it.
-async function upgradePlan(plan) {
-  if (plan === (userProfile?.plan||'free')) { showToast('✅ Tum already is plan pe ho!'); return; }
-  if (plan === 'free') { showToast('ℹ️ Please contact support to downgrade'); return; }
-
-  try {
-    showToast('💳 Payment shuru kar rahe hain...');
-
-    const res = await fetch('/api/create-order', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        uid: currentUser.id,
-        plan,
-        email: currentUser.email,
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok || !data.payment_session_id) {
-      showToast('⚙️ ' + (data.error || 'Could not start payment — check Cashfree keys'));
-      return;
-    }
-
-    await loadCashfreeSDK();
-    const cashfree = window.Cashfree({ mode: XVERSE.CASHFREE_ENV || 'sandbox' });
-    cashfree.checkout({
-      paymentSessionId: data.payment_session_id,
-      redirectTarget: '_self', // same tab — Cashfree redirects back to return_url after payment
-    });
-  } catch (err) {
-    console.error('upgradePlan error:', err);
-    showToast('❌ Could not start payment, please try again');
-  }
-}
-
-let _cfSdkPromise = null;
-function loadCashfreeSDK() {
-  if (window.Cashfree) return Promise.resolve();
-  if (_cfSdkPromise) return _cfSdkPromise;
-  _cfSdkPromise = new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
-    s.onload = resolve;
-    s.onerror = reject;
-    document.head.appendChild(s);
-  });
-  return _cfSdkPromise;
-}
-
-// Called on page load — if we just came back from Cashfree checkout
-// (return_url includes ?order_id=...), the webhook may take a few
-// seconds to arrive and update Supabase. We just poll our own
-// profile a few times rather than trusting anything in the URL —
-// the URL param only tells us "an attempt happened", never "it
-// succeeded". If the plan hasn't changed after ~20s we stop and let
-// the normal page state stand; the webhook will still apply the
-// upgrade whenever it arrives.
-async function checkPendingPayment() {
-  const params = new URLSearchParams(location.search);
-  const orderId = params.get('order_id');
-  if (!orderId) return;
-
-  history.replaceState(null, '', location.pathname); // clean the URL
-  showToast('⏳ Payment verify ho raha hai...');
-
-  const planBefore = userProfile?.plan;
-  for (let i = 0; i < 8; i++) {
-    await new Promise(r => setTimeout(r, 2500));
-    userProfile = await Auth.getProfile(currentUser.id);
-    if (userProfile?.plan && userProfile.plan !== planBefore) {
-      buildPlanGrid();
-      loadSidebar();
-      showToast(`✅ ${XVERSE.PLANS[userProfile.plan]?.name || userProfile.plan} plan activated!`);
-      return;
-    }
-  }
-  showToast('Verifying your payment — your plan will update automatically shortly');
-}
-
-async function cancelMembership() {
-  const ok = await xvConfirm({
-    icon: '💳',
-    title: 'Cancel Membership',
-    message: 'Cancel your membership? Your plan will move to Free.',
-    confirmText: 'Cancel Plan',
-    cancelText: 'Keep Plan',
-    danger: true,
-  });
-  if (!ok) return;
-  Auth.updatePlan(currentUser.id, 'free').then(() => { showToast('Membership cancelled'); buildPlanGrid(); });
 }
 
 // ─────────────────────────────────────────
