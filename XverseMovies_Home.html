@@ -372,17 +372,6 @@ let _cachedRowData = null;
   currentUser = await requireAuth();
   if (!currentUser) return;
 
-  // If signup selected a paid plan, it was never actually charged for
-  // (see index.html — that used to grant the plan for free, now it
-  // just remembers the intent). Send them to the real, verified
-  // upgrade flow once, right after they land here.
-  const pendingSignupPlan = localStorage.getItem('xv_pending_signup_plan');
-  if (pendingSignupPlan) {
-    localStorage.removeItem('xv_pending_signup_plan');
-    window.location.href = 'XverseMovies_Settings.html?upgrade=' + encodeURIComponent(pendingSignupPlan);
-    return;
-  }
-
   currentProfile = Session.getProfile();
   await initNavAvatar('navAvatar');
   await initNavAvatar('mnavProfileAvatar');   // mobile bottom-nav Profile tab (Task: real-Netflix mobile nav)
