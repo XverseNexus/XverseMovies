@@ -404,10 +404,9 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
       <!-- Settings -->
       <div class="fc">
         <div class="fc-title"><div class="fc-ico">⚙️</div> Display Settings</div>
-        <div class="fg c3">
+        <div class="fg">
           <div class="fw"><label>Status</label><select id="mStatus"><option value="active">Active (Visible)</option><option value="inactive">Inactive (Hidden)</option><option value="coming_soon">Coming Soon</option></select></div>
           <div class="fw"><label>Featured in Hero?</label><select id="mFeatured"><option value="false">No</option><option value="true">Yes — Hero banner</option></select></div>
-          <div class="fw"><label>Min Plan to Watch</label><select id="mPlan"><option value="free">Free (All users)</option><option value="hd">HD ₹29+</option><option value="fhd">Full HD ₹49+</option><option value="uhd">4K ₹99 only</option></select></div>
         </div>
         <div class="fg">
           <div class="fw"><label>Age Rating</label><select id="mAge"><option value="U">U — All Ages</option><option value="UA 7+">UA 7+</option><option value="UA 13+">UA 13+</option><option value="UA 16+" selected>UA 16+</option><option value="A/18+">A/18+</option></select></div>
@@ -479,7 +478,6 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
     "cast_text": "Shah Rukh Khan, Deepika Padukone",
     "status": "active",
     "featured": false,
-    "min_plan": "free",
     "age_rating": "UA 16+"
   }
 ]'></textarea>
@@ -882,9 +880,6 @@ if (exists) {
     featured:
       document.getElementById('mFeatured').value === 'true',
 
-    min_plan:
-      document.getElementById('mPlan').value,
-
     age_rating:
       document.getElementById('mAge').value,
 
@@ -1132,21 +1127,9 @@ function fillFormFromTMDB(data, type) {
   const ageRating = mapCertToAge(cert, data.adult, voteAvg, genres);
   set('mAge', ageRating);
 
-  //  MIN PLAN — free for older content, hd for recent, fhd for new blockbusters
   const releaseYear = parseInt(year) || 2000;
   const currentYear = new Date().getFullYear();
   const ageYears    = currentYear - releaseYear;
-  let minPlan = 'free';
-  if (ageYears <= 1 && (pop > 200 || voteCount > 1000)) {
-    minPlan = 'fhd';  // Brand new popular → Full HD plan
-  } else if (ageYears <= 2) {
-    minPlan = 'hd';   // Recent → HD plan
-  }
-  // Override: if genres include adult content → fhd minimum
-  if (genres.some(g => ['Thriller','Horror','Crime'].includes(g)) && ageYears <= 1) {
-    minPlan = 'hd';
-  }
-  set('mPlan', minPlan);
 
   //  TAGS — auto-generate from TMDB keywords + popularity signals
   const kwList   = (data.keywords?.keywords || data.keywords?.results || [])
@@ -1171,7 +1154,7 @@ function fillFormFromTMDB(data, type) {
 
   // Show auto-fill summary toast
   const featMsg = autoFeat ? '⭐ Featured' : '';
-  showToast(`✅ ${title} — Age: ${ageRating}, Plan: ${minPlan.toUpperCase()}${featMsg ? ', ' + featMsg : ''}`);
+  showToast(`✅ ${title} — Age: ${ageRating}${featMsg ? ', ' + featMsg : ''}`);
 }
 
 // ─────────────────────────────────────────
@@ -2081,7 +2064,6 @@ async function bulkImport() {
       cast_text:     m.cast_text || null,
       status:        m.status || 'active',
       featured:      !!m.featured,
-      min_plan:      m.min_plan || 'free',
       age_rating:    m.age_rating || 'UA 16+',
     }));
     const { data, error } = await getSB().from('movies').insert(cleaned).select();
@@ -2115,7 +2097,6 @@ function downloadTemplate() {
       cast_text:"Actor 1, Actor 2",
       status:"active",
       featured:false,
-      min_plan:"free",
       age_rating:"UA 16+"
     },
     {
@@ -2163,13 +2144,13 @@ async function exportCSV() {
 
   const { data } = await getSB()
     .from('movies')
-    .select('id,title,type,year,rating,language,quality,status,embed_url,tmdb_id,poster_url,overview,genres,featured,min_plan,age_rating')
+    .select('id,title,type,year,rating,language,quality,status,embed_url,tmdb_id,poster_url,overview,genres,featured,age_rating')
     .order('created_at', { ascending:false });
 
   const items = data || [];
 
   const headers =
-    'id,title,type,year,rating,language,quality,status,tmdb_id,featured,min_plan,age_rating,embed_url,poster_url,overview,genres';
+    'id,title,type,year,rating,language,quality,status,tmdb_id,featured,age_rating,embed_url,poster_url,overview,genres';
 
   const esc = v => `"${String(v||'').replace(/"/g,'""')}"`;
 
@@ -2184,7 +2165,6 @@ async function exportCSV() {
     m.status,
     m.tmdb_id||'',
     m.featured ? 'true' : 'false',
-    m.min_plan||'free',
     esc(m.age_rating||''),
     esc(m.embed_url||''),
     esc(m.poster_url||''),
