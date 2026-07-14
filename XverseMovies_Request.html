@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Request a Title — XverseMovies</title>
+<meta name="robots" content="noindex, nofollow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="XverseMovies">
+<meta property="og:title" content="Request a Title — XverseMovies">
+<meta property="og:description" content="Can't find a movie or show? Request it — official languages, dubbed audio, subtitles and your choice of quality included.">
+<meta property="og:image" content="https://xverse-movies.vercel.app/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<script>/* SW update → auto-reload */if('serviceWorker'in navigator){var _xvR=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!_xvR){_xvR=true;location.reload();}});}</script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#E50914">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="XverseMovies">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="xverse-config.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --red: #E50914; --red-dark: #B00710; --green: #46d369;
+  --bg: #141414; --bg2: #0a0a0a; --card: #1c1c1c; --card2: #242424;
+  --text: #e5e5e5; --muted: #808080; --border: rgba(255,255,255,.08);
+  --content-max: 1900px;
+  --content-pad: max(4%, calc((100% - var(--content-max)) / 2));
+}
+html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;overflow-x:hidden}
+a{color:inherit}
+
+/* ── NAV ─────────────────────────────────────────────────── */
+nav{position:fixed;top:0;left:0;right:0;z-index:200;height:66px;display:flex;align-items:center;padding:0 var(--content-pad);gap:0;background:rgba(8,8,8,.97);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.logo{font-family:'Bebas Neue',cursive;font-size:1.7rem;color:var(--red);letter-spacing:2px;margin-right:28px;cursor:pointer;text-decoration:none;flex-shrink:0}
+.logo span{color:#fff}
+.nav-links{display:flex;gap:2px;list-style:none}
+.nl{background:none;border:none;color:rgba(255,255,255,.75);font-size:.86rem;font-weight:500;padding:8px 14px;cursor:pointer;font-family:'Barlow',sans-serif;transition:color .2s}
+.nl:hover{color:#fff}
+@media(max-width:640px){.nav-links{display:none}}
+.nav-r{margin-left:auto;display:flex;align-items:center;gap:10px}
+.nav-btn{background:none;border:none;color:#fff;cursor:pointer;font-size:1rem;padding:8px;border-radius:4px;transition:background .2s}
+.nav-btn:hover{background:rgba(255,255,255,.08)}
+.nav-avatar{width:32px;height:32px;border-radius:4px;background:linear-gradient(135deg,var(--red),#831010);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.82rem;cursor:pointer;color:#fff;overflow:hidden;flex-shrink:0}
+
+/* ── PAGE ────────────────────────────────────────────────── */
+#pageWrap{padding-top:66px;max-width:760px;margin:0 auto;padding-left:var(--content-pad);padding-right:var(--content-pad);padding-bottom:60px}
+.page-hd{padding:36px 0 26px}
+.page-tit{font-family:'Bebas Neue',cursive;font-size:clamp(1.8rem,4vw,2.6rem);letter-spacing:1.5px;color:#fff}
+.page-sub{font-size:.9rem;color:var(--muted);margin-top:6px;line-height:1.6}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:22px;margin-bottom:18px}
+.card-tit{font-size:.72rem;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card-tit .stepn{width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;font-size:.68rem;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+
+/* Search box */
+.rs-search-wrap{position:relative}
+.rs-search{width:100%;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);border-radius:6px;padding:12px 40px 12px 14px;color:#fff;font-size:.92rem;font-family:'Barlow',sans-serif;outline:none;transition:border .2s}
+.rs-search:focus{border-color:rgba(255,255,255,.35)}
+.rs-search::placeholder{color:rgba(255,255,255,.32)}
+.rs-search-ico{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.35);pointer-events:none}
+.rs-results{margin-top:10px;max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.rs-result{display:flex;gap:12px;align-items:center;padding:8px;border-radius:6px;cursor:pointer;transition:background .15s}
+.rs-result:hover{background:rgba(255,255,255,.06)}
+.rs-result img{width:42px;height:63px;object-fit:cover;border-radius:4px;background:#2a2a2a;flex-shrink:0}
+.rs-result-info{flex:1;min-width:0}
+.rs-result-title{font-size:.86rem;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rs-result-meta{font-size:.72rem;color:var(--muted);margin-top:2px}
+
+/* Selected title preview */
+.rs-selected{display:flex;gap:14px;align-items:center;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px}
+.rs-selected img{width:56px;height:84px;object-fit:cover;border-radius:5px;background:#2a2a2a;flex-shrink:0}
+.rs-selected-info{flex:1;min-width:0}
+.rs-selected-title{font-size:1rem;font-weight:700;color:#fff}
+.rs-selected-meta{font-size:.78rem;color:var(--muted);margin-top:3px}
+.rs-change-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;padding:7px 14px;border-radius:5px;font-size:.78rem;cursor:pointer;font-family:'Barlow',sans-serif;white-space:nowrap;transition:background .15s}
+.rs-change-btn:hover{background:rgba(255,255,255,.16)}
+
+/* Request type pills */
+.rt-pills{display:flex;gap:10px;flex-wrap:wrap}
+.rt-pill{flex:1;min-width:140px;background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.1);border-radius:8px;padding:14px;cursor:pointer;transition:all .15s;text-align:center}
+.rt-pill:hover{border-color:rgba(255,255,255,.3)}
+.rt-pill.sel{border-color:var(--red);background:rgba(229,9,20,.08)}
+.rt-pill-name{font-size:.88rem;font-weight:700;color:#fff}
+.rt-pill-price{font-family:'Bebas Neue',cursive;font-size:1.3rem;color:var(--red);margin-top:4px;letter-spacing:.5px}
+
+/* Form fields */
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:640px){.fgrid{grid-template-columns:1fr}}
+.fwrap{display:flex;flex-direction:column;gap:6px}
+.fwrap.full{grid-column:1/-1}
+.flbl{font-size:.68rem;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.5px}
+.fsel,.ftxt{background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);color:#fff;padding:10px 12px;font-size:.86rem;border-radius:6px;font-family:'Barlow',sans-serif;cursor:pointer;outline:none;width:100%;transition:border .2s}
+.fsel:focus,.ftxt:focus{border-color:rgba(255,255,255,.32)}
+.fsel option{background:#1a1a1a}
+textarea.ftxt{resize:vertical;min-height:72px;line-height:1.5;cursor:text}
+
+.audio-pills{display:flex;gap:8px}
+.audio-pill{flex:1;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:6px;padding:9px;text-align:center;cursor:pointer;font-size:.82rem;transition:all .15s}
+.audio-pill.sel{border-color:var(--red);background:rgba(229,9,20,.08);color:#fff;font-weight:700}
+
+/* Price summary */
+.price-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0}
+.price-row.total{border-top:1px solid var(--border);margin-top:6px;padding-top:14px;font-weight:700}
+.price-label{font-size:.86rem;color:rgba(255,255,255,.7)}
+.price-val{font-family:'Bebas Neue',cursive;font-size:1.1rem;color:#fff;letter-spacing:.5px}
+.price-row.total .price-val{font-size:1.6rem;color:var(--red)}
+.included-list{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.inc-chip{background:rgba(70,211,105,.1);border:1px solid rgba(70,211,105,.25);color:var(--green);font-size:.7rem;padding:4px 10px;border-radius:20px}
+
+.submit-btn{width:100%;background:var(--red);color:#fff;border:none;padding:14px;border-radius:6px;font-size:.95rem;font-weight:700;cursor:pointer;font-family:'Barlow',sans-serif;transition:background .2s;margin-top:6px}
+.submit-btn:hover{background:var(--red-dark)}
+.submit-btn:disabled{background:#333;color:rgba(255,255,255,.3);cursor:not-allowed}
+.stub-note{text-align:center;font-size:.72rem;color:rgba(245,197,24,.85);margin-top:10px;line-height:1.6}
+
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted);font-size:.86rem}
+
+/* ── MOBILE BOTTOM NAV ───────────────────────────────────── */
+.mob-nav{display:none}
+@media(max-width:640px){
+  .mob-nav{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:500;background:rgba(9,9,9,.97);border-top:1px solid rgba(255,255,255,.08);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);box-sizing:border-box}
+  .mnav-item{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px 2px 8px;text-decoration:none;color:rgba(255,255,255,.42);font-family:'Barlow',sans-serif;transition:color .18s;-webkit-tap-highlight-color:transparent;position:relative;overflow:hidden;box-sizing:border-box}
+  .mnav-item.active{color:#fff}
+  .mnav-item.active::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:20px;height:2px;background:var(--red);border-radius:0 0 3px 3px}
+  .mnav-ico{width:22px;height:22px;fill:currentColor;flex-shrink:0}
+  .mnav-lbl{font-size:.56rem;font-weight:600;letter-spacing:.1px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:clip}
+  .mnav-avatar{width:22px;height:22px;border-radius:4px;background:linear-gradient(135deg,var(--red),#831010);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.6rem;color:#fff;overflow:hidden;flex-shrink:0}
+  #pageWrap{padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="logo" href="XverseMovies_Home.html">Xverse<span>Movies</span></a>
+  <ul class="nav-links">
+    <li><button class="nl" onclick="location.href='XverseMovies_Home.html'">Home</button></li>
+    <li><button class="nl" onclick="location.href='XverseMovies_Browse.html'">Browse</button></li>
+    <li><button class="nl" style="color:#fff;font-weight:700" disabled>Request a Title</button></li>
+  </ul>
+  <div class="nav-r">
+    <button class="nav-btn" title="Search" onclick="location.href='XverseMovies_Search.html'">🔍</button>
+    <div class="nav-avatar" id="navAvatar">U</div>
+  </div>
+</nav>
+
+<div id="pageWrap">
+  <div class="page-hd">
+    <div class="page-tit">Request a Title</div>
+    <div class="page-sub">Can't find a movie or show — or want a better version of one that's already up? Request it. Every request includes all officially available languages, dubbed &amp; original audio, subtitles, and your choice of quality — no add-on charges.</div>
+  </div>
+
+  <!-- STEP 1: TITLE -->
+  <div class="card">
+    <div class="card-tit"><span class="stepn">1</span> Movie / Series Title</div>
+    <div id="rsSearchBlock" class="rs-search-wrap">
+      <input class="rs-search" id="rsInput" type="text" placeholder="Search for a movie or TV show..." autocomplete="off" oninput="onRsInput()">
+      <span class="rs-search-ico">🔍</span>
+      <div class="rs-results" id="rsResults"></div>
+    </div>
+    <div id="rsSelectedBlock" style="display:none">
+      <div class="rs-selected">
+        <img id="rsSelPoster" src="" alt="">
+        <div class="rs-selected-info">
+          <div class="rs-selected-title" id="rsSelTitle"></div>
+          <div class="rs-selected-meta" id="rsSelMeta"></div>
+        </div>
+        <button class="rs-change-btn" onclick="resetTitleSelection()">Change</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: TYPE (only shown once a title is picked) -->
+  <div class="card" id="typeCard" style="display:none">
+    <div class="card-tit"><span class="stepn">2</span> Request Type</div>
+    <div class="rt-pills" id="rtPills"></div>
+    <div class="fwrap full" id="seasonPickWrap" style="display:none;margin-top:14px">
+      <label class="flbl">Which Season?</label>
+      <select class="fsel" id="seasonPick"></select>
+    </div>
+  </div>
+
+  <!-- STEP 3: PREFERENCES -->
+  <div class="card" id="prefCard" style="display:none">
+    <div class="card-tit"><span class="stepn">3</span> Preferences</div>
+    <div class="fgrid">
+      <div class="fwrap">
+        <label class="flbl">Preferred Language</label>
+        <select class="fsel" id="prefLang">
+          <option>Hindi</option><option>English</option><option>Tamil</option><option>Telugu</option>
+          <option>Malayalam</option><option>Kannada</option><option>Bengali</option><option>Marathi</option>
+          <option>Punjabi</option><option>Japanese</option><option>Korean</option><option>Spanish</option>
+          <option>Other (mention in notes)</option>
+        </select>
+      </div>
+      <div class="fwrap">
+        <label class="flbl">Preferred Audio</label>
+        <div class="audio-pills">
+          <div class="audio-pill sel" id="audioOriginal" onclick="selAudio('original')">Original Audio</div>
+          <div class="audio-pill" id="audioDubbed" onclick="selAudio('dubbed')">Official Dubbed</div>
+        </div>
+      </div>
+      <div class="fwrap">
+        <label class="flbl">Preferred Subtitle</label>
+        <select class="fsel" id="prefSub">
+          <option>None</option><option>Hindi</option><option>English</option><option>Tamil</option>
+          <option>Telugu</option><option>Malayalam</option><option>Kannada</option>
+          <option>Other (mention in notes)</option>
+        </select>
+      </div>
+      <div class="fwrap">
+        <label class="flbl">Preferred Quality</label>
+        <select class="fsel" id="prefQuality">
+          <option value="highest" selected>⭐ Highest Available (Recommended)</option>
+          <option value="360p">360p</option>
+          <option value="480p">480p</option>
+          <option value="720p">720p</option>
+          <option value="1080p">1080p</option>
+          <option value="1440p">1440p</option>
+          <option value="2160p">2160p (4K)</option>
+        </select>
+      </div>
+      <div class="fwrap full">
+        <label class="flbl">Additional Notes (optional)</label>
+        <textarea class="ftxt" id="prefNotes" placeholder="Anything else we should know? e.g. a specific dub cast, cut/edition, etc."></textarea>
+      </div>
+    </div>
+    <p style="font-size:.68rem;color:var(--muted);margin-top:2px;line-height:1.6">Only officially released languages, dubs and subtitles will be used — we can't source unofficial fan-dubs. If your preferred option isn't officially available, we'll provide the highest quality official version instead.</p>
+  </div>
+
+  <!-- STEP 4: PRICE + SUBMIT -->
+  <div class="card" id="priceCard" style="display:none">
+    <div class="card-tit"><span class="stepn">4</span> Confirm &amp; Pay</div>
+    <div class="price-row"><span class="price-label" id="priceTypeLabel">Movie Request</span><span class="price-val" id="priceTypeVal">₹9</span></div>
+    <div class="price-row total"><span class="price-label">Total</span><span class="price-val" id="priceTotalVal">₹9</span></div>
+    <div class="included-list">
+      <span class="inc-chip">✓ All languages</span>
+      <span class="inc-chip">✓ Dubbed + Original audio</span>
+      <span class="inc-chip">✓ Subtitles</span>
+      <span class="inc-chip">✓ Your chosen quality</span>
+      <span class="inc-chip">✓ Download support</span>
+    </div>
+    <button class="submit-btn" id="submitBtn" onclick="submitRequest()">Proceed to Payment →</button>
+    <p class="stub-note">🚧 Payment isn't wired up yet — this button won't charge anything. Full Cashfree checkout arrives in the next update.</p>
+  </div>
+</div>
+
+<!-- MOBILE BOTTOM NAV -->
+<nav class="mob-nav" aria-label="Mobile navigation">
+  <a class="mnav-item" href="XverseMovies_Home.html">
+    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+    <span class="mnav-lbl">Home</span>
+  </a>
+  <a class="mnav-item" href="XverseMovies_Browse.html#new">
+    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/></svg>
+    <span class="mnav-lbl">New &amp; Hot</span>
+  </a>
+  <a class="mnav-item" href="XverseMovies_Search.html">
+    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+    <span class="mnav-lbl">Search</span>
+  </a>
+  <a class="mnav-item" href="XverseMovies_MyList.html">
+    <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+    <span class="mnav-lbl">My List</span>
+  </a>
+  <a class="mnav-item" href="javascript:void(0)" id="mnavProfileTab" aria-label="Profile" onclick="document.getElementById('mnavProfileAvatar').click()">
+    <div class="mnav-avatar" id="mnavProfileAvatar">U</div>
+    <span class="mnav-lbl">Profile</span>
+  </a>
+</nav>
+
+<script>
+let currentUser   = null;
+let selectedTitle = null;   // normalized movie/show object once picked
+let requestType   = null;   // 'movie' | 'season' | 'series'
+let audioPref     = 'original';
+let _rsDebounce   = null;
+
+(async () => {
+  currentUser = await requireAuth();
+  if (!currentUser) return;
+  await initNavAvatar('navAvatar');
+  await initNavAvatar('mnavProfileAvatar');
+
+  // Prefill search from ?q= (e.g. linked from Search.html's "no results" state)
+  const q = new URLSearchParams(location.search).get('q');
+  if (q) { document.getElementById('rsInput').value = q; onRsInput(); }
+})();
+
+// ── TITLE SEARCH ──────────────────────────────────────────
+function onRsInput() {
+  const q = document.getElementById('rsInput').value.trim();
+  clearTimeout(_rsDebounce);
+  if (!q) { document.getElementById('rsResults').innerHTML = ''; return; }
+  _rsDebounce = setTimeout(() => doTitleSearch(q), 350);
+}
+
+async function doTitleSearch(q) {
+  const box = document.getElementById('rsResults');
+  box.innerHTML = '<div style="padding:14px;text-align:center;color:var(--muted);font-size:.8rem">Searching…</div>';
+  try {
+    const [dbRes, tmdbRes] = await Promise.all([
+      DB.searchMovies(q).catch(() => []),
+      TMDB.search(q).catch(() => ({ results: [] })),
+    ]);
+    const tmdbNorm = (tmdbRes.results || [])
+      .filter(r => r.media_type === 'movie' || r.media_type === 'tv')
+      .slice(0, 12)
+      .map(r => TMDB.normalize(r));
+    const dbIds = new Set((dbRes || []).map(m => String(m.tmdb_id)));
+    const combined = [...(dbRes || []), ...tmdbNorm.filter(t => !dbIds.has(String(t.tmdb_id)))].slice(0, 15);
+
+    if (!combined.length) {
+      box.innerHTML = '<div class="empty-state">No matches. Try a different spelling, or just describe it in the notes once you continue.</div>';
+      return;
+    }
+    box.innerHTML = combined.map((m, i) => `
+      <div class="rs-result" onclick="pickTitle(${i})">
+        <img src="${m.poster_url || ''}" alt="" onerror="this.style.visibility='hidden'">
+        <div class="rs-result-info">
+          <div class="rs-result-title">${escHtml(m.title)}</div>
+          <div class="rs-result-meta">${m.type === 'tv' ? 'TV Show' : 'Movie'} · ${m.year || '—'}</div>
+        </div>
+      </div>`).join('');
+    window._rsResultsCache = combined;
+  } catch (e) {
+    box.innerHTML = '<div class="empty-state">Search failed — try again.</div>';
+  }
+}
+
+function pickTitle(i) {
+  const m = window._rsResultsCache[i];
+  selectedTitle = m;
+  document.getElementById('rsSearchBlock').style.display  = 'none';
+  document.getElementById('rsSelectedBlock').style.display = 'block';
+  document.getElementById('rsSelPoster').src   = m.poster_url || '';
+  document.getElementById('rsSelTitle').textContent = m.title;
+  document.getElementById('rsSelMeta').textContent  = `${m.type === 'tv' ? 'TV Show' : 'Movie'} · ${m.year || '—'}`;
+
+  buildTypeCard();
+  document.getElementById('typeCard').style.display = 'block';
+  document.getElementById('prefCard').style.display = 'none';
+  document.getElementById('priceCard').style.display = 'none';
+}
+
+function resetTitleSelection() {
+  selectedTitle = null; requestType = null;
+  document.getElementById('rsSearchBlock').style.display  = 'block';
+  document.getElementById('rsSelectedBlock').style.display = 'none';
+  document.getElementById('typeCard').style.display  = 'none';
+  document.getElementById('prefCard').style.display  = 'none';
+  document.getElementById('priceCard').style.display = 'none';
+  document.getElementById('rsInput').value = '';
+  document.getElementById('rsResults').innerHTML = '';
+}
+
+// ── REQUEST TYPE ──────────────────────────────────────────
+function buildTypeCard() {
+  const isTV = selectedTitle.type === 'tv';
+  const pills = document.getElementById('rtPills');
+  if (!isTV) {
+    pills.innerHTML = `<div class="rt-pill sel" onclick="selType('movie',this)"><div class="rt-pill-name">Movie Request</div><div class="rt-pill-price">${XVERSE.REQUEST_PRICES.movie.priceLabel}</div></div>`;
+    selType('movie', pills.firstElementChild);
+  } else {
+    pills.innerHTML = `
+      <div class="rt-pill" onclick="selType('season',this)"><div class="rt-pill-name">Specific Season</div><div class="rt-pill-price">${XVERSE.REQUEST_PRICES.season.priceLabel}</div></div>
+      <div class="rt-pill" onclick="selType('series',this)"><div class="rt-pill-name">Complete Series</div><div class="rt-pill-price">${XVERSE.REQUEST_PRICES.series.priceLabel}</div></div>`;
+  }
+}
+
+async function selType(t, el) {
+  requestType = t;
+  document.querySelectorAll('.rt-pill').forEach(node => node.classList.remove('sel'));
+  if (el) el.classList.add('sel');
+
+  const seasonWrap = document.getElementById('seasonPickWrap');
+  if (t === 'season') {
+    seasonWrap.style.display = 'block';
+    await populateSeasonPicker();
+  } else {
+    seasonWrap.style.display = 'none';
+  }
+
+  document.getElementById('prefCard').style.display = 'block';
+  updatePriceCard();
+  document.getElementById('priceCard').style.display = 'block';
+}
+
+async function populateSeasonPicker() {
+  const sel = document.getElementById('seasonPick');
+  sel.innerHTML = '<option>Loading…</option>';
+  try {
+    const details = await TMDB.tvDetails(selectedTitle.tmdb_id);
+    const seasons = (details.seasons || []).filter(s => s.season_number > 0);
+    sel.innerHTML = seasons.length
+      ? seasons.map(s => `<option value="${s.season_number}">Season ${s.season_number}${s.name && !/season\s*\d+/i.test(s.name) ? ' — ' + escHtml(s.name) : ''}</option>`).join('')
+      : '<option value="1">Season 1</option>';
+  } catch {
+    sel.innerHTML = '<option value="1">Season 1</option>';
+  }
+}
+
+function selAudio(a) {
+  audioPref = a;
+  document.getElementById('audioOriginal').classList.toggle('sel', a === 'original');
+  document.getElementById('audioDubbed').classList.toggle('sel', a === 'dubbed');
+}
+
+function updatePriceCard() {
+  const meta = XVERSE.REQUEST_PRICES[requestType];
+  document.getElementById('priceTypeLabel').textContent = meta.label;
+  document.getElementById('priceTypeVal').textContent   = meta.priceLabel;
+  document.getElementById('priceTotalVal').textContent  = meta.priceLabel;
+}
+
+// ── SUBMIT (stub — Phase 4.4 wires real Cashfree checkout) ──
+function submitRequest() {
+  if (!selectedTitle || !requestType) { showToast('⚠️ Please pick a title and request type first'); return; }
+  showToast('🚧 Payment integration is coming in the next update — nothing was charged.');
+}
+
+function escHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+</script>
+</body>
+</html>
