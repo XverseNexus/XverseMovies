@@ -29,6 +29,17 @@ const XVERSE = {
     season: { label: 'Season Request',           price: 29, priceLabel: '₹29' },
     series: { label: 'Complete Web Series Request', price: 59, priceLabel: '₹59' },
   },
+
+  // Shared status metadata so "My Requests" and the Admin panel always
+  // show the same label/color/order for a given status.
+  REQUEST_STATUS: {
+    pending:    { label: 'Pending',    color: '#f5c518', order: 0 },
+    accepted:   { label: 'Accepted',   color: '#64b5f6', order: 1 },
+    processing: { label: 'Processing', color: '#ba68c8', order: 2 },
+    uploading:  { label: 'Uploading',  color: '#4dd0e1', order: 3 },
+    completed:  { label: 'Completed',  color: '#46d369', order: 4 },
+    rejected:   { label: 'Rejected',   color: '#E50914', order: 5 },
+  },
 };
 
 // ─────────────────────────────────────────────────────────
@@ -244,6 +255,61 @@ const DB = {
   async deleteRating(uid, tmdbId, mediaType) {
     return getSB().from('ratings')
       .delete().eq('user_id', uid).eq('tmdb_id', tmdbId).eq('media_type', mediaType || 'movie');
+  },
+
+  // ── REQUESTS (Pay-Per-Request system, Phase 4) ───────
+  // Rows are only ever created server-side by the Cashfree webhook
+  // (Phase 4.4) after payment is confirmed — there is no client-side
+  // "create request" call here on purpose.
+  async getUserRequests(uid) {
+    const { data, error } = await getSB()
+      .from('requests')
+      .select('*')
+      .eq('user_id', uid)
+      .order('created_at', { ascending: false });
+    if (error) { console.error('getUserRequests:', error); return []; }
+    return data || [];
+  },
+
+  async getRequest(id) {
+    const { data, error } = await getSB()
+      .from('requests')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) { console.error('getRequest:', error); return null; }
+    return data;
+  },
+
+  // ── ADMIN: REQUESTS ───────────────────────────────────
+  // RLS also enforces the admin/moderator check server-side — these
+  // just fail gracefully (empty/error) for a non-admin caller.
+  async getAllRequests({ status = null, search = '' } = {}) {
+    let q = getSB().from('requests').select('*').order('created_at', { ascending: false });
+    if (status) q = q.eq('status', status);
+    if (search) q = q.or(`title.ilike.%${search}%,user_email.ilike.%${search}%,user_name.ilike.%${search}%`);
+    const { data, error } = await q;
+    if (error) { console.error('getAllRequests:', error); return []; }
+    return data || [];
+  },
+
+  async updateRequestStatus(id, status) {
+    return getSB().from('requests').update({ status }).eq('id', id);
+  },
+
+  async updateRequestLinks(id, { watch_url, download_url } = {}) {
+    const patch = {};
+    if (watch_url   !== undefined) patch.watch_url   = watch_url;
+    if (download_url !== undefined) patch.download_url = download_url;
+    return getSB().from('requests').update(patch).eq('id', id);
+  },
+
+  async updateRequestNotes(id, admin_notes) {
+    return getSB().from('requests').update({ admin_notes }).eq('id', id);
+  },
+
+  async updateRequestFull(id, patch) {
+    return getSB().from('requests').update(patch).eq('id', id);
   },
 
   // ── WATCH HISTORY ────────────────────────────────────
