@@ -450,7 +450,10 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
     <div class="nr-ico">🎬</div>
     <div class="nr-title">No results found</div>
     <div class="nr-sub" id="noResultsSub">Try a different search term or browse by category below.</div>
-    <button class="nr-btn" onclick="clearSearch()">Clear Search</button>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:8px">
+      <button class="nr-btn" style="background:transparent;border:1.5px solid rgba(255,255,255,.25);color:#fff" onclick="clearSearch()">Clear Search</button>
+      <button class="nr-btn" onclick="location.href='XverseMovies_Request.html?q='+encodeURIComponent(_query)">Request This Title</button>
+    </div>
   </div>
 
 </main>
