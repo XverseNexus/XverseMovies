@@ -230,9 +230,18 @@ textarea.ftxt{resize:vertical;min-height:72px;line-height:1.5;cursor:text}
     <p style="font-size:.68rem;color:var(--muted);margin-top:2px;line-height:1.6">Only officially released languages, dubs and subtitles will be used — we can't source unofficial fan-dubs. If your preferred option isn't officially available, we'll provide the highest quality official version instead.</p>
   </div>
 
-  <!-- STEP 4: PRICE + SUBMIT -->
+  <!-- STEP 4: CONTACT (needed for payment receipt) -->
+  <div class="card" id="contactCard" style="display:none">
+    <div class="card-tit"><span class="stepn">4</span> Contact Number</div>
+    <div class="fwrap">
+      <label class="flbl">Phone Number (for payment receipt &amp; delivery updates)</label>
+      <input class="ftxt" id="prefPhone" type="tel" placeholder="10-digit mobile number" maxlength="10" inputmode="numeric">
+    </div>
+  </div>
+
+  <!-- STEP 5: PRICE + SUBMIT -->
   <div class="card" id="priceCard" style="display:none">
-    <div class="card-tit"><span class="stepn">4</span> Confirm &amp; Pay</div>
+    <div class="card-tit"><span class="stepn">5</span> Confirm &amp; Pay</div>
     <div class="price-row"><span class="price-label" id="priceTypeLabel">Movie Request</span><span class="price-val" id="priceTypeVal">₹9</span></div>
     <div class="price-row total"><span class="price-label">Total</span><span class="price-val" id="priceTotalVal">₹9</span></div>
     <div class="included-list">
@@ -243,8 +252,17 @@ textarea.ftxt{resize:vertical;min-height:72px;line-height:1.5;cursor:text}
       <span class="inc-chip">✓ Download support</span>
     </div>
     <button class="submit-btn" id="submitBtn" onclick="submitRequest()">Proceed to Payment →</button>
-    <p class="stub-note">🚧 Payment isn't wired up yet — this button won't charge anything. Full Cashfree checkout arrives in the next update.</p>
+    <p class="stub-note" style="color:rgba(255,255,255,.4)">🔒 Secure checkout powered by Cashfree Payments. You'll be redirected to complete payment.</p>
+    <p class="stub-note" style="color:rgba(255,255,255,.4)">Your request is created only after payment is confirmed — see our <a href="XverseMovies_Refund.html" style="color:inherit">Refund Policy</a>.</p>
   </div>
+</div>
+
+<!-- PAYMENT VERIFICATION OVERLAY -->
+<div id="verifyOverlay" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.94);align-items:center;justify-content:center;flex-direction:column;gap:14px;text-align:center;padding:24px">
+  <div id="verifyIcon" style="font-size:3rem">⏳</div>
+  <div id="verifyTitle" style="font-family:'Bebas Neue',cursive;font-size:1.6rem;color:#fff;letter-spacing:.5px">Verifying your payment…</div>
+  <div id="verifySub" style="color:var(--muted);font-size:.85rem;max-width:340px;line-height:1.6">This usually takes a few seconds. Please don't close this page.</div>
+  <button id="verifyDoneBtn" style="display:none;background:var(--red);color:#fff;border:none;padding:12px 28px;border-radius:6px;font-weight:700;cursor:pointer;margin-top:10px;font-family:'Barlow',sans-serif;font-size:.88rem">Go to Home</button>
 </div>
 
 <!-- MOBILE BOTTOM NAV -->
@@ -284,10 +302,51 @@ let _rsDebounce   = null;
   await initNavAvatar('navAvatar');
   await initNavAvatar('mnavProfileAvatar');
 
+  // Returning from Cashfree checkout — verify and show the outcome
+  const orderId = new URLSearchParams(location.search).get('order_id');
+  if (orderId) {
+    history.replaceState(null, '', location.pathname);
+    const reqId = orderId.replace(/^req_/, '');
+    pollRequestPaymentStatus(reqId);
+    return;
+  }
+
   // Prefill search from ?q= (e.g. linked from Search.html's "no results" state)
   const q = new URLSearchParams(location.search).get('q');
   if (q) { document.getElementById('rsInput').value = q; onRsInput(); }
 })();
+
+async function pollRequestPaymentStatus(reqId) {
+  const overlay = document.getElementById('verifyOverlay');
+  overlay.style.display = 'flex';
+  for (let i = 0; i < 10; i++) {
+    const row = await DB.getRequest(reqId);
+    if (row?.payment_status === 'paid') {
+      document.getElementById('verifyIcon').textContent = '✅';
+      document.getElementById('verifyTitle').textContent = 'Request Submitted!';
+      document.getElementById('verifySub').textContent = `Your ${XVERSE.REQUEST_PRICES[row.request_type]?.label || 'request'} for "${row.title}" is now pending review. We'll notify you as it progresses.`;
+      const btn = document.getElementById('verifyDoneBtn');
+      btn.style.display = 'inline-block'; btn.textContent = 'Great, take me Home';
+      btn.onclick = () => location.href = 'XverseMovies_Home.html';
+      return;
+    }
+    if (row?.payment_status === 'failed') {
+      document.getElementById('verifyIcon').textContent = '❌';
+      document.getElementById('verifyTitle').textContent = 'Payment Failed';
+      document.getElementById('verifySub').textContent = 'Your payment did not go through. No amount was charged. Please try again.';
+      const btn = document.getElementById('verifyDoneBtn');
+      btn.style.display = 'inline-block'; btn.textContent = 'Try Again';
+      btn.onclick = () => location.href = 'XverseMovies_Request.html';
+      return;
+    }
+    await new Promise(r => setTimeout(r, 2000));
+  }
+  document.getElementById('verifyTitle').textContent = 'Still Verifying…';
+  document.getElementById('verifySub').textContent = "This is taking longer than usual. If your payment succeeded, it'll be reflected shortly.";
+  const btn = document.getElementById('verifyDoneBtn');
+  btn.style.display = 'inline-block'; btn.textContent = 'Go to Home';
+  btn.onclick = () => location.href = 'XverseMovies_Home.html';
+}
 
 // ── TITLE SEARCH ──────────────────────────────────────────
 function onRsInput() {
@@ -342,6 +401,7 @@ function pickTitle(i) {
   buildTypeCard();
   document.getElementById('typeCard').style.display = 'block';
   document.getElementById('prefCard').style.display = 'none';
+  document.getElementById('contactCard').style.display = 'none';
   document.getElementById('priceCard').style.display = 'none';
 }
 
@@ -351,6 +411,7 @@ function resetTitleSelection() {
   document.getElementById('rsSelectedBlock').style.display = 'none';
   document.getElementById('typeCard').style.display  = 'none';
   document.getElementById('prefCard').style.display  = 'none';
+  document.getElementById('contactCard').style.display = 'none';
   document.getElementById('priceCard').style.display = 'none';
   document.getElementById('rsInput').value = '';
   document.getElementById('rsResults').innerHTML = '';
@@ -384,6 +445,7 @@ async function selType(t, el) {
   }
 
   document.getElementById('prefCard').style.display = 'block';
+  document.getElementById('contactCard').style.display = 'block';
   updatePriceCard();
   document.getElementById('priceCard').style.display = 'block';
 }
@@ -416,9 +478,75 @@ function updatePriceCard() {
 }
 
 // ── SUBMIT (stub — Phase 4.4 wires real Cashfree checkout) ──
-function submitRequest() {
+let _cfSdkPromise = null;
+function loadCashfreeSDK() {
+  if (window.Cashfree) return Promise.resolve();
+  if (_cfSdkPromise) return _cfSdkPromise;
+  _cfSdkPromise = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+  return _cfSdkPromise;
+}
+
+async function submitRequest() {
   if (!selectedTitle || !requestType) { showToast('⚠️ Please pick a title and request type first'); return; }
-  showToast('🚧 Payment integration is coming in the next update — nothing was charged.');
+
+  const phone = document.getElementById('prefPhone').value.trim();
+  if (!/^\d{10}$/.test(phone)) { showToast('⚠️ Please enter a valid 10-digit phone number'); return; }
+
+  const seasonNumber = requestType === 'season'
+    ? parseInt(document.getElementById('seasonPick').value, 10) || 1
+    : null;
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = 'Starting payment…';
+
+  try {
+    const payload = {
+      uid:   currentUser.id,
+      email: currentUser.email,
+      name:  Session.getProfile()?.name || currentUser.email?.split('@')[0] || 'User',
+      phone,
+      title:              selectedTitle.title,
+      request_type:       requestType,
+      tmdb_id:            selectedTitle.tmdb_id || null,
+      poster_url:         selectedTitle.poster_url || null,
+      season_number:      seasonNumber,
+      preferred_language: document.getElementById('prefLang').value,
+      preferred_audio:    audioPref,
+      preferred_subtitle: document.getElementById('prefSub').value,
+      preferred_quality:  document.getElementById('prefQuality').value,
+      notes:              document.getElementById('prefNotes').value.trim() || null,
+    };
+
+    const res = await fetch('/api/create-request-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+
+    if (!res.ok || !data.payment_session_id) {
+      showToast('⚙️ ' + (data.error || 'Could not start payment — please try again'));
+      btn.disabled = false; btn.textContent = 'Proceed to Payment →';
+      return;
+    }
+
+    await loadCashfreeSDK();
+    const cashfree = window.Cashfree({ mode: XVERSE.CASHFREE_ENV === 'production' ? 'production' : 'sandbox' });
+    cashfree.checkout({
+      paymentSessionId: data.payment_session_id,
+      redirectTarget: '_self',
+    });
+  } catch (err) {
+    console.error('submitRequest error:', err);
+    showToast('❌ Could not start payment, please try again');
+    btn.disabled = false; btn.textContent = 'Proceed to Payment →';
+  }
 }
 
 function escHtml(s) {
