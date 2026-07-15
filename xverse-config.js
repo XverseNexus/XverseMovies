@@ -266,6 +266,7 @@ const DB = {
       .from('requests')
       .select('*')
       .eq('user_id', uid)
+      .eq('payment_status', 'paid')
       .order('created_at', { ascending: false });
     if (error) { console.error('getUserRequests:', error); return []; }
     return data || [];
@@ -285,7 +286,7 @@ const DB = {
   // RLS also enforces the admin/moderator check server-side — these
   // just fail gracefully (empty/error) for a non-admin caller.
   async getAllRequests({ status = null, search = '' } = {}) {
-    let q = getSB().from('requests').select('*').order('created_at', { ascending: false });
+    let q = getSB().from('requests').select('*').eq('payment_status', 'paid').order('created_at', { ascending: false });
     if (status) q = q.eq('status', status);
     if (search) q = q.or(`title.ilike.%${search}%,user_email.ilike.%${search}%,user_name.ilike.%${search}%`);
     const { data, error } = await q;
