@@ -703,6 +703,11 @@ window.addEventListener('orientationchange', function() {
     Ratings.injectStyles();
     await Ratings.init(currentUser.id);
     document.getElementById('thumbsSlot').innerHTML = Ratings.thumbsHTML(movie.tmdb_id, movie.type, 'sm');
+
+    // Personal fulfilled-request override (see xverse-config.js:
+    // DB.getMyRequestOverride for how this stays scoped to just this user).
+    const myOverride = await DB.getMyRequestOverride(currentUser.id, movie.tmdb_id, movie.type, urlSeason);
+    if (myOverride) movie.embed_url = myOverride;
   }
 
   loadVideo(movie);
