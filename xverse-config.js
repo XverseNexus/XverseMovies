@@ -645,7 +645,7 @@ async function initNavAvatar(avatarElId = 'navAvatar') {
 
     const rect        = el.getBoundingClientRect();
     const menu        = document.createElement('div');
-    const menuHeight  = 270; // approx — header + 5 items
+    const menuHeight  = 310; // approx — header + 6 items
     const openUpward  = (window.innerHeight - rect.bottom) < (menuHeight + 16);
     menu.id    = menuId;
     menu.style.cssText = `position:fixed;
@@ -682,6 +682,7 @@ async function initNavAvatar(avatarElId = 'navAvatar') {
       </div>
       <button class="xvm-item" onclick="window.location.href='XverseMovies_Settings.html'">⚙️ &nbsp;Account Settings</button>
       <button class="xvm-item" onclick="window.location.href='XverseMovies_Request.html'">🎬 &nbsp;Request a Title</button>
+      <button class="xvm-item" onclick="window.location.href='XverseMovies_MyRequests.html'">📋 &nbsp;My Requests</button>
       <button class="xvm-item" onclick="xvSwitchProfile()">👥 &nbsp;Switch Profile</button>
       <button class="xvm-item" id="xvm-admin-btn" style="display:none" onclick="window.location.href='XverseMovies_Admin.html'">🛡️ &nbsp;Admin Panel</button>
       <div class="xvm-sep"></div>
