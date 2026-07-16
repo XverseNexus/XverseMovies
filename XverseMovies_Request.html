@@ -326,8 +326,8 @@ async function pollRequestPaymentStatus(reqId) {
       document.getElementById('verifyTitle').textContent = 'Request Submitted!';
       document.getElementById('verifySub').textContent = `Your ${XVERSE.REQUEST_PRICES[row.request_type]?.label || 'request'} for "${row.title}" is now pending review. We'll notify you as it progresses.`;
       const btn = document.getElementById('verifyDoneBtn');
-      btn.style.display = 'inline-block'; btn.textContent = 'Great, take me Home';
-      btn.onclick = () => location.href = 'XverseMovies_Home.html';
+      btn.style.display = 'inline-block'; btn.textContent = 'View My Requests';
+      btn.onclick = () => location.href = 'XverseMovies_MyRequests.html';
       return;
     }
     if (row?.payment_status === 'failed') {
