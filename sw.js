@@ -3,7 +3,7 @@
 //  Handles: offline support, app shell caching, background sync
 // ═══════════════════════════════════════════════════════════
 
-const CACHE_NAME    = 'xverse-v24';
+const CACHE_NAME    = 'xverse-v25';
 const SHELL_TIMEOUT = 3000; // ms before falling back to cache
 
 // App shell — these files are cached on install
@@ -16,6 +16,7 @@ const APP_SHELL = [
   '/XverseMovies_Search.html',
   '/XverseMovies_Settings.html',
   '/XverseMovies_Request.html',
+  '/XverseMovies_MyRequests.html',
   '/xverse-config.js',
   '/manifest.json',
   '/favicon.png',
