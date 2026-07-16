@@ -243,6 +243,8 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
     <button class="sbtn" onclick="nav('bulk',this)"><span class="sbico">📥</span> Bulk Import</button>
     <button class="sbtn" onclick="nav('export',this)"><span class="sbico">💾</span> Export Data</button>
     <button class="sbtn" id="sbModBtn" onclick="nav('moderators',this)" style="display:none"><span class="sbico">🛡️</span> Moderators</button>
+    <div class="sblbl">Requests</div>
+    <button class="sbtn" onclick="nav('requests',this)"><span class="sbico">📋</span> Manage Requests <span class="sbcnt" id="sbReqCnt">0</span></button>
   </aside>
 
   <main class="main">
@@ -532,6 +534,33 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
       </div>
     </div>
 
+    <!-- REQUESTS -->
+    <div class="panel" id="panel-requests">
+      <div class="ptit">Manage Requests</div>
+      <div class="psub">Review, fulfill, and track user Pay-Per-Request submissions</div>
+
+      <div class="fc" style="margin-bottom:16px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <input type="text" id="reqSearch" class="fi" placeholder="Search by title, name or email..."
+            style="flex:2;min-width:200px" onkeydown="if(event.key==='Enter')loadRequests()">
+          <select id="reqStatusFilter" class="fsel" style="flex:1;min-width:150px" onchange="loadRequests()">
+            <option value="">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="accepted">Accepted</option>
+            <option value="processing">Processing</option>
+            <option value="uploading">Uploading</option>
+            <option value="completed">Completed</option>
+            <option value="rejected">Rejected</option>
+          </select>
+          <button class="btn-add" onclick="loadRequests()" style="flex-shrink:0">🔍 Search</button>
+        </div>
+      </div>
+
+      <div id="reqList">
+        <div style="font-size:.8rem;color:var(--muted)">Loading...</div>
+      </div>
+    </div>
+
     <!-- UNAVAILABLE CHECKER -->
     <div class="panel" id="panel-unavailable">
       <div class="ptit">Check Unavailable</div>
@@ -672,6 +701,7 @@ function nav(name, btn) {
   if (name === 'dashboard')   loadDashboard();
   if (name === 'export')      loadExportCount();
   if (name === 'moderators')  loadModerators();
+  if (name === 'requests')    loadRequests();
   if (name === 'unavailable') { document.getElementById('unavailableResults').innerHTML=''; document.getElementById('checkStatus').textContent=''; document.getElementById('checkProgress').style.display='none'; }
 }
 
@@ -1704,6 +1734,98 @@ async function removeModerator(uid, name) {
   showToast(`✅ Removed ${name}'s moderator access`);
   loadModerators();
 }
+
+// ─────────────────────────────────────────
+//  REQUESTS (Phase 4.6)
+// ─────────────────────────────────────────
+async function loadRequests() {
+  const el = document.getElementById('reqList');
+  el.innerHTML = `<div class="sk" style="height:200px;border-radius:6px"></div>`;
+
+  const status = document.getElementById('reqStatusFilter').value;
+  const search = document.getElementById('reqSearch').value.trim();
+  const items  = await DB.getAllRequests({ status: status || null, search });
+
+  const cntEl = document.getElementById('sbReqCnt');
+  if (cntEl) {
+    const pendingCount = items.filter(r => r.status === 'pending').length;
+    cntEl.textContent = pendingCount;
+    cntEl.style.display = pendingCount ? 'inline-block' : 'none';
+  }
+
+  if (!items.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-ico">📋</div><div style="font-size:.84rem;color:var(--muted)">No requests found</div></div>`;
+    return;
+  }
+
+  el.innerHTML = items.map(r => reqCardHTML(r)).join('');
+}
+
+function reqCardHTML(r) {
+  const st = XVERSE.REQUEST_STATUS[r.status] || { label: r.status, color: '#888' };
+  const typeLabel = r.request_type === 'season'
+    ? `Season ${r.season_number || ''}`.trim()
+    : (XVERSE.REQUEST_PRICES[r.request_type]?.label || r.request_type);
+  const date = new Date(r.created_at).toLocaleString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  const statuses = ['pending','accepted','processing','uploading','completed','rejected'];
+
+  return `
+    <div class="unavail-row" style="align-items:flex-start;flex-direction:column;gap:10px" id="reqCard-${r.id}">
+      <div style="display:flex;gap:12px;width:100%;flex-wrap:wrap">
+        <img src="${escAttr(r.poster_url||'')}" onerror="this.style.visibility='hidden'" style="width:52px;height:78px;object-fit:cover;border-radius:5px;background:#2a2a2a;flex-shrink:0">
+        <div style="flex:1;min-width:180px">
+          <div style="font-weight:700;color:#fff;font-size:.92rem">${escHtml(r.title)}</div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:3px">${escHtml(typeLabel)} · ₹${r.price} · ${escHtml(r.preferred_language||'—')} · ${r.preferred_quality==='highest'?'⭐ Highest':escHtml(r.preferred_quality||'—')}</div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:2px">👤 ${escHtml(r.user_name||'Unknown')} (${escHtml(r.user_email||'')})</div>
+          <div style="font-size:.68rem;color:rgba(255,255,255,.35);margin-top:2px">${date}</div>
+          ${r.notes ? `<div style="font-size:.72rem;color:rgba(255,255,255,.5);margin-top:4px;font-style:italic">"${escHtml(r.notes)}"</div>` : ''}
+        </div>
+        <span class="esrc" style="background:${st.color}22;border-color:${st.color}55;color:${st.color};align-self:flex-start">● ${escHtml(st.label)}</span>
+      </div>
+
+      <div style="display:flex;gap:6px;flex-wrap:wrap;width:100%">
+        ${statuses.map(s => `<button onclick="setReqStatus('${r.id}','${s}')" style="background:${r.status===s?XVERSE.REQUEST_STATUS[s].color+'33':'rgba(255,255,255,.05)'};border:1px solid ${r.status===s?XVERSE.REQUEST_STATUS[s].color+'88':'rgba(255,255,255,.12)'};color:${r.status===s?XVERSE.REQUEST_STATUS[s].color:'rgba(255,255,255,.6)'};padding:5px 11px;border-radius:5px;cursor:pointer;font-size:.7rem;font-weight:600;font-family:'Barlow',sans-serif">${XVERSE.REQUEST_STATUS[s].label}</button>`).join('')}
+      </div>
+
+      <div class="fg" style="width:100%;margin-bottom:0">
+        <div class="fw"><label style="font-size:.68rem">Watch URL</label><input type="text" id="reqWatch-${r.id}" value="${escAttr(r.watch_url||'')}" placeholder="https://...">
+        </div>
+        <div class="fw"><label style="font-size:.68rem">Download URL</label><input type="text" id="reqDownload-${r.id}" value="${escAttr(r.download_url||'')}" placeholder="https://...">
+        </div>
+      </div>
+      <div class="fw" style="width:100%">
+        <label style="font-size:.68rem">Admin Notes (internal, not shown to user's requests list beyond status)</label>
+        <textarea id="reqNotes-${r.id}" placeholder="Internal notes...">${escHtml(r.admin_notes||'')}</textarea>
+      </div>
+      <button class="btn-add" onclick="saveReqDetails('${r.id}')" style="align-self:flex-end">💾 Save Links &amp; Notes</button>
+    </div>`;
+}
+
+async function setReqStatus(id, status) {
+  const { error } = await DB.updateRequestStatus(id, status);
+  if (error) { showToast('❌ Could not update status'); return; }
+  showToast(`✅ Marked as ${XVERSE.REQUEST_STATUS[status].label}`);
+  loadRequests();
+}
+
+async function saveReqDetails(id) {
+  const watch_url    = document.getElementById(`reqWatch-${id}`).value.trim();
+  const download_url = document.getElementById(`reqDownload-${id}`).value.trim();
+  const admin_notes  = document.getElementById(`reqNotes-${id}`).value.trim();
+
+  const { error } = await DB.updateRequestFull(id, {
+    watch_url: watch_url || null,
+    download_url: download_url || null,
+    admin_notes: admin_notes || null,
+  });
+  if (error) { showToast('❌ Could not save changes'); return; }
+  showToast('✅ Saved');
+}
+
+function escHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escAttr(s) { return escHtml(s); }
 
 //  TABLE
 // ─────────────────────────────────────────
