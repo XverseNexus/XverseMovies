@@ -1788,7 +1788,7 @@ function reqCardHTML(r) {
       </div>
 
       <div class="fg" style="width:100%;margin-bottom:0">
-        <div class="fw"><label style="font-size:.68rem">Watch URL</label><input type="text" id="reqWatch-${r.id}" value="${escAttr(r.watch_url||'')}" placeholder="https://...">
+        <div class="fw"><label style="font-size:.68rem">Watch URL (becomes this user's personal embed for this title site-wide — others still see the normal version)</label><input type="text" id="reqWatch-${r.id}" value="${escAttr(r.watch_url||'')}" placeholder="https://...">
         </div>
         <div class="fw"><label style="font-size:.68rem">Download URL</label><input type="text" id="reqDownload-${r.id}" value="${escAttr(r.download_url||'')}" placeholder="https://...">
         </div>
