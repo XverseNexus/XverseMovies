@@ -282,6 +282,40 @@ const DB = {
     return data;
   },
 
+  // Personal "fulfilled request" override for playback. If this user has
+  // a completed, paid request for this exact title (matching season, for
+  // season-specific requests) with a watch_url attached, that becomes
+  // THEIR embed for this title everywhere on the site — everyone else
+  // still gets the normal shared embed_url. This is how "Chintu requested
+  // Bahubali, admin uploaded a special version just for him, later Mintu
+  // requests the same title and gets his own access too" works without
+  // needing a separate access-grants table — the requests table already
+  // is the grant.
+  async getMyRequestOverride(uid, tmdbId, mediaType, seasonNumber) {
+    if (!uid || !tmdbId) return null;
+    const { data, error } = await getSB()
+      .from('requests')
+      .select('watch_url, request_type, season_number')
+      .eq('user_id', uid)
+      .eq('tmdb_id', tmdbId)
+      .eq('payment_status', 'paid')
+      .eq('status', 'completed')
+      .not('watch_url', 'is', null)
+      .order('updated_at', { ascending: false });
+    if (error) { console.error('getMyRequestOverride:', error); return null; }
+    if (!data?.length) return null;
+
+    const match = data.find(r => {
+      if (mediaType === 'tv') {
+        if (r.request_type === 'series') return true;
+        if (r.request_type === 'season') return r.season_number === seasonNumber;
+        return false;
+      }
+      return r.request_type === 'movie';
+    });
+    return match?.watch_url || null;
+  },
+
   // ── ADMIN: REQUESTS ───────────────────────────────────
   // RLS also enforces the admin/moderator check server-side — these
   // just fail gracefully (empty/error) for a non-admin caller.
