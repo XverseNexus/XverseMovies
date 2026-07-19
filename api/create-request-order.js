@@ -12,7 +12,7 @@
 
 // Prices are looked up server-side ONLY — never trust a price sent by
 // the browser, or anyone could pay ₹1 for a ₹59 request by editing the
-// request body. Keep this in sync with xverse-config.js's REQUEST_PRICES.
+// request body. Keep this in sync with xwerse-config.js's REQUEST_PRICES.
 const REQUEST_PRICES = {
   movie:  9,
   season: 29,
@@ -120,12 +120,12 @@ module.exports = async function handler(req, res) {
         order_currency: 'INR',
         customer_details: {
           customer_id: uid,
-          customer_name: name || 'XverseMovies User',
+          customer_name: name || 'XwerseMovies User',
           customer_email: email,
           customer_phone: phone,
         },
         order_meta: {
-          return_url: `${SITE_URL}/XverseMovies_Request.html?order_id=${orderId}`,
+          return_url: `${SITE_URL}/XwerseMovies_Request.html?order_id=${orderId}`,
           notify_url: `${SITE_URL}/api/cashfree-request-webhook`,
         },
         order_note: `${request_type} request: ${title}`,
