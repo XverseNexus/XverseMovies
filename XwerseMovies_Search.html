@@ -3,22 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
-<title>XverseMovies — Search</title>
+<title>XwerseMovies — Search</title>
 <!-- Open Graph / social sharing preview -->
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="XverseMovies">
-<meta property="og:title" content="Search — XverseMovies">
-<meta property="og:description" content="Search thousands of movies and TV shows on XverseMovies.">
-<meta property="og:image" content="https://xverse-movies.vercel.app/og-image.png">
+<meta property="og:site_name" content="XwerseMovies">
+<meta property="og:title" content="Search — XwerseMovies">
+<meta property="og:description" content="Search thousands of movies and TV shows on XwerseMovies.">
+<meta property="og:image" content="https://xwerse-movies.vercel.app/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:url" content="https://xverse-movies.vercel.app/XverseMovies_Search.html">
+<meta property="og:url" content="https://xwerse-movies.vercel.app/XwerseMovies_Search.html">
 <meta property="og:locale" content="en_IN">
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Search — XverseMovies">
-<meta name="twitter:description" content="Search thousands of movies and TV shows on XverseMovies.">
-<meta name="twitter:image" content="https://xverse-movies.vercel.app/og-image.png">
+<meta name="twitter:title" content="Search — XwerseMovies">
+<meta name="twitter:description" content="Search thousands of movies and TV shows on XwerseMovies.">
+<meta name="twitter:image" content="https://xwerse-movies.vercel.app/og-image.png">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="manifest" href="manifest.json">
@@ -28,7 +28,7 @@
 <!-- SW auto-reload on new deploy -->
 <script>if('serviceWorker'in navigator){var _xvR=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!_xvR){_xvR=true;location.reload();}});}</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="xverse-config.js"></script>
+<script src="xwerse-config.js"></script>
 <style>
 :root{
       /* Brand */
@@ -383,21 +383,21 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
 
 <!-- NAV -->
 <nav id="mainNav">
-  <a class="logo" href="XverseMovies_Home.html">Xverse<span>Movies</span></a>
+  <a class="logo" href="XwerseMovies_Home.html">Xwerse<span>Movies</span></a>
   <ul class="nav-links">
-    <li><button class="nav-link" onclick="location.href='XverseMovies_Home.html'">Home</button></li>
-    <li><button class="nav-link" onclick="location.href='XverseMovies_Browse.html#tv'">TV Shows</button></li>
-    <li><button class="nav-link" onclick="location.href='XverseMovies_Browse.html#movies'">Movies</button></li>
-    <li><button class="nav-link" onclick="location.href='XverseMovies_Browse.html#new'">New &amp; Popular</button></li>
-    <li><button class="nav-link" onclick="location.href='XverseMovies_MyList.html'">My List</button></li>
+    <li><button class="nav-link" onclick="location.href='XwerseMovies_Home.html'">Home</button></li>
+    <li><button class="nav-link" onclick="location.href='XwerseMovies_Browse.html#tv'">TV Shows</button></li>
+    <li><button class="nav-link" onclick="location.href='XwerseMovies_Browse.html#movies'">Movies</button></li>
+    <li><button class="nav-link" onclick="location.href='XwerseMovies_Browse.html#new'">New &amp; Popular</button></li>
+    <li><button class="nav-link" onclick="location.href='XwerseMovies_MyList.html'">My List</button></li>
   </ul>
   <div class="nav-right">
-    <a href="XverseMovies_Request.html" title="Request a Title" style="display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:20px;background:rgba(229,9,20,.16);border:1px solid rgba(229,9,20,.45);color:#fff;text-decoration:none;font-size:.8rem;font-weight:700;transition:.2s;white-space:nowrap" onmouseover="this.style.background='rgba(229,9,20,.3)'" onmouseout="this.style.background='rgba(229,9,20,.16)'">🎬 Request</a>
+    <a href="XwerseMovies_Request.html" title="Request a Title" style="display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:20px;background:rgba(229,9,20,.16);border:1px solid rgba(229,9,20,.45);color:#fff;text-decoration:none;font-size:.8rem;font-weight:700;transition:.2s;white-space:nowrap" onmouseover="this.style.background='rgba(229,9,20,.3)'" onmouseout="this.style.background='rgba(229,9,20,.16)'">🎬 Request</a>
     <button class="nav-icon-btn active" title="Search" style="color:var(--red)">🔍</button>
     <button class="nav-icon-btn" onclick="if(typeof XvNotif!=='undefined')XvNotif.toggle()" title="Notifications" style="position:relative">
       🔔<span class="_xvNP-dot" style="position:absolute;top:5px;right:5px;width:7px;height:7px;background:var(--red);border-radius:50%;border:2px solid #141414;display:none;pointer-events:none"></span>
     </button>
-    <div class="nav-avatar" id="navAvatar" onclick="location.href='XverseMovies_Settings.html'">U</div>
+    <div class="nav-avatar" id="navAvatar" onclick="location.href='XwerseMovies_Settings.html'">U</div>
   </div>
 </nav>
 
@@ -427,7 +427,7 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
 
   <!-- BEFORE SEARCH: trending + categories -->
   <div id="trendingSection">
-    <div class="section-title">Popular on XverseMovies <span class="section-badge">TRENDING</span></div>
+    <div class="section-title">Popular on XwerseMovies <span class="section-badge">TRENDING</span></div>
     <div id="trendingGrid" class="trending-grid"></div>
 
     <div class="section-title">Browse by Category</div>
@@ -453,7 +453,7 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
     <div class="nr-sub" id="noResultsSub">Try a different search term or browse by category below.</div>
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:8px">
       <button class="nr-btn" style="background:transparent;border:1.5px solid rgba(255,255,255,.25);color:#fff" onclick="clearSearch()">Clear Search</button>
-      <button class="nr-btn" onclick="location.href='XverseMovies_Request.html?q='+encodeURIComponent(_query)">Request This Title</button>
+      <button class="nr-btn" onclick="location.href='XwerseMovies_Request.html?q='+encodeURIComponent(_query)">Request This Title</button>
     </div>
   </div>
 
@@ -490,19 +490,19 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
 
 <!-- MOBILE NAV -->
 <nav class="mob-nav" aria-label="Mobile navigation">
-  <a class="mnav-item" href="XverseMovies_Home.html" aria-label="Home">
+  <a class="mnav-item" href="XwerseMovies_Home.html" aria-label="Home">
     <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
     <span class="mnav-lbl">Home</span>
   </a>
-  <a class="mnav-item" href="XverseMovies_Browse.html#new" aria-label="New and Hot">
+  <a class="mnav-item" href="XwerseMovies_Browse.html#new" aria-label="New and Hot">
     <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/></svg>
     <span class="mnav-lbl">New &amp; Hot</span>
   </a>
-  <a class="mnav-item active" href="XverseMovies_Search.html" aria-label="Search">
+  <a class="mnav-item active" href="XwerseMovies_Search.html" aria-label="Search">
     <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
     <span class="mnav-lbl">Search</span>
   </a>
-  <a class="mnav-item" href="XverseMovies_MyList.html" aria-label="My List">
+  <a class="mnav-item" href="XwerseMovies_MyList.html" aria-label="My List">
     <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
     <span class="mnav-lbl">My List</span>
   </a>
@@ -778,7 +778,7 @@ function play(m) {
   p.set('backdrop',m.backdrop_url||''); p.set('age', m.age_rating||'');
   p.set('quality', m.quality||'');
   if (m.embed_url) p.set('embed', m.embed_url);
-  location.href = 'XverseMovies_Player.html?' + p.toString();
+  location.href = 'XwerseMovies_Player.html?' + p.toString();
 }
 
 async function addML(m) {
@@ -891,7 +891,7 @@ function bPlayEp(season, episode) {
   p.set('poster',m.poster_url||''); p.set('backdrop',m.backdrop_url||'');
   p.set('age',m.age_rating||''); p.set('quality',m.quality||'');
   closeMod();
-  location.href = 'XverseMovies_Player.html?'+p.toString();
+  location.href = 'XwerseMovies_Player.html?'+p.toString();
 }
 
 // ── UTILITY ──────────────────────────────────────────────────
