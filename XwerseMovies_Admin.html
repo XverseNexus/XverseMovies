@@ -3,32 +3,32 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>XverseMovies — Admin Panel</title>
+<title>XwerseMovies — Admin Panel</title>
 <meta name="robots" content="noindex, nofollow">
 <!-- Open Graph / social sharing preview -->
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="XverseMovies">
-<meta property="og:title" content="Admin Panel — XverseMovies">
-<meta property="og:description" content="XverseMovies internal admin panel.">
-<meta property="og:image" content="https://xverse-movies.vercel.app/og-image.png">
+<meta property="og:site_name" content="XwerseMovies">
+<meta property="og:title" content="Admin Panel — XwerseMovies">
+<meta property="og:description" content="XwerseMovies internal admin panel.">
+<meta property="og:image" content="https://xwerse-movies.vercel.app/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:url" content="https://xverse-movies.vercel.app/XverseMovies_Admin.html">
+<meta property="og:url" content="https://xwerse-movies.vercel.app/XwerseMovies_Admin.html">
 <meta property="og:locale" content="en_IN">
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Admin Panel — XverseMovies">
-<meta name="twitter:description" content="XverseMovies internal admin panel.">
-<meta name="twitter:image" content="https://xverse-movies.vercel.app/og-image.png">
+<meta name="twitter:title" content="Admin Panel — XwerseMovies">
+<meta name="twitter:description" content="XwerseMovies internal admin panel.">
+<meta name="twitter:image" content="https://xwerse-movies.vercel.app/og-image.png">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#E50914">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="XverseMovies">
+<meta name="apple-mobile-web-app-title" content="XwerseMovies">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="xverse-config.js"></script>
+<script src="xwerse-config.js"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -221,10 +221,10 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
 <body>
 
 <nav>
-  <div class="logo">Xverse<span>Movies</span><sub>Admin</sub></div>
+  <div class="logo">Xwerse<span>Movies</span><sub>Admin</sub></div>
   <div class="nav-r">
     <span class="badge">🔐 ADMIN</span>
-    <button class="btn-view" onclick="window.open('XverseMovies_Home.html','_blank')">👁 View Site</button>
+    <button class="btn-view" onclick="window.open('XwerseMovies_Home.html','_blank')">👁 View Site</button>
   </div>
 </nav>
 
@@ -252,7 +252,7 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
     <!-- DASHBOARD -->
     <div class="panel on" id="panel-dashboard">
       <div class="ptit">Dashboard</div>
-      <div class="psub">XverseMovies content overview</div>
+      <div class="psub">XwerseMovies content overview</div>
       <div class="stats" id="dashStats">
         <div class="sk" style="height:80px;border-radius:8px"></div>
         <div class="sk" style="height:80px;border-radius:8px"></div>
@@ -417,7 +417,7 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
       </div>
 
       <div class="brow">
-        <button class="btn-add" id="addBtn" onclick="addMovie()">✅ Add to XverseMovies</button>
+        <button class="btn-add" id="addBtn" onclick="addMovie()">✅ Add to XwerseMovies</button>
         <button class="btn-sec" onclick="resetForm()">🔄 Reset</button>
         <button class="btn-sec" onclick="testVideo()">▶ Test Video</button>
       </div>
@@ -516,7 +516,7 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
       <div class="fc" style="margin-bottom:16px">
         <div class="fc-title"><div class="fc-ico">➕</div> Invite Moderator</div>
         <div style="font-size:.83rem;color:rgba(255,255,255,.55);margin-bottom:14px;line-height:1.6">
-          Grant moderator access by email. They must already have an XverseMovies account.
+          Grant moderator access by email. They must already have an XwerseMovies account.
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <input type="email" id="modEmail" class="fi" placeholder="Enter email address..."
@@ -674,7 +674,7 @@ window.addEventListener('load', async () => {
       <div style="font-size:3rem">🔒</div>
       <div style="font-family:'Bebas Neue',cursive;font-size:2rem;color:#E50914;letter-spacing:2px">Access Denied</div>
       <div style="color:rgba(255,255,255,.5);font-size:.88rem">You don't have admin access.</div>
-      <a href="XverseMovies_Home.html" style="margin-top:8px;background:#E50914;color:#fff;padding:9px 24px;border-radius:5px;text-decoration:none;font-weight:700;font-size:.88rem">← Back to Home</a>`;
+      <a href="XwerseMovies_Home.html" style="margin-top:8px;background:#E50914;color:#fff;padding:9px 24px;border-radius:5px;text-decoration:none;font-weight:700;font-size:.88rem">← Back to Home</a>`;
     return;
   }
 
@@ -928,7 +928,7 @@ if (exists) {
       .select()
       .single();
 
-  btn.textContent = '✅ Add to XverseMovies';
+  btn.textContent = '✅ Add to XwerseMovies';
   btn.disabled = false;
 
   const res = document.getElementById('addResult');
@@ -1469,7 +1469,7 @@ async function discoverTMDB() {
   statusEl.textContent = '⏳ Fetching from TMDB...';
   resEl.innerHTML      = '';
 
-  const key   = XVERSE.TMDB_KEY;
+  const key   = Xwerse.TMDB_KEY;
   const pages = [1, 2];
   let   items = [];
 
@@ -1762,10 +1762,10 @@ async function loadRequests() {
 }
 
 function reqCardHTML(r) {
-  const st = XVERSE.REQUEST_STATUS[r.status] || { label: r.status, color: '#888' };
+  const st = Xwerse.REQUEST_STATUS[r.status] || { label: r.status, color: '#888' };
   const typeLabel = r.request_type === 'season'
     ? `Season ${r.season_number || ''}`.trim()
-    : (XVERSE.REQUEST_PRICES[r.request_type]?.label || r.request_type);
+    : (Xwerse.REQUEST_PRICES[r.request_type]?.label || r.request_type);
   const date = new Date(r.created_at).toLocaleString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
   const statuses = ['pending','accepted','processing','uploading','completed','rejected'];
 
@@ -1784,7 +1784,7 @@ function reqCardHTML(r) {
       </div>
 
       <div style="display:flex;gap:6px;flex-wrap:wrap;width:100%">
-        ${statuses.map(s => `<button onclick="setReqStatus('${r.id}','${s}')" style="background:${r.status===s?XVERSE.REQUEST_STATUS[s].color+'33':'rgba(255,255,255,.05)'};border:1px solid ${r.status===s?XVERSE.REQUEST_STATUS[s].color+'88':'rgba(255,255,255,.12)'};color:${r.status===s?XVERSE.REQUEST_STATUS[s].color:'rgba(255,255,255,.6)'};padding:5px 11px;border-radius:5px;cursor:pointer;font-size:.7rem;font-weight:600;font-family:'Barlow',sans-serif">${XVERSE.REQUEST_STATUS[s].label}</button>`).join('')}
+        ${statuses.map(s => `<button onclick="setReqStatus('${r.id}','${s}')" style="background:${r.status===s?Xwerse.REQUEST_STATUS[s].color+'33':'rgba(255,255,255,.05)'};border:1px solid ${r.status===s?Xwerse.REQUEST_STATUS[s].color+'88':'rgba(255,255,255,.12)'};color:${r.status===s?Xwerse.REQUEST_STATUS[s].color:'rgba(255,255,255,.6)'};padding:5px 11px;border-radius:5px;cursor:pointer;font-size:.7rem;font-weight:600;font-family:'Barlow',sans-serif">${Xwerse.REQUEST_STATUS[s].label}</button>`).join('')}
       </div>
 
       <div class="fg" style="width:100%;margin-bottom:0">
@@ -1804,7 +1804,7 @@ function reqCardHTML(r) {
 async function setReqStatus(id, status) {
   const { error } = await DB.updateRequestStatus(id, status);
   if (error) { showToast('❌ Could not update status'); return; }
-  showToast(`✅ Marked as ${XVERSE.REQUEST_STATUS[status].label}`);
+  showToast(`✅ Marked as ${Xwerse.REQUEST_STATUS[status].label}`);
   loadRequests();
 }
 
@@ -2240,7 +2240,7 @@ function downloadTemplate() {
     new Blob([t], { type:'application/json' })
   );
 
-  a.download = 'xversemovies_bulk_template.json';
+  a.download = 'xwersemovies_bulk_template.json';
 
   a.click();
 }
@@ -2257,7 +2257,7 @@ async function exportAllMovies() {
   const { data } = await getSB().from('movies').select('*').order('created_at',{ascending:false});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data||[],null,2)],{type:'application/json'}));
-  a.download = `xversemovies_export_${new Date().toISOString().split('T')[0]}.json`;
+  a.download = `xwersemovies_export_${new Date().toISOString().split('T')[0]}.json`;
   a.click();
   showToast(`💾 ${(data||[]).length} movies exported!`);
 }
@@ -2303,7 +2303,7 @@ async function exportCSV() {
   );
 
   a.download =
-    `xversemovies_${new Date().toISOString().split('T')[0]}.csv`;
+    `xwersemovies_${new Date().toISOString().split('T')[0]}.csv`;
 
   a.click();
 
