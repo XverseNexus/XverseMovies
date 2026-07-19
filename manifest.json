@@ -1,6 +1,6 @@
 {
-  "name": "XverseMovies",
-  "short_name": "XverseMovies",
+  "name": "XwerseMovies",
+  "short_name": "XwerseMovies",
   "description": "Watch Movies & Shows — Anytime, Anywhere",
   "start_url": "/index.html",
   "scope": "/",
@@ -27,12 +27,12 @@
   "shortcuts": [
     {
       "name": "Browse",
-      "url": "/XverseMovies_Browse.html",
+      "url": "/XwerseMovies_Browse.html",
       "description": "Browse Movies & Shows"
     },
     {
       "name": "My List",
-      "url": "/XverseMovies_MyList.html",
+      "url": "/XwerseMovies_MyList.html",
       "description": "Your saved content"
     }
   ]
