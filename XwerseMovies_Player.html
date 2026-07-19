@@ -4,23 +4,23 @@
 <meta charset="UTF-8" />
 <!-- FIX #6: user-scalable=no stops pinch-zoom breaking layout; viewport-fit=cover fills notch area -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
-<title>XverseMovies — Player</title>
+<title>XwerseMovies — Player</title>
 <meta name="robots" content="noindex, nofollow">
 <!-- Open Graph / social sharing preview -->
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="XverseMovies">
-<meta property="og:title" content="Now Watching — XverseMovies">
-<meta property="og:description" content="Stream movies and TV shows in HD on XverseMovies — Anytime, Anywhere.">
-<meta property="og:image" content="https://xverse-movies.vercel.app/og-image.png">
+<meta property="og:site_name" content="XwerseMovies">
+<meta property="og:title" content="Now Watching — XwerseMovies">
+<meta property="og:description" content="Stream movies and TV shows in HD on XwerseMovies — Anytime, Anywhere.">
+<meta property="og:image" content="https://xwerse-movies.vercel.app/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:url" content="https://xverse-movies.vercel.app/XverseMovies_Player.html">
+<meta property="og:url" content="https://xwerse-movies.vercel.app/XwerseMovies_Player.html">
 <meta property="og:locale" content="en_IN">
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Now Watching — XverseMovies">
-<meta name="twitter:description" content="Stream movies and TV shows in HD on XverseMovies — Anytime, Anywhere.">
-<meta name="twitter:image" content="https://xverse-movies.vercel.app/og-image.png">
+<meta name="twitter:title" content="Now Watching — XwerseMovies">
+<meta name="twitter:description" content="Stream movies and TV shows in HD on XwerseMovies — Anytime, Anywhere.">
+<meta name="twitter:image" content="https://xwerse-movies.vercel.app/og-image.png">
 
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="favicon.png">
@@ -28,14 +28,14 @@
 <meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="XverseMovies">
+<meta name="apple-mobile-web-app-title" content="XwerseMovies">
 <meta name="mobile-web-app-capable" content="yes">
 
-<!-- SW update → auto-reload so fresh xverse-config.js loads (same fix as other pages) -->
+<!-- SW update → auto-reload so fresh xwerse-config.js loads (same fix as other pages) -->
 <script>if('serviceWorker'in navigator){var _xvR=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!_xvR){_xvR=true;location.reload();}});}</script>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="xverse-config.js"></script>
+<script src="xwerse-config.js"></script>
 
 <style>
 :root{
@@ -497,7 +497,7 @@ html,body{
 
   <!-- LOADING -->
   <div id="loadScreen">
-    <div class="ld-logo">Xverse<span>Movies</span></div>
+    <div class="ld-logo">Xwerse<span>Movies</span></div>
     <div class="ld-bar"><div class="ld-fill"></div></div>
     <div class="ld-msg" id="ldMsg">Loading video...</div>
   </div>
@@ -540,7 +540,7 @@ html,body{
     </div>
     <span id="desktopBadge" title="Desktop mode active — all player controls visible">🖥 Desktop</span>
     <button id="nextEpBtn" class="top-btn" onclick="doPlayNextEp()" title="Next Episode" style="display:none;align-items:center;gap:5px;width:auto;padding:0 12px;font-size:.78rem;font-weight:700">Next Ep &#9654;</button>
-    <a href="XverseMovies_Search.html" title="Search" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:6px;color:rgba(255,255,255,.8);text-decoration:none;font-size:1.05rem;transition:.2s" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background=''">&#x1F50D;</a>
+    <a href="XwerseMovies_Search.html" title="Search" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:6px;color:rgba(255,255,255,.8);text-decoration:none;font-size:1.05rem;transition:.2s" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background=''">&#x1F50D;</a>
     <button class="top-btn" onclick="reqFS()" aria-label="Fullscreen">⛶</button>
     <!-- ✕ hides overlay. Embedded player regains full control instantly. -->
     <button class="top-btn" onclick="closeMenu()" aria-label="Hide controls" title="Hide controls">✕</button>
@@ -704,7 +704,7 @@ window.addEventListener('orientationchange', function() {
     await Ratings.init(currentUser.id);
     document.getElementById('thumbsSlot').innerHTML = Ratings.thumbsHTML(movie.tmdb_id, movie.type, 'sm');
 
-    // Personal fulfilled-request override (see xverse-config.js:
+    // Personal fulfilled-request override (see xwerse-config.js:
     // DB.getMyRequestOverride for how this stays scoped to just this user).
     const myOverride = await DB.getMyRequestOverride(currentUser.id, movie.tmdb_id, movie.type, urlSeason);
     if (myOverride) movie.embed_url = myOverride;
@@ -740,8 +740,8 @@ function loadVideo(m) {
   document.getElementById('durBadge').textContent  = m.duration || '';
 
   document.title = isTV
-    ? m.title + ' S' + season + 'E' + episode + ' — XverseMovies'
-    : m.title + ' — XverseMovies';
+    ? m.title + ' S' + season + 'E' + episode + ' — XwerseMovies'
+    : m.title + ' — XwerseMovies';
 
   // Embed URL priority — DIFFERS for movies vs TV shows:
   //
@@ -948,10 +948,10 @@ function shareMovie() {
 async function goBack() {
   clearInterval(syncTimer);
   await syncProgress();
-  if (document.referrer && document.referrer.includes('XverseMovies')) {
+  if (document.referrer && document.referrer.includes('XwerseMovies')) {
     history.back();
   } else {
-    location.href = 'XverseMovies_Home.html';
+    location.href = 'XwerseMovies_Home.html';
   }
 }
 
@@ -1089,7 +1089,7 @@ function doPlayNextEp() {
   params.set('episode', nextEp);
   params.set('season',  season);
   params.delete('embed'); // Force auto-build embed for new episode
-  location.href = 'XverseMovies_Player.html?' + params.toString();
+  location.href = 'XwerseMovies_Player.html?' + params.toString();
 }
 
 
