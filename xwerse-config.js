@@ -1,10 +1,10 @@
 // ═══════════════════════════════════════════════════════
-//  xverse-config.js  —  Shared config for all pages
+//  xwerse-config.js  —  Shared config for all pages
 //  Include this FIRST in every HTML file:
-//  <script src="xverse-config.js"></script>
+//  <script src="xwerse-config.js"></script>
 // ═══════════════════════════════════════════════════════
 
-const XVERSE = {
+const Xwerse = {
   SUPABASE_URL:     'https://oobohevfmvitveulvqlf.supabase.co',
   SUPABASE_KEY:     'sb_publishable_SKK21UE3-Ls5xS8kjt0DbA_qwj_QQ4v',
   TMDB_KEY:         'cf25940d9a3514c67d8dbbfe9d6c00dc',
@@ -52,7 +52,7 @@ function getSB() {
     console.error('Supabase CDN not loaded!');
     return null;
   }
-  _sb = supabase.createClient(XVERSE.SUPABASE_URL, XVERSE.SUPABASE_KEY);
+  _sb = supabase.createClient(Xwerse.SUPABASE_URL, Xwerse.SUPABASE_KEY);
   return _sb;
 }
 
@@ -462,8 +462,8 @@ const DB = {
 // ─────────────────────────────────────────────────────────
 const TMDB = {
   async fetch(path, params = {}) {
-    const url = new URL(XVERSE.TMDB_BASE + path);
-    url.searchParams.set('api_key', XVERSE.TMDB_KEY);
+    const url = new URL(Xwerse.TMDB_BASE + path);
+    url.searchParams.set('api_key', Xwerse.TMDB_KEY);
     Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
     const proxies = [
       url.toString(),
@@ -479,7 +479,7 @@ const TMDB = {
   },
 
   img(path, size = 'w500') {
-    return path ? XVERSE.TMDB_IMG + size + path : null;
+    return path ? Xwerse.TMDB_IMG + size + path : null;
   },
 
   normalize(item) {
@@ -567,14 +567,14 @@ const TMDB = {
 // ─────────────────────────────────────────────────────────
 const Session = {
   setProfile(profile) {
-    localStorage.setItem('xverse_active_profile', JSON.stringify(profile));
+    localStorage.setItem('xwerse_active_profile', JSON.stringify(profile));
   },
   getProfile() {
-    try { return JSON.parse(localStorage.getItem('xverse_active_profile')); }
+    try { return JSON.parse(localStorage.getItem('xwerse_active_profile')); }
     catch { return null; }
   },
   clearProfile() {
-    localStorage.removeItem('xverse_active_profile');
+    localStorage.removeItem('xwerse_active_profile');
   },
 };
 
@@ -714,11 +714,11 @@ async function initNavAvatar(avatarElId = 'navAvatar') {
         <div class="xvm-name">${name}</div>
         <div class="xvm-email">${email}</div>
       </div>
-      <button class="xvm-item" onclick="window.location.href='XverseMovies_Settings.html'">⚙️ &nbsp;Account Settings</button>
-      <button class="xvm-item" onclick="window.location.href='XverseMovies_Request.html'">🎬 &nbsp;Request a Title</button>
-      <button class="xvm-item" onclick="window.location.href='XverseMovies_MyRequests.html'">📋 &nbsp;My Requests</button>
+      <button class="xvm-item" onclick="window.location.href='XwerseMovies_Settings.html'">⚙️ &nbsp;Account Settings</button>
+      <button class="xvm-item" onclick="window.location.href='XwerseMovies_Request.html'">🎬 &nbsp;Request a Title</button>
+      <button class="xvm-item" onclick="window.location.href='XwerseMovies_MyRequests.html'">📋 &nbsp;My Requests</button>
       <button class="xvm-item" onclick="xvSwitchProfile()">👥 &nbsp;Switch Profile</button>
-      <button class="xvm-item" id="xvm-admin-btn" style="display:none" onclick="window.location.href='XverseMovies_Admin.html'">🛡️ &nbsp;Admin Panel</button>
+      <button class="xvm-item" id="xvm-admin-btn" style="display:none" onclick="window.location.href='XwerseMovies_Admin.html'">🛡️ &nbsp;Admin Panel</button>
       <div class="xvm-sep"></div>
       <button class="xvm-item danger" onclick="xvSignOut()">🚪 &nbsp;Sign Out</button>`;
 
@@ -959,7 +959,7 @@ const RT = {
 //  Shared, like ML — one place for the DB-backed state, so
 //  every page (Player, and the "more info" modal on
 //  Home/Browse/Search) gets thumbs up/down for free just by
-//  including xverse-config.js. Call Ratings.init(uid) once
+//  including xwerse-config.js. Call Ratings.init(uid) once
 //  after auth, then drop Ratings.thumbsHTML(movieId) wherever
 //  the buttons should appear. Requires a `ratings` table —
 //  see SETUP_GUIDE.md for the SQL.
@@ -1934,7 +1934,7 @@ const XvNotif = {
       <div class="_xvNP-ft">
         <button class="_xvNP-mark" onclick="XvNotif.markAllRead()">✓ Mark All Read</button>
         <button class="_xvNP-cfg"
-          onclick="XvNotif.close();window.location.href='XverseMovies_Settings.html#notifs'">
+          onclick="XvNotif.close();window.location.href='XwerseMovies_Settings.html#notifs'">
           ⚙ Settings
         </button>
       </div>`;
