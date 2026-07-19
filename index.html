@@ -3,16 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>XverseMovies — Sign In</title>
+<title>XwerseMovies — Sign In</title>
 <!-- Open Graph / social sharing preview -->
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="XverseMovies">
-<meta property="og:title" content="XverseMovies — Sign In">
-<meta property="og:description" content="Sign in to XverseMovies and start streaming the latest movies, TV shows and Bollywood hits in HD — anytime, anywhere.">
-<meta property="og:image" content="https://xverse-movies.vercel.app/og-image.png">
+<meta property="og:site_name" content="XwerseMovies">
+<meta property="og:title" content="XwerseMovies — Sign In">
+<meta property="og:description" content="Sign in to XwerseMovies and start streaming the latest movies, TV shows and Bollywood hits in HD — anytime, anywhere.">
+<meta property="og:image" content="https://xwerse-movies.vercel.app/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:url" content="https://xverse-movies.vercel.app/">
+<meta property="og:url" content="https://xwerse-movies.vercel.app/">
 <meta property="og:locale" content="en_IN">
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
@@ -26,7 +26,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="XwerseMovies">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="xverse-config.js"></script>
+<script src="xwerse-config.js"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -145,7 +145,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 <body>
 
 <div id="initLoader">
-  <div class="ld-logo">Xverse<span>Movies</span></div>
+  <div class="ld-logo">Xwerse<span>Movies</span></div>
   <div class="ld-bar"><div class="ld-fill"></div></div>
 </div>
 
@@ -156,7 +156,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
   <div class="bg-vignette"></div>
 </div>
 
-<nav><span class="logo" onclick="showPage('landing')">Xverse<span>Movies</span></span></nav>
+<nav><span class="logo" onclick="showPage('landing')">Xwerse<span>Movies</span></span></nav>
 
 <!-- LANDING -->
 <div class="page" id="page-landing">
@@ -191,7 +191,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
       <svg class="g-ico" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
       Sign in with Google
     </button>
-    <p class="box-footer">New to XverseMovies? <a onclick="showPage('signup')">Sign up now</a></p>
+    <p class="box-footer">New to XwerseMovies? <a onclick="showPage('signup')">Sign up now</a></p>
   </div>
 </div>
 
@@ -228,14 +228,14 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 <div class="page" id="page-profiles">
   <div style="font-family:'Bebas Neue',cursive;font-size:2.5rem;color:#fff;letter-spacing:2px;text-align:center;margin-bottom:32px">Who's Watching?</div>
   <div class="prof-grid" id="profGrid"></div>
-  <button onclick="window.location.href='XverseMovies_Settings.html'" style="background:transparent;border:1.5px solid rgba(255,255,255,.38);color:#e5e5e5;padding:9px 34px;font-size:.86rem;font-weight:600;border-radius:4px;cursor:pointer;font-family:'Barlow',sans-serif;transition:border-color .2s" onmouseover="this.style.borderColor='#fff'" onmouseout="this.style.borderColor='rgba(255,255,255,.38)'">Manage Profiles</button>
+  <button onclick="window.location.href='XwerseMovies_Settings.html'" style="background:transparent;border:1.5px solid rgba(255,255,255,.38);color:#e5e5e5;padding:9px 34px;font-size:.86rem;font-weight:600;border-radius:4px;cursor:pointer;font-family:'Barlow',sans-serif;transition:border-color .2s" onmouseover="this.style.borderColor='#fff'" onmouseout="this.style.borderColor='rgba(255,255,255,.38)'">Manage Profiles</button>
 </div>
 
 <footer style="position:fixed;left:0;right:0;bottom:0;z-index:15;text-align:center;padding:10px 4% 14px;font-size:.7rem;color:rgba(255,255,255,.42);background:linear-gradient(to top,rgba(0,0,0,.55),transparent)">
-  <a href="XverseMovies_Terms.html" style="color:inherit;text-decoration:none;margin:0 8px">Terms &amp; Conditions</a>·
-  <a href="XverseMovies_Privacy.html" style="color:inherit;text-decoration:none;margin:0 8px">Privacy Policy</a>·
-  <a href="XverseMovies_Refund.html" style="color:inherit;text-decoration:none;margin:0 8px">Refund &amp; Cancellation</a>·
-  <a href="XverseMovies_Contact.html" style="color:inherit;text-decoration:none;margin:0 8px">Contact Us</a>
+  <a href="XwerseMovies_Terms.html" style="color:inherit;text-decoration:none;margin:0 8px">Terms &amp; Conditions</a>·
+  <a href="XwerseMovies_Privacy.html" style="color:inherit;text-decoration:none;margin:0 8px">Privacy Policy</a>·
+  <a href="XwerseMovies_Refund.html" style="color:inherit;text-decoration:none;margin:0 8px">Refund &amp; Cancellation</a>·
+  <a href="XwerseMovies_Contact.html" style="color:inherit;text-decoration:none;margin:0 8px">Contact Us</a>
 </footer>
 
 <script>
@@ -321,7 +321,7 @@ async function handleSession(session) {
         is_kids: single.is_kids || false
       });
       hideLoader();
-      window.location.href = 'XverseMovies_Home.html';
+      window.location.href = 'XwerseMovies_Home.html';
       return;
     }
 
@@ -329,7 +329,7 @@ async function handleSession(session) {
     const savedProfile = Session.getProfile();
     if (savedProfile && savedProfile.userId === uid) {
       hideLoader();
-      window.location.href = 'XverseMovies_Home.html';
+      window.location.href = 'XwerseMovies_Home.html';
       return;
     }
     await renderProfileSelect(session.user, profile);
@@ -460,13 +460,13 @@ async function renderProfileSelect(user, profile) {
     div.onclick = () => {
       // Store userId so handleSession can verify this profile belongs to current user
       Session.setProfile({ userId: user.id, id: vp.id || user.id, name: vp.name, avatar_url: vp.avatar_url, is_kids: vp.is_kids || false });
-      window.location.href = 'XverseMovies_Home.html';
+      window.location.href = 'XwerseMovies_Home.html';
     };
     grid.appendChild(div);
   });
   const add=document.createElement('div'); add.className='prof-item';
   add.innerHTML=`<div class="prof-av" style="background:rgba(255,255,255,.06);border:2px dashed rgba(255,255,255,.2)"><span style="font-size:2.2rem;color:rgba(255,255,255,.28)">+</span></div><div class="prof-name">Add Profile</div>`;
-  add.onclick=()=>window.location.href='XverseMovies_Settings.html';
+  add.onclick=()=>window.location.href='XwerseMovies_Settings.html';
   grid.appendChild(add);
   showPage('profiles');
 }
