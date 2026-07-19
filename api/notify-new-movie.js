@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════
 //  POST /api/notify-new-movie
-//  Called from XverseMovies_Admin.html after a movie/show is added
+//  Called from XwerseMovies_Admin.html after a movie/show is added
 //  with status "active" — inserts one notification row per user so
-//  everyone sees "New on XverseMovies: <title>" in their bell panel.
+//  everyone sees "New on XwerseMovies: <title>" in their bell panel.
 //
 //  Why this is a serverless function and not a direct Supabase call
 //  from Admin.html: bulk-reading every user's profile id and
@@ -17,7 +17,7 @@
 //    SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 //
 //  NOTE: there's no admin-auth check in this file itself — the
-//  actual gate is that only XverseMovies_Admin.html calls this,
+//  actual gate is that only XwerseMovies_Admin.html calls this,
 //  and that page already checks Auth.getProfile(...).is_admin
 //  before letting anyone add a movie in the first place. If this
 //  endpoint needs to be hardened further later (e.g. rate limiting
@@ -65,7 +65,7 @@ module.exports = async function handler(req, res) {
     const label = type === 'tv' ? 'show' : 'movie';
     const rows = profiles.map((p) => ({
       user_id: p.id,
-      title: '🎬 New on XverseMovies',
+      title: '🎬 New on XwerseMovies',
       body: `${title} — naya ${label} ab available hai, abhi dekho!`,
       image_url: image_url || null,
       is_read: false,
