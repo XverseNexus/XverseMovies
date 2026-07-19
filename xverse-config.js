@@ -10,7 +10,7 @@ const XVERSE = {
   TMDB_KEY:         'cf25940d9a3514c67d8dbbfe9d6c00dc',
   TMDB_BASE:        'https://api.themoviedb.org/3',
   TMDB_IMG:         'https://image.tmdb.org/t/p/',
-  SITE_NAME:        'XverseMovies',
+  SITE_NAME:        'XwerseMovies',
 
   // ── PAY-PER-REQUEST (Phase 4) ──────────────────────────────
   // The old 4-plan subscription system is gone — streaming via
