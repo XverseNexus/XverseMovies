@@ -1,23 +1,23 @@
 // ═══════════════════════════════════════════════════════════
-//  XverseMovies — Service Worker
+//  XwerseMovies — Service Worker
 //  Handles: offline support, app shell caching, background sync
 // ═══════════════════════════════════════════════════════════
 
-const CACHE_NAME    = 'xverse-v28';
+const CACHE_NAME    = 'xwerse-v29';
 const SHELL_TIMEOUT = 3000; // ms before falling back to cache
 
 // App shell — these files are cached on install
 const APP_SHELL = [
   '/index.html',
-  '/XverseMovies_Home.html',
-  '/XverseMovies_Browse.html',
-  '/XverseMovies_MyList.html',
-  '/XverseMovies_Player.html',
-  '/XverseMovies_Search.html',
-  '/XverseMovies_Settings.html',
-  '/XverseMovies_Request.html',
-  '/XverseMovies_MyRequests.html',
-  '/xverse-config.js',
+  '/XwerseMovies_Home.html',
+  '/XwerseMovies_Browse.html',
+  '/XwerseMovies_MyList.html',
+  '/XwerseMovies_Player.html',
+  '/XwerseMovies_Search.html',
+  '/XwerseMovies_Settings.html',
+  '/XwerseMovies_Request.html',
+  '/XwerseMovies_MyRequests.html',
+  '/xwerse-config.js',
   '/manifest.json',
   '/favicon.png',
   '/og-image.png',
@@ -79,11 +79,11 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // 3. xverse-config.js — ALWAYS network-first
+  // 3. xwerse-config.js — ALWAYS network-first
   //    This file contains XvNotif and other shared code.
   //    Cache-first caused "XvNotif is not defined" when old SW served stale config.
   //    Network-first ensures deployed updates land immediately without hard-refresh.
-  if (url.pathname === '/xverse-config.js') {
+  if (url.pathname === '/xwerse-config.js') {
     event.respondWith(networkFirstWithTimeout(event.request, 2000));
     return;
   }
@@ -149,7 +149,7 @@ function offlineFallback(url) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>XverseMovies — Offline</title>
+<title>XwerseMovies — Offline</title>
 <style>
   body{margin:0;background:#141414;color:#fff;font-family:'Barlow',sans-serif;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -160,7 +160,7 @@ function offlineFallback(url) {
 </style>
 </head>
 <body>
-<h1>XverseMovies</h1>
+<h1>XwerseMovies</h1>
 <p>You're offline. Please check your internet connection and <a href="/">try again</a>.</p>
 </body>
 </html>`,
