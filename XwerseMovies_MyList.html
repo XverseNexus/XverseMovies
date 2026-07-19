@@ -3,32 +3,32 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>XverseMovies — My List</title>
+<title>XwerseMovies — My List</title>
 <meta name="robots" content="noindex, nofollow">
 <!-- Open Graph / social sharing preview -->
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="XverseMovies">
-<meta property="og:title" content="My List — XverseMovies">
-<meta property="og:description" content="Your saved movies and shows, continue watching, and history — all in one place on XverseMovies.">
-<meta property="og:image" content="https://xverse-movies.vercel.app/og-image.png">
+<meta property="og:site_name" content="XwerseMovies">
+<meta property="og:title" content="My List — XwerseMovies">
+<meta property="og:description" content="Your saved movies and shows, continue watching, and history — all in one place on XwerseMovies.">
+<meta property="og:image" content="https://xwerse-movies.vercel.app/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:url" content="https://xverse-movies.vercel.app/XverseMovies_MyList.html">
+<meta property="og:url" content="https://xwerse-movies.vercel.app/XwerseMovies_MyList.html">
 <meta property="og:locale" content="en_IN">
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="My List — XverseMovies">
-<meta name="twitter:description" content="Your saved movies and shows, continue watching, and history — all in one place on XverseMovies.">
-<meta name="twitter:image" content="https://xverse-movies.vercel.app/og-image.png">
+<meta name="twitter:title" content="My List — XwerseMovies">
+<meta name="twitter:description" content="Your saved movies and shows, continue watching, and history — all in one place on XwerseMovies.">
+<meta name="twitter:image" content="https://xwerse-movies.vercel.app/og-image.png">
 <script>/* SW update → auto-reload */if('serviceWorker'in navigator){var _xvR=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!_xvR){_xvR=true;location.reload();}});}</script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#E50914">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="XverseMovies">
+<meta name="apple-mobile-web-app-title" content="XwerseMovies">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="xverse-config.js"></script>
+<script src="xwerse-config.js"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -136,7 +136,7 @@ main{padding:88px var(--content-pad) 60px}
 }
 .ml-grid.list{grid-template-columns:1fr;gap:6px}
 /* CARD / CW CARDS — moved to the shared XCard component
-   (xverse-config.js → XCard.injectStyles()); see .xc-card / .xc-row / .xc-cw.
+   (xwerse-config.js → XCard.injectStyles()); see .xc-card / .xc-row / .xc-cw.
    The scroll container below is page layout, kept here. */
 .cw-scroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;margin-bottom:32px}
 .cw-scroll::-webkit-scrollbar{display:none}
@@ -184,16 +184,16 @@ main{padding:88px var(--content-pad) 60px}
 <body>
 
 <nav>
-  <a class="logo" href="XverseMovies_Home.html">Xverse<span>Movies</span></a>
+  <a class="logo" href="XwerseMovies_Home.html">Xwerse<span>Movies</span></a>
   <ul class="nav-links">
-    <li><button class="nav-link" onclick="location.href='XverseMovies_Home.html'">Home</button></li>
-    <li><button class="nav-link" onclick="location.href='XverseMovies_Browse.html#tv'">TV Shows</button></li>
-    <li><button class="nav-link" onclick="location.href='XverseMovies_Browse.html#movies'">Movies</button></li>
+    <li><button class="nav-link" onclick="location.href='XwerseMovies_Home.html'">Home</button></li>
+    <li><button class="nav-link" onclick="location.href='XwerseMovies_Browse.html#tv'">TV Shows</button></li>
+    <li><button class="nav-link" onclick="location.href='XwerseMovies_Browse.html#movies'">Movies</button></li>
     <li><button class="nav-link active">My List</button></li>
   </ul>
   <div class="nav-right">
-    <a href="XverseMovies_Request.html" title="Request a Title" style="display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:20px;background:rgba(229,9,20,.16);border:1px solid rgba(229,9,20,.45);color:#fff;text-decoration:none;font-size:.8rem;font-weight:700;transition:.2s;white-space:nowrap" onmouseover="this.style.background='rgba(229,9,20,.3)'" onmouseout="this.style.background='rgba(229,9,20,.16)'">🎬 Request</a>
-    <a href="XverseMovies_Search.html" title="Search" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:6px;color:rgba(255,255,255,.8);text-decoration:none;font-size:1.05rem;transition:.2s" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background=''">&#x1F50D;</a>
+    <a href="XwerseMovies_Request.html" title="Request a Title" style="display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:20px;background:rgba(229,9,20,.16);border:1px solid rgba(229,9,20,.45);color:#fff;text-decoration:none;font-size:.8rem;font-weight:700;transition:.2s;white-space:nowrap" onmouseover="this.style.background='rgba(229,9,20,.3)'" onmouseout="this.style.background='rgba(229,9,20,.16)'">🎬 Request</a>
+    <a href="XwerseMovies_Search.html" title="Search" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:6px;color:rgba(255,255,255,.8);text-decoration:none;font-size:1.05rem;transition:.2s" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background=''">&#x1F50D;</a>
     <button class="nav-bell" onclick="XvNotif.toggle()" title="Notifications">
       🔔<span class="_xvNP-dot" style="position:absolute;top:5px;right:5px;width:7px;height:7px;background:#E50914;border-radius:50%;border:2px solid #080808;display:none;pointer-events:none"></span>
     </button>
@@ -239,7 +239,7 @@ main{padding:88px var(--content-pad) 60px}
       <div class="empty-ico">🎬</div>
       <div class="empty-title">Your list is empty</div>
       <div class="empty-sub">Save movies and shows here<br>to watch later.</div>
-      <button class="btn-browse" onclick="location.href='XverseMovies_Browse.html'">Browse Content</button>
+      <button class="btn-browse" onclick="location.href='XwerseMovies_Browse.html'">Browse Content</button>
     </div>
     <div class="ml-grid" id="mlGrid"></div>
   </div>
@@ -254,7 +254,7 @@ main{padding:88px var(--content-pad) 60px}
       <div class="empty-ico">▶️</div>
       <div class="empty-title">Nothing to continue yet</div>
       <div class="empty-sub">Start a movie or show<br>and it will appear here.</div>
-      <button class="btn-browse" onclick="location.href='XverseMovies_Browse.html'">Start Watching</button>
+      <button class="btn-browse" onclick="location.href='XwerseMovies_Browse.html'">Start Watching</button>
     </div>
     <div id="cwSection" style="display:none">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
@@ -393,7 +393,7 @@ function renderMyList() {
   grid.innerHTML = filtered.map(m => mlCardHTML(m)).join('');
 }
 
-// Thin delegate to the shared XCard component (see xverse-config.js).
+// Thin delegate to the shared XCard component (see xwerse-config.js).
 // Same mlCardHTML(m) signature as before — renderMyList() needs no
 // other changes. My List always shows a remove (✕) action instead
 // of add-to-list, since every card here is already in the list.
@@ -488,7 +488,7 @@ async function loadCW() {
   } else cwDoneSec.style.display = 'none';
 }
 
-// Thin delegate to the shared XCard component (see xverse-config.js).
+// Thin delegate to the shared XCard component (see xwerse-config.js).
 // Same cwCardHTML(m, isDone) signature as before. Keeps the richer
 // TV season/episode resume + "watched Xd ago" subtitle behavior that
 // this page had (XCard.cw() supports both via its `subtitle` override).
@@ -609,7 +609,7 @@ function playMovie(m, season, episode) {
     season:   s,
     episode:  e,
   });
-  window.location.href = 'XverseMovies_Player.html?' + params.toString();
+  window.location.href = 'XwerseMovies_Player.html?' + params.toString();
 }
 
 // ─────────────────────────────────────────
@@ -648,19 +648,19 @@ function isYesterday(d) { const y=new Date(); y.setDate(y.getDate()-1); return d
 
 <!-- MOBILE BOTTOM NAV — My List tab is active on this page -->
 <nav class="mob-nav" aria-label="Mobile navigation">
-  <a class="mnav-item" href="XverseMovies_Home.html" aria-label="Home">
+  <a class="mnav-item" href="XwerseMovies_Home.html" aria-label="Home">
     <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
     <span class="mnav-lbl">Home</span>
   </a>
-  <a class="mnav-item" href="XverseMovies_Browse.html#new" aria-label="New and Hot">
+  <a class="mnav-item" href="XwerseMovies_Browse.html#new" aria-label="New and Hot">
     <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/></svg>
     <span class="mnav-lbl">New &amp; Hot</span>
   </a>
-  <a class="mnav-item" href="XverseMovies_Search.html" aria-label="Search">
+  <a class="mnav-item" href="XwerseMovies_Search.html" aria-label="Search">
     <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
     <span class="mnav-lbl">Search</span>
   </a>
-  <a class="mnav-item active" href="XverseMovies_MyList.html" aria-label="My List">
+  <a class="mnav-item active" href="XwerseMovies_MyList.html" aria-label="My List">
     <svg class="mnav-ico" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
     <span class="mnav-lbl">My List</span>
   </a>
