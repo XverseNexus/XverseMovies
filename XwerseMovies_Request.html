@@ -522,12 +522,18 @@ async function submitRequest() {
       return;
     }
 
+    // TEST: trying a couple of common query param names to see if Cashfree's
+    // Payment Form auto-fills the Email field from any of these. If none of
+    // them work, this is harmless — Cashfree will just ignore unknown params.
+    const emailEnc = encodeURIComponent(currentUser.email);
+    const formUrlWithEmail = `${formUrl}&email=${emailEnc}&customer_email=${emailEnc}`;
+
     btn.textContent = 'Redirecting to payment…';
     showToast(`⚠️ Important: use ${currentUser.email} on the payment page — must match your login email`);
 
     // Short delay so the toast is actually readable before we navigate away.
     setTimeout(() => {
-      window.location.href = formUrl;
+      window.location.href = formUrlWithEmail;
     }, 2200);
   } catch (err) {
     console.error('submitRequest error:', err);
