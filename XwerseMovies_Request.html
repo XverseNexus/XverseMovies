@@ -230,18 +230,9 @@ textarea.ftxt{resize:vertical;min-height:72px;line-height:1.5;cursor:text}
     <p style="font-size:.68rem;color:var(--muted);margin-top:2px;line-height:1.6">Only officially released languages, dubs and subtitles will be used — we can't source unofficial fan-dubs. If your preferred option isn't officially available, we'll provide the highest quality official version instead.</p>
   </div>
 
-  <!-- STEP 4: CONTACT (needed for payment receipt) -->
-  <div class="card" id="contactCard" style="display:none">
-    <div class="card-tit"><span class="stepn">4</span> Contact Number</div>
-    <div class="fwrap">
-      <label class="flbl">Phone Number (for payment receipt &amp; delivery updates)</label>
-      <input class="ftxt" id="prefPhone" type="tel" placeholder="10-digit mobile number" maxlength="10" inputmode="numeric">
-    </div>
-  </div>
-
-  <!-- STEP 5: PRICE + SUBMIT -->
+  <!-- STEP 4: PRICE + SUBMIT -->
   <div class="card" id="priceCard" style="display:none">
-    <div class="card-tit"><span class="stepn">5</span> Confirm &amp; Pay</div>
+    <div class="card-tit"><span class="stepn">4</span> Confirm &amp; Pay</div>
     <div class="price-row"><span class="price-label" id="priceTypeLabel">Movie Request</span><span class="price-val" id="priceTypeVal">₹9</span></div>
     <div class="price-row total"><span class="price-label">Total</span><span class="price-val" id="priceTotalVal">₹9</span></div>
     <div class="included-list">
@@ -401,7 +392,6 @@ function pickTitle(i) {
   buildTypeCard();
   document.getElementById('typeCard').style.display = 'block';
   document.getElementById('prefCard').style.display = 'none';
-  document.getElementById('contactCard').style.display = 'none';
   document.getElementById('priceCard').style.display = 'none';
 }
 
@@ -411,7 +401,6 @@ function resetTitleSelection() {
   document.getElementById('rsSelectedBlock').style.display = 'none';
   document.getElementById('typeCard').style.display  = 'none';
   document.getElementById('prefCard').style.display  = 'none';
-  document.getElementById('contactCard').style.display = 'none';
   document.getElementById('priceCard').style.display = 'none';
   document.getElementById('rsInput').value = '';
   document.getElementById('rsResults').innerHTML = '';
@@ -445,7 +434,6 @@ async function selType(t, el) {
   }
 
   document.getElementById('prefCard').style.display = 'block';
-  document.getElementById('contactCard').style.display = 'block';
   updatePriceCard();
   document.getElementById('priceCard').style.display = 'block';
 }
@@ -477,40 +465,31 @@ function updatePriceCard() {
   document.getElementById('priceTotalVal').textContent  = meta.priceLabel;
 }
 
-// ── SUBMIT (stub — Phase 4.4 wires real Cashfree checkout) ──
-let _cfSdkPromise = null;
-function loadCashfreeSDK() {
-  if (window.Cashfree) return Promise.resolve();
-  if (_cfSdkPromise) return _cfSdkPromise;
-  _cfSdkPromise = new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
-    s.onload = resolve;
-    s.onerror = reject;
-    document.head.appendChild(s);
-  });
-  return _cfSdkPromise;
-}
+// ── SUBMIT (Phase 4.4-fallback: static Payment Forms redirect) ──
+// Interim static Cashfree Payment Forms (Orders API checkout is blocked by
+// whitelisting — see handoff notes). Keep these codes in sync with the
+// forms actually created in the Cashfree dashboard.
+const PAYMENT_FORM_URLS = {
+  movie:  'https://payments.cashfree.com/forms?code=MovieRequest',
+  season: 'https://payments.cashfree.com/forms?code=SeasonRequest',
+  series: 'https://payments.cashfree.com/forms?code=SeriesRequest',
+};
 
 async function submitRequest() {
   if (!selectedTitle || !requestType) { showToast('⚠️ Please pick a title and request type first'); return; }
-
-  const phone = document.getElementById('prefPhone').value.trim();
-  if (!/^\d{10}$/.test(phone)) { showToast('⚠️ Please enter a valid 10-digit phone number'); return; }
 
   const seasonNumber = requestType === 'season'
     ? parseInt(document.getElementById('seasonPick').value, 10) || 1
     : null;
 
   const btn = document.getElementById('submitBtn');
-  btn.disabled = true; btn.textContent = 'Starting payment…';
+  btn.disabled = true; btn.textContent = 'Creating your request…';
 
   try {
     const payload = {
       uid:   currentUser.id,
       email: currentUser.email,
       name:  Session.getProfile()?.name || currentUser.email?.split('@')[0] || 'User',
-      phone,
       title:              selectedTitle.title,
       request_type:       requestType,
       tmdb_id:            selectedTitle.tmdb_id || null,
@@ -523,28 +502,36 @@ async function submitRequest() {
       notes:              document.getElementById('prefNotes').value.trim() || null,
     };
 
-    const res = await fetch('/api/create-request-order', {
+    const res = await fetch('/api/create-request-pending', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
     const data = await res.json();
 
-    if (!res.ok || !data.payment_session_id) {
-      showToast('⚙️ ' + (data.error || 'Could not start payment — please try again'));
+    if (!res.ok || !data.success) {
+      showToast('⚙️ ' + (data.error || 'Could not create request — please try again'));
       btn.disabled = false; btn.textContent = 'Proceed to Payment →';
       return;
     }
 
-    await loadCashfreeSDK();
-    const cashfree = window.Cashfree({ mode: Xwerse.CASHFREE_ENV === 'production' ? 'production' : 'sandbox' });
-    cashfree.checkout({
-      paymentSessionId: data.payment_session_id,
-      redirectTarget: '_self',
-    });
+    const formUrl = PAYMENT_FORM_URLS[requestType];
+    if (!formUrl) {
+      showToast('⚙️ Payment form not configured for this request type');
+      btn.disabled = false; btn.textContent = 'Proceed to Payment →';
+      return;
+    }
+
+    btn.textContent = 'Redirecting to payment…';
+    showToast(`⚠️ Important: use ${currentUser.email} on the payment page — must match your login email`);
+
+    // Short delay so the toast is actually readable before we navigate away.
+    setTimeout(() => {
+      window.location.href = formUrl;
+    }, 2200);
   } catch (err) {
     console.error('submitRequest error:', err);
-    showToast('❌ Could not start payment, please try again');
+    showToast('❌ Could not create request, please try again');
     btn.disabled = false; btn.textContent = 'Proceed to Payment →';
   }
 }
