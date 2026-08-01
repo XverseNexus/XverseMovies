@@ -129,7 +129,7 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  const FAILURE_STATUSES = ['FAILED', 'EXPIRED', 'CANCELLED'];
+  const FAILURE_STATUSES = ['FAILED', 'EXPIRED', 'CANCELLED', 'USER_DROPPED'];
   const isSuccess = orderStatus === 'PAID';
   const isFailure = FAILURE_STATUSES.includes(orderStatus);
 
