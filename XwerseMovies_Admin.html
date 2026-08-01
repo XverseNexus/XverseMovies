@@ -245,6 +245,7 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
     <button class="sbtn" id="sbModBtn" onclick="nav('moderators',this)" style="display:none"><span class="sbico">🛡️</span> Moderators</button>
     <div class="sblbl">Requests</div>
     <button class="sbtn" onclick="nav('requests',this)"><span class="sbico">📋</span> Manage Requests <span class="sbcnt" id="sbReqCnt">0</span></button>
+    <button class="sbtn" onclick="nav('pendingpayments',this)"><span class="sbico">⚠️</span> Pending Payments <span class="sbcnt" id="sbPendPayCnt">0</span></button>
   </aside>
 
   <main class="main">
@@ -561,6 +562,20 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
       </div>
     </div>
 
+    <!-- PENDING / UNMATCHED PAYMENTS -->
+    <div class="panel" id="panel-pendingpayments">
+      <div class="ptit">Pending Payments</div>
+      <div class="psub">Requests stuck at payment_status='pending' — usually because the user paid on the Cashfree Payment Form with a different email than their site login, so the webhook couldn't auto-match it. Check the Cashfree dashboard's transaction logs (by amount/time) to confirm a payment actually went through before marking one as paid here.</div>
+
+      <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+        <button class="btn-add" onclick="loadPendingPayments()">🔄 Refresh</button>
+      </div>
+
+      <div id="pendingPaymentsList">
+        <div style="font-size:.8rem;color:var(--muted)">Loading...</div>
+      </div>
+    </div>
+
     <!-- UNAVAILABLE CHECKER -->
     <div class="panel" id="panel-unavailable">
       <div class="ptit">Check Unavailable</div>
@@ -702,6 +717,7 @@ function nav(name, btn) {
   if (name === 'export')      loadExportCount();
   if (name === 'moderators')  loadModerators();
   if (name === 'requests')    loadRequests();
+  if (name === 'pendingpayments') loadPendingPayments();
   if (name === 'unavailable') { document.getElementById('unavailableResults').innerHTML=''; document.getElementById('checkStatus').textContent=''; document.getElementById('checkProgress').style.display='none'; }
 }
 
@@ -1820,6 +1836,62 @@ async function saveReqDetails(id) {
   });
   if (error) { showToast('❌ Could not save changes'); return; }
   showToast('✅ Saved');
+}
+
+// ─────────────────────────────────────────
+//  PENDING / UNMATCHED PAYMENTS (manual reconciliation fallback for
+//  when the Cashfree Payment Forms webhook can't auto-match a payment —
+//  e.g. user paid with a different email than their site login)
+// ─────────────────────────────────────────
+async function loadPendingPayments() {
+  const el = document.getElementById('pendingPaymentsList');
+  el.innerHTML = `<div class="sk" style="height:200px;border-radius:6px"></div>`;
+
+  const items = await DB.getPendingPaymentRequests();
+
+  const cntEl = document.getElementById('sbPendPayCnt');
+  if (cntEl) {
+    cntEl.textContent = items.length;
+    cntEl.style.display = items.length ? 'inline-block' : 'none';
+  }
+
+  if (!items.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-ico">✅</div><div style="font-size:.84rem;color:var(--muted)">No pending/unmatched payments</div></div>`;
+    return;
+  }
+
+  el.innerHTML = items.map(r => pendingPayCardHTML(r)).join('');
+}
+
+function pendingPayCardHTML(r) {
+  const typeLabel = r.request_type === 'season'
+    ? `Season ${r.season_number || ''}`.trim()
+    : (Xwerse.REQUEST_PRICES[r.request_type]?.label || r.request_type);
+  const date = new Date(r.created_at).toLocaleString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+
+  return `
+    <div class="unavail-row" style="align-items:flex-start;flex-direction:column;gap:10px" id="pendPayCard-${r.id}">
+      <div style="display:flex;gap:12px;width:100%;flex-wrap:wrap">
+        <img src="${escAttr(r.poster_url||'')}" onerror="this.style.visibility='hidden'" style="width:52px;height:78px;object-fit:cover;border-radius:5px;background:#2a2a2a;flex-shrink:0">
+        <div style="flex:1;min-width:180px">
+          <div style="font-weight:700;color:#fff;font-size:.92rem">${escHtml(r.title)}</div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:3px">${escHtml(typeLabel)} · ₹${r.price}</div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:2px">👤 ${escHtml(r.user_name||'Unknown')} (${escHtml(r.user_email||'')})</div>
+          <div style="font-size:.68rem;color:rgba(255,255,255,.35);margin-top:2px">Created ${date}</div>
+        </div>
+        <span class="esrc" style="background:#f5c51822;border-color:#f5c51855;color:#f5c518;align-self:flex-start">● Pending</span>
+      </div>
+      <button class="btn-add" onclick="markAsPaidManual('${r.id}','${escAttr(r.title).replace(/'/g,"\\'")}')" style="align-self:flex-end">✅ Mark as Paid</button>
+    </div>`;
+}
+
+async function markAsPaidManual(id, title) {
+  if (!confirm(`Confirm: has "${title}"'s payment actually been received in Cashfree? This will mark it paid and make it show up in Manage Requests / My Requests.`)) return;
+
+  const { error } = await DB.markRequestPaid(id);
+  if (error) { showToast('❌ Could not update payment status'); return; }
+  showToast('✅ Marked as paid');
+  loadPendingPayments();
 }
 
 function escHtml(s) {
