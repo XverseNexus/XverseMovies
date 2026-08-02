@@ -584,9 +584,6 @@ const norm = arr =>
     .filter(m => m.poster_path)
     .map(TMDB.normalize);
 
-// DB TV shows (admin-added, always have a real id for ML)
-const dbTV = adminMovies.filter(m => m.type === 'tv');
-
 // For each TMDB row: merge so DB version replaces TMDB-only when matched
 const trendingFiltered  = mergeMovieLists(adminMovies, norm(trending));
 const topRatedFiltered  = mergeMovieLists(adminMovies, norm(topRated));
@@ -597,10 +594,7 @@ const tvFiltered        = mergeMovieLists(adminMovies, norm(tv));
 
 if (trendingFiltered.length)
   wrap.appendChild(
-    buildCardRow('Trending Now 🔥', [
-      ...adminMovies.slice(0,5),
-      ...trendingFiltered
-    ])
+    buildCardRow('Trending Now 🔥', trendingFiltered)
   );
 
 if (topRatedFiltered.length)
@@ -648,13 +642,9 @@ if (southFiltered.length)
     )
   );
 
-if (tvFiltered.length || dbTV.length)
+if (tvFiltered.length)
   wrap.appendChild(
-    buildCardRow(
-      'Popular TV Shows 📺',
-      // DB TV shows first (guaranteed to have id), then TMDB-merged results
-      [...dbTV, ...tvFiltered.filter(m => !dbTV.find(d => d.id === m.id))]
-    )
+    buildCardRow('Popular TV Shows 📺', tvFiltered)
   );
 }
 
