@@ -20,12 +20,6 @@
 
 const crypto = require('crypto');
 
-// Vercel needs the RAW request body (byte-for-byte) to verify the
-// signature correctly.
-module.exports.config = {
-  api: { bodyParser: false },
-};
-
 // Keep in sync with xwerse-config.js's REQUEST_PRICES and
 // api/create-request-pending.js.
 const PRICE_TO_TYPE = {
@@ -50,7 +44,7 @@ function safeEqual(a, b) {
   return crypto.timingSafeEqual(bufA, bufB);
 }
 
-module.exports = async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
@@ -210,4 +204,12 @@ module.exports = async function handler(req, res) {
     // bug on our end. Log it for us to investigate instead.
     res.status(200).json({ received: true, error: 'internal error, logged' });
   }
+}
+
+module.exports = handler;
+// Vercel needs the RAW request body (byte-for-byte) to verify the
+// signature correctly — this MUST be attached to the same function
+// object we actually export, not a discarded intermediate one.
+module.exports.config = {
+  api: { bodyParser: false },
 };
