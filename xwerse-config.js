@@ -266,7 +266,6 @@ const DB = {
       .from('requests')
       .select('*')
       .eq('user_id', uid)
-      .eq('payment_status', 'paid')
       .order('created_at', { ascending: false });
     if (error) { console.error('getUserRequests:', error); return []; }
     return data || [];
