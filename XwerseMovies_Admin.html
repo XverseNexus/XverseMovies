@@ -83,6 +83,10 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
 /* SIDEBAR */
 .sb{width:214px;background:#111;border-right:1px solid var(--border);padding:14px 0;flex-shrink:0;position:sticky;top:58px;height:calc(100vh - 58px);overflow-y:auto;scrollbar-width:none}
 .sb::-webkit-scrollbar{display:none}
+.sb-hamburger{display:none;background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer;padding:4px 8px;line-height:1}
+.sb-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:399;backdrop-filter:blur(2px)}
+.sb-backdrop.open{display:block}
+#moviesTable,#tvTable,#recentList{overflow-x:auto}
 .sblbl{font-size:.58rem;font-weight:700;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;padding:9px 16px 4px}
 .sbtn{display:flex;align-items:center;gap:9px;width:100%;background:none;border:none;border-left:2px solid transparent;color:rgba(255,255,255,.6);font-size:.82rem;font-weight:500;padding:9px 16px;cursor:pointer;font-family:'Barlow',sans-serif;text-align:left;transition:all .17s}
 .sbtn:hover{background:rgba(255,255,255,.04);color:#fff}
@@ -215,22 +219,50 @@ nav{background:#111;border-bottom:1px solid var(--border);padding:0 22px;height:
 .unavail-row{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid rgba(229,9,20,.2);border-radius:8px;padding:12px 14px;margin-bottom:8px;flex-wrap:wrap;transition:border-color .2s}
 .unavail-row.fixed{border-color:rgba(70,211,105,.3);background:rgba(70,211,105,.04)}
 .unavail-row:hover{border-color:rgba(229,9,20,.4)}
-@media(max-width:768px){.sb{display:none}.main{padding:18px 14px 40px}.fg{grid-template-columns:1fr}.fg.c3{grid-template-columns:1fr 1fr}.stats{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:768px){
+  .sb-hamburger{display:block}
+  .sb{
+    display:block;
+    position:fixed;
+    left:-260px;
+    top:58px;
+    width:240px;
+    height:calc(100vh - 58px);
+    z-index:400;
+    transition:left .22s ease;
+    box-shadow:2px 0 20px rgba(0,0,0,.5);
+  }
+  .sb.open{left:0}
+  .main{padding:18px 14px 40px}
+  .fg{grid-template-columns:1fr}
+  .fg.c3{grid-template-columns:1fr 1fr}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  nav{padding:0 12px;gap:6px}
+  .nav-r{gap:6px}
+  .badge{padding:3px 7px;font-size:.62rem}
+  .btn-view{padding:6px 10px;font-size:.72rem}
+  .logo{font-size:1.25rem}
+  .logo sub{display:none}
+}
 </style>
 </head>
 <body>
 
 <nav>
-  <div class="logo">Xwerse<span>Movies</span><sub>Admin</sub></div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="sb-hamburger" onclick="toggleSidebar()" aria-label="Menu">☰</button>
+    <div class="logo">Xwerse<span>Movies</span><sub>Admin</sub></div>
+  </div>
   <div class="nav-r">
     <span class="badge">🔐 ADMIN</span>
     <button class="btn-view" onclick="window.open('XwerseMovies_Home.html','_blank')">👁 View Site</button>
   </div>
 </nav>
+<div class="sb-backdrop" id="sbBackdrop" onclick="toggleSidebar(false)"></div>
 
 <div class="layout">
   <!-- SIDEBAR -->
-  <aside class="sb">
+  <aside class="sb" id="sbAside">
     <div class="sblbl">Dashboard</div>
     <button class="sbtn on" onclick="nav('dashboard',this)"><span class="sbico">📊</span> Dashboard</button>
     <div class="sblbl">Content</div>
@@ -704,12 +736,21 @@ window.addEventListener('load', async () => {
 // ─────────────────────────────────────────
 //  NAV
 // ─────────────────────────────────────────
+function toggleSidebar(force) {
+  const sb = document.getElementById('sbAside');
+  const bg = document.getElementById('sbBackdrop');
+  const open = typeof force === 'boolean' ? force : !sb.classList.contains('open');
+  sb.classList.toggle('open', open);
+  bg.classList.toggle('open', open);
+}
+
 function nav(name, btn) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
   document.querySelectorAll('.sbtn').forEach(b => b.classList.remove('on'));
   const p = document.getElementById('panel-' + name);
   if (p) p.classList.add('on');
   if (btn) btn.classList.add('on');
+  if (window.innerWidth <= 768) toggleSidebar(false);
   if (name === 'movies')      loadTable('movies');
   if (name === 'tv')          loadTable('tv');
   if (name === 'featured')    loadFeatured();
@@ -745,8 +786,8 @@ async function loadDashboard() {
 
   // Recent
   document.getElementById('recentList').innerHTML = allMovies.length
-    ? `<table class="tbl"><thead><tr><th></th><th>Title</th><th>Type</th><th>Quality</th><th>Status</th><th>Actions</th></tr></thead><tbody>${
-      allMovies.slice(0,8).map(m => rowHTML(m)).join('')}</tbody></table>`
+    ? `<div style="overflow-x:auto"><table class="tbl"><thead><tr><th></th><th>Title</th><th>Type</th><th>Quality</th><th>Status</th><th>Actions</th></tr></thead><tbody>${
+      allMovies.slice(0,8).map(m => rowHTML(m)).join('')}</tbody></table></div>`
     : `<div class="empty"><div class="empty-ico">📭</div><div style="font-size:.84rem;color:var(--muted)">No content yet — Add Movie pe jao</div></div>`;
 }
 
@@ -1899,16 +1940,8 @@ function escHtml(s) {
 }
 function escAttr(s) { return escHtml(s); }
 
-//  TABLE
-// ─────────────────────────────────────────
-async function loadTable(type) {
-  const el = document.getElementById(type==='movies'?'moviesTable':'tvTable');
-  el.innerHTML = `<div class="sk" style="height:300px;border-radius:6px"></div>`;
-  const { data } = await getSB().from('movies').select('*').eq('type',type==='movies'?'movie':'tv').order('created_at',{ascending:false});
-  const items = data || [];
-  if (!items.length) { el.innerHTML=`<div class="empty"><div class="empty-ico">📭</div><div style="font-size:.84rem;color:var(--muted)">No ${type} yet</div></div>`; return; }
-  el.innerHTML = `<table class="tbl"><thead><tr><th></th><th>Title</th><th>Year</th><th>Rating</th><th>Quality</th><th>Language</th><th>Status</th><th>Actions</th></tr></thead><tbody>${items.map(m=>rowHTML(m)).join('')}</tbody></table>`;
-}
+// (loadTable is defined further below, near the export functions —
+//  see "UPDATE COUNTS" section boundary)
 
 // Detect embed source string from URL
 function detectEmbedSource(url) {
@@ -2420,6 +2453,7 @@ async function loadTable(type) {
   }
 
   el.innerHTML = `
+    <div style="overflow-x:auto">
     <table class="tbl">
       <thead>
         <tr>
@@ -2436,7 +2470,8 @@ async function loadTable(type) {
       <tbody>
         ${items.map(m => rowHTML(m)).join('')}
       </tbody>
-    </table>`;
+    </table>
+    </div>`;
 }
 
 // ─────────────────────────────────────────
