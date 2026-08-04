@@ -1,11 +1,23 @@
 // api/cashfree-payment-form-webhook.js
 // Webhook for the TEMPORARY static Cashfree Payment Forms fallback (used
-// while Orders-API whitelisting is blocked — see handoff notes). Cashfree
+// while Orders-API whitelisting is blocked — see handoff notes).
+//
+// IMPORTANT (corrected after checking real webhook logs in the Cashfree
+// dashboard): Payment Forms do NOT send a special "PAYMENT_FORM_ORDER_
+// WEBHOOK" event — they send the exact same standard PG payment webhooks
+// as every other Cashfree product:
+//   type: "PAYMENT_SUCCESS_WEBHOOK" | "PAYMENT_FAILED_WEBHOOK" | "PAYMENT_USER_DROPPED_WEBHOOK"
+// with payload shape:
+//   { data: { order: {...}, payment: {...}, customer_details: {...} }, event_time, type }
+// (customer_details is a TOP-LEVEL sibling of order/payment, not nested
+// inside order — an earlier version of this file had that wrong.)
+// Reference: https://www.cashfree.com/docs/api-reference/payments/latest/payments/webhooks
+//
 // Payment Forms don't let us attach our own order_tags/reference the way
 // the Orders API does, so we can't match a webhook to a `requests` row by
 // ID directly. Instead we correlate by:
 //
-//   (customer_email + order_amount → request_type + payment_status='pending',
+//   (customer_email + payment_amount → request_type + payment_status='pending',
 //    most recently created)
 //
 // This relies on the user paying with the SAME email they used to log
@@ -14,9 +26,9 @@
 // naturally idempotent if Cashfree retries the webhook.
 //
 // Configure in Cashfree Dashboard → Developers → Webhooks, subscribed to
-// the "Payment Forms" → payment_form_order_webhook event, pointing at:
+// PAYMENT_SUCCESS_WEBHOOK, PAYMENT_FAILED_WEBHOOK, and
+// PAYMENT_USER_DROPPED_WEBHOOK, pointing at:
 //   https://xwerse-movies.vercel.app/api/cashfree-payment-form-webhook
-// (set this on ALL THREE static forms — MovieRequest/SeasonRequest/SeriesRequest)
 
 const crypto = require('crypto');
 
@@ -45,6 +57,8 @@ function safeEqual(a, b) {
 }
 
 async function handler(req, res) {
+  console.log('cashfree-payment-form-webhook: invoked', { method: req.method });
+
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
@@ -55,7 +69,9 @@ async function handler(req, res) {
   const SERVICE_ROLE_KEY    = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!CASHFREE_SECRET_KEY || !SUPABASE_URL || !SERVICE_ROLE_KEY) {
-    console.error('cashfree-payment-form-webhook: missing environment variables');
+    console.error('cashfree-payment-form-webhook: missing environment variables', {
+      hasSecret: !!CASHFREE_SECRET_KEY, hasUrl: !!SUPABASE_URL, hasServiceKey: !!SERVICE_ROLE_KEY,
+    });
     res.status(500).json({ error: 'Server is not configured correctly' });
     return;
   }
@@ -64,15 +80,21 @@ async function handler(req, res) {
   try {
     rawBody = await getRawBody(req);
   } catch (err) {
+    console.error('cashfree-payment-form-webhook: failed to read raw body', err);
     res.status(400).json({ error: 'Could not read request body' });
     return;
   }
+  console.log('cashfree-payment-form-webhook: raw body length', rawBody.length);
+  if (!rawBody.length) {
+    console.error('cashfree-payment-form-webhook: raw body is EMPTY — bodyParser was likely not disabled correctly, or req stream was already consumed');
+  }
 
-  // ── Verify signature (same scheme as the Orders API webhook:
-  //    HMAC-SHA256(timestamp + rawBody), base64) ─────────────
+  // ── Verify signature: HMAC-SHA256(timestamp + rawBody), base64 ──
   const timestamp = req.headers['x-webhook-timestamp'];
   const signature = req.headers['x-webhook-signature'];
+  console.log('cashfree-payment-form-webhook: headers present?', { hasTimestamp: !!timestamp, hasSignature: !!signature });
   if (!timestamp || !signature) {
+    console.error('cashfree-payment-form-webhook: missing signature headers', { headerKeys: Object.keys(req.headers) });
     res.status(401).json({ error: 'Missing signature headers' });
     return;
   }
@@ -83,53 +105,81 @@ async function handler(req, res) {
     .digest('base64');
 
   if (!safeEqual(expectedSignature, signature)) {
-    console.error('cashfree-payment-form-webhook: signature mismatch — rejecting');
+    console.error('cashfree-payment-form-webhook: signature mismatch — rejecting', {
+      expectedLen: expectedSignature.length, receivedLen: signature.length,
+    });
     res.status(401).json({ error: 'Invalid signature' });
     return;
   }
+  console.log('cashfree-payment-form-webhook: signature verified OK');
 
   // ── Parse payload ──────────────────────────────────────
   let body;
   try {
     body = JSON.parse(rawBody);
   } catch (err) {
+    console.error('cashfree-payment-form-webhook: invalid JSON in body', { rawBodyPreview: rawBody.slice(0, 200) });
     res.status(400).json({ error: 'Invalid JSON' });
     return;
   }
+  console.log('cashfree-payment-form-webhook: payload type', body.type);
 
-  if (body.type !== 'PAYMENT_FORM_ORDER_WEBHOOK') {
-    // Not a payment-forms event we care about — ack and ignore.
+  const VALID_TYPES = ['PAYMENT_SUCCESS_WEBHOOK', 'PAYMENT_FAILED_WEBHOOK', 'PAYMENT_USER_DROPPED_WEBHOOK'];
+  if (!VALID_TYPES.includes(body.type)) {
+    // Not a payment event we care about (e.g. refund/dispute webhooks if
+    // ever subscribed by mistake) — ack and ignore.
+    console.log('cashfree-payment-form-webhook: ignoring non-matching event type', body.type);
     res.status(200).json({ received: true, note: 'ignored event type' });
     return;
   }
 
-  const order           = body.data?.order || {};
-  const customerDetails = order.customer_details || {};
-  const orderStatus     = order.order_status; // 'PAID' | 'FAILED' | 'EXPIRED' | 'CANCELLED' | ...
-  const orderAmount     = Number(order.order_amount);
-  const cfOrderId        = order.order_id || null;
+  const payment         = body.data?.payment || {};
+  const orderInfo        = body.data?.order || {};
+  const customerDetails = body.data?.customer_details || {}; // top-level under data, NOT nested in order
+  const paymentStatus   = payment.payment_status; // 'SUCCESS' | 'FAILED' | 'USER_DROPPED'
+  const paymentAmount   = Number(payment.payment_amount ?? orderInfo.order_amount);
+  const cfPaymentId     = payment.cf_payment_id || null;
   const customerEmail   = (customerDetails.customer_email || '').trim();
 
-  const requestType = PRICE_TO_TYPE[orderAmount];
+  const requestType = PRICE_TO_TYPE[paymentAmount] || (() => {
+    // Fallback: tolerate tiny rounding/fee differences (e.g. 9.02 instead
+    // of 9) by matching to the closest known price within ₹2.
+    const closest = Object.keys(PRICE_TO_TYPE)
+      .map(Number)
+      .find(p => Math.abs(p - paymentAmount) <= 2);
+    if (closest) {
+      console.log('cashfree-payment-form-webhook: exact price match failed, used tolerant fallback', { paymentAmount, matchedPrice: closest });
+      return PRICE_TO_TYPE[closest];
+    }
+    return undefined;
+  })();
+  // The DB stores our canonical price (9/29/59), not whatever Cashfree
+  // actually charged (which could differ slightly with fees/rounding) —
+  // so look up the canonical price to query by, not the raw paymentAmount.
+  const dbPrice = requestType
+    ? Number(Object.keys(PRICE_TO_TYPE).find(p => PRICE_TO_TYPE[p] === requestType))
+    : null;
+  console.log('cashfree-payment-form-webhook: parsed payment', {
+    paymentStatus, paymentAmount, requestType, dbPrice, customerEmail, cfPaymentId,
+  });
 
   if (!customerEmail || !requestType) {
     // Can't correlate this to a request — ack so Cashfree stops retrying,
     // but log it since it means either a price mismatch or a non-request
     // form got wired to this webhook by mistake.
     console.error('cashfree-payment-form-webhook: could not correlate', {
-      customerEmail, orderAmount, cfOrderId,
+      customerEmail, paymentAmount, cfPaymentId,
     });
     res.status(200).json({ received: true, note: 'could not correlate to a request' });
     return;
   }
 
-  const FAILURE_STATUSES = ['FAILED', 'EXPIRED', 'CANCELLED', 'USER_DROPPED'];
-  const isSuccess = orderStatus === 'PAID';
-  const isFailure = FAILURE_STATUSES.includes(orderStatus);
+  const isSuccess = paymentStatus === 'SUCCESS';
+  const isFailure = paymentStatus === 'FAILED' || paymentStatus === 'USER_DROPPED';
 
   if (!isSuccess && !isFailure) {
-    // Some in-between status (e.g. ACTIVE) — nothing to update yet.
-    res.status(200).json({ received: true, note: `ignored status ${orderStatus}` });
+    // Shouldn't happen given VALID_TYPES check above, but stay defensive.
+    res.status(200).json({ received: true, note: `ignored payment_status ${paymentStatus}` });
     return;
   }
 
@@ -145,7 +195,7 @@ async function handler(req, res) {
     // idempotent against Cashfree webhook retries.
     const findUrl = `${SUPABASE_URL}/rest/v1/requests`
       + `?user_email=eq.${encodeURIComponent(customerEmail)}`
-      + `&price=eq.${orderAmount}`
+      + `&price=eq.${dbPrice}`
       + `&payment_status=eq.pending`
       + `&order=created_at.desc`
       + `&limit=1&select=*`;
@@ -153,13 +203,16 @@ async function handler(req, res) {
     const getRes = await fetch(findUrl, { headers: restHeaders });
     const rows = await getRes.json();
     const row = Array.isArray(rows) ? rows[0] : null;
+    console.log('cashfree-payment-form-webhook: correlation query result', {
+      findUrl, matchedCount: Array.isArray(rows) ? rows.length : 'ERROR', matchedId: row?.id,
+    });
 
     if (!row) {
       // No matching pending row — most likely the user paid with a
       // different email than their site login. Log for manual admin
       // reconciliation rather than silently dropping the payment.
       console.error('cashfree-payment-form-webhook: no matching pending request', {
-        customerEmail, orderAmount, requestType, cfOrderId,
+        customerEmail, paymentAmount, requestType, cfPaymentId,
       });
       res.status(200).json({ received: true, note: 'no matching pending request found' });
       return;
@@ -172,7 +225,7 @@ async function handler(req, res) {
       headers: restHeaders,
       body: JSON.stringify({
         payment_status: newStatus,
-        cashfree_payment_id: cfOrderId,
+        cashfree_payment_id: cfPaymentId,
       }),
     });
     if (!patchRes.ok) {
